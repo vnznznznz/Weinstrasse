@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Literal
 
@@ -29,7 +29,7 @@ STANDARD_VOLUMEN_CL = Decimal("75")
 # ---------------------------------------------------------------------------
 
 
-class Eingangstyp(str, Enum):
+class Eingangstyp(StrEnum):
     """Die drei Eingangsarten aus der Spezifikation."""
 
     KUNDENBESTELLUNG_PDF = "A"  # Text-PDF mit Kundenbestellung
@@ -37,20 +37,20 @@ class Eingangstyp(str, Enum):
     PREISLISTE_SCAN = "C"  # Eingescannte Preisliste mit handschriftlichen Mengen
 
 
-class Extraktionsmethode(str, Enum):
+class Extraktionsmethode(StrEnum):
     PDFPLUMBER = "pdfplumber"
     CLAUDE_VISION = "claude_vision"
     EMAIL = "email"
     MANUELL = "manuell"
 
 
-class Schweregrad(str, Enum):
+class Schweregrad(StrEnum):
     INFO = "info"
     WARNUNG = "warnung"  # rot markieren, Buchung trotzdem möglich nach Bestätigung
     FEHLER = "fehler"  # blockiert die Buchung bis zur Korrektur
 
 
-class Pruefcode(str, Enum):
+class Pruefcode(StrEnum):
     """Stabile Codes für Prüfhinweise (werden im Log/CSV ausgegeben)."""
 
     # Extraktion
@@ -195,7 +195,7 @@ class Lieferant(BaseModel):
     aktiv: bool = True
 
 
-class Belegart(str, Enum):
+class Belegart(StrEnum):
     AUFTRAGSBESTAETIGUNG = "AB"
     LIEFERSCHEIN = "LS"
     RECHNUNG = "RE"
@@ -220,7 +220,7 @@ class Beleg(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class MatchStatus(str, Enum):
+class MatchStatus(StrEnum):
     SICHER = "sicher"
     UNSICHER = "unsicher"  # Kandidaten vorhanden, Anwender muss wählen
     KEIN_TREFFER = "kein_treffer"
