@@ -23,3 +23,51 @@ lexware:
   screenshots_ordner: "logs/screenshots"
 # Die echten Alias-Tabellen aus dem Repo verwenden:
 alias_ordner: "../../config/aliase"
+
+# ---------------------------------------------------------------- Ausbaustufe 2
+m365:
+  backend: fake                 # graph | lokal | fake  (graph = empfohlen, braucht App-Registrierung)
+  tenant_id: null               # Directory (tenant) ID aus Entra
+  client_id: null               # Application (client) ID aus Entra
+  postfach: null                # null = angemeldeter Benutzer
+  fixtermin_datei:
+    web_url: null               # Adresszeile der Fixterminüberwachung.xlsx in SharePoint
+    lokaler_pfad: null          # alternativ: OneDrive-synchronisierter Pfad
+    blatt: "Fixterminüberwachung"
+  kontaktliste_datei:
+    web_url: null
+    lokaler_pfad: null
+  dossier_ordner:
+    web_url: null               # Ordner "vorangefertigte Dossiers"
+    lokaler_pfad: null
+
+kommunikation:
+  absender_name: ""             # erscheint in der Signatur
+  absender_email: null
+  cc_standard: []
+  entwuerfe_ordner: "logs/entwuerfe"
+
+tracking:
+  quellen: ["mail", "api", "public_tracking"]   # "portal" nur als Rückfall ergänzen
+  chrome_profil: null           # Standard: %LOCALAPPDATA%/Auftragsautomat/chrome-profil
+  sichtbar: true
+
+ueberwachung:
+  tage_voraus: 21
+  mails_rueckblick_tage: 7
+  nachfrage_lieferant_werktage: 10
+  nachfrage_spedition_werktage: 5
+  erneut_nach_werktagen: 2
+  bestaetigungen_automatisch_setzen: true
+  termine_automatisch_anpassen: false
+  bundesland: "NW"
+
+kontakte:
+  automatisch_uebernehmen: false
+  standard_spedition: "Hillebrand"
+
+dossier:
+  ordner_name: "vorangefertigte Dossiers"
+  lokaler_ordner: "logs/dossiers"
+  gesamt_pdf: false
+  verschieben_erlauben: false

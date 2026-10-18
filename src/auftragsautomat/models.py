@@ -114,6 +114,11 @@ class RohPosition(BaseModel):
     konfidenz_menge: float | None = None  # 0..1, nur bei Vision
     konfidenz_preis: float | None = None
     rohtext: str | None = None
+    # Verpackungseinheiten (LEH-Bestellungen: "570 VE à 6" -> menge = 3420 Flaschen)
+    menge_ve: Decimal | None = None  # bestellte Verpackungseinheiten laut Dokument
+    ve_inhalt: Decimal | None = None  # Flaschen je Verpackungseinheit
+    kundenartikelnummer: str | None = None  # Artikelnummer des Kunden (z. B. SPAR, Rheinberg)
+    gtin: str | None = None
 
 
 class RohBestellung(BaseModel):
@@ -133,6 +138,10 @@ class RohBestellung(BaseModel):
     hinweise: list[Pruefhinweis] = Field(default_factory=list)
     rohtext: str | None = None
     seiten: int | None = None
+    kundennummer_dokument: str | None = None  # im Dokument genannte Kundennummer ("Kd-Nr. 3441")
+    empfaenger_firma_text: str | None = None  # an welche unserer Firmen das Dokument adressiert ist
+    ladeadresse: str | None = None  # Abholadresse beim Weingut (LEH-Bestellungen)
+    lieferbedingung: str | None = None  # z. B. "Frei Haus", "ex cellar"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -183,6 +192,9 @@ class Kunde(BaseModel):
     preisgruppe: int | None = None
     matchcode: str | None = None
     aktiv: bool = True
+    email: str | None = None
+    bemerkung: str | None = None  # Lexware-Bemerkung (enthält oft Dispo-Hinweise)
+    ust_id: str | None = None
 
 
 class Lieferant(BaseModel):
@@ -191,8 +203,11 @@ class Lieferant(BaseModel):
     name: str
     name2: str | None = None
     ort: str | None = None
+    land: str | None = None
     matchcode: str | None = None
     aktiv: bool = True
+    email: str | None = None
+    bemerkung: str | None = None
 
 
 class Belegart(StrEnum):
@@ -396,3 +411,231 @@ class BuchungsErgebnis(BaseModel):
     def erfolgreich(self) -> bool:
         teile = [t for t in (self.einkauf, self.verkauf, self.lieferschein) if t is not None]
         return bool(teile) and all(t.erfolgreich for t in teile)
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Fixtermine, Kontakte, Kommunikation, Tracking, Dossiers
+# (Design: docs/AUSBAUSTUFE_2.md)
+# ---------------------------------------------------------------------------
+
+
+class Kontaktgruppe(StrEnum):
+    LIEFERANT = "lieferant"
+    SPEDITION = "spedition"
+    KUNDE = "kunde"
+    INTERN = "intern"
+
+
+class Kontakt(BaseModel):
+    """Eintrag aus der Kontaktliste (Ansprechpartner Abwicklung)."""
+
+    gruppe: Kontaktgruppe
+    firma: str  # Firmenname wie in der Kontaktliste
+    name: str | None = None
+    position: str | None = None  # z. B. "Orders", "Dispo", "Postfach – Neue Aufträge"
+    email: str | None = None
+    telefon: str | None = None
+    produkt: str | None = None  # Kunden: zuständig für dieses Produkt / diesen Lieferanten
+    spedition: str | None = None  # Kunden: Standard-Spedition
+    land: str | None = None
+    lexware_nummer: str | None = None  # zugeordnete Kunden-/Lieferantennummer
+    sprache: Literal["de", "en"] = "de"
+    anrede: str | None = None  # "Frau", "Herr", "Dear Ms", ...
+    quelle: str | None = None  # Blatt/Zeile der Kontaktliste
+
+
+class Fixtermin(BaseModel):
+    """Eine Zeile der Fixterminüberwachung (verbindlicher Liefertermin)."""
+
+    firma_id: str | None = None
+    lieferant_kurz: str
+    kunde_kurz: str
+    liefertag: date
+    auftragsdatum: date | None = None
+    verladedatum: date | None = None
+    lieferant_bestaetigt: bool = False
+    spedition_bestaetigt: bool = False
+    abgeholt: bool = False
+    bemerkung: str | None = None
+    bestellnummer: str | None = None
+    kundenbestellnummer: str | None = None
+    ab_nummer: str | None = None
+    spedition: str | None = None
+    tracking_referenz: str | None = None
+    zeile: int | None = None  # Excel-Zeile (1-basiert); None = noch nicht eingetragen
+    quelle: str | None = None
+
+
+class SendungStatus(StrEnum):
+    UNBEKANNT = "unbekannt"
+    BEAUFTRAGT = "beauftragt"
+    BESTAETIGT = "bestaetigt"
+    ABHOLUNG_GEPLANT = "abholung_geplant"
+    ABGEHOLT = "abgeholt"
+    UNTERWEGS = "unterwegs"
+    ZUSTELLUNG_GEPLANT = "zustellung_geplant"
+    ZUGESTELLT = "zugestellt"
+    VERSPAETET = "verspaetet"
+    PROBLEM = "problem"
+
+
+class Meilenstein(BaseModel):
+    code: str
+    text: str
+    zeitpunkt: datetime | None = None
+    ort: str | None = None
+    geplant: bool = False  # True = geplanter, False = eingetretener Meilenstein
+
+
+class Sendung(BaseModel):
+    spedition: str
+    referenz: str | None = None  # Referenz der Spedition (Hillebrand "Our Ref")
+    kundenreferenz: str | None = None  # unsere Referenz ("Your Ref")
+    status: SendungStatus = SendungStatus.UNBEKANNT
+    puenktlich: bool | None = None
+    geplante_abholung: date | None = None
+    geplante_zustellung: date | None = None
+    letzte_pruefung: datetime | None = None
+    quelle: Literal["mail", "api", "public_tracking", "portal", "manuell", "keine"] = "keine"
+    meilensteine: list[Meilenstein] = Field(default_factory=list)
+    hinweise: list[str] = Field(default_factory=list)
+
+
+class EntwurfTyp(StrEnum):
+    BESTELLUNG_WEINGUT = "bestellung_weingut"
+    AUFTRAGSKOPIE_KUNDE = "auftragskopie_kunde"  # nie "Auftragsbestätigung" (Haftung)
+    SPEDITION_AUFTRAG = "spedition_auftrag"
+    LIEFERSCHEIN = "lieferschein"
+    NACHFRAGE_LIEFERANT = "nachfrage_lieferant"
+    NACHFRAGE_SPEDITION = "nachfrage_spedition"
+    ERINNERUNG_INTERN = "erinnerung_intern"
+
+
+class EmailEntwurf(BaseModel):
+    """Ein E-Mail-Entwurf. Wird gespeichert, NIE gesendet."""
+
+    typ: EntwurfTyp
+    an: list[str]
+    betreff: str
+    text_html: str
+    text_plain: str
+    cc: list[str] = Field(default_factory=list)
+    anhaenge: list[Path] = Field(default_factory=list)
+    absender: str | None = None
+    bezug: dict[str, str] = Field(default_factory=dict)  # bestellnummer, kunde, lieferant, referenz
+    erstellt_am: datetime | None = None
+    speicherort: str | None = None  # Graph-Nachrichten-ID, Outlook-EntryID oder .eml-Pfad
+    hinweise: list[str] = Field(default_factory=list)
+
+
+class Ereignistyp(StrEnum):
+    SPEDITION_BESTAETIGUNG = "spedition_bestaetigung"
+    LIEFERANT_BESTAETIGUNG = "lieferant_bestaetigung"
+    TERMINAENDERUNG = "terminaenderung"
+    ABHOLUNG = "abholung"
+    ZUSTELLUNG = "zustellung"
+    KONTAKTAENDERUNG = "kontaktaenderung"
+    SONSTIGES = "sonstiges"
+
+
+class MailEreignis(BaseModel):
+    """Aus einer eingehenden Mail erkanntes Ereignis."""
+
+    typ: Ereignistyp
+    absender: str
+    betreff: str
+    empfangen: datetime
+    referenz: str | None = None  # z. B. Hillebrand "Our Ref"
+    kundenreferenz: str | None = None  # z. B. "Your Ref" / Bestellnummer
+    neues_datum: date | None = None
+    text_auszug: str | None = None
+    mail_id: str | None = None
+    konfidenz: float = 1.0
+
+
+class Terminaenderung(BaseModel):
+    """Vorschlag, einen Fixtermin zu verschieben (Übernahme erst nach Freigabe)."""
+
+    fixtermin: Fixtermin
+    neues_datum: date
+    grund: str
+    quelle: MailEreignis | None = None
+    uebernommen: bool = False
+
+
+class KontaktAenderung(BaseModel):
+    """Vorschlag, einen Kontakt zu ändern (Übernahme erst nach Freigabe)."""
+
+    kontakt: Kontakt | None = None
+    feld: str
+    alt: str | None = None
+    neu: str
+    quelle: str
+    uebernommen: bool = False
+
+
+DossierDateityp = Literal[
+    "deckblatt",
+    "kundenbestellung",
+    "bestellung",
+    "auftragskopie",
+    "speditionsauftrag",
+    "lieferschein",
+    "mail",
+    "fixtermin",
+    "index",
+    "gesamt_pdf",
+    "sonstiges",
+]
+
+
+class DossierDatei(BaseModel):
+    name: str
+    typ: DossierDateityp
+    quelle: str | None = None
+    hinzugefuegt: datetime | None = None
+    groesse: int | None = None
+
+
+class Dossier(BaseModel):
+    """Vorgangsmappe im Ordner "vorangefertigte Dossiers" (ein Unterordner je Auftrag)."""
+
+    name: str
+    ordner: str  # lokaler Pfad oder OneDrive-/SharePoint-Pfad
+    firma_id: str | None = None
+    kunde_kurz: str | None = None
+    lieferant_kurz: str | None = None
+    bestellnummer: str | None = None
+    kundenbestellnummer: str | None = None
+    ab_nummer: str | None = None
+    lieferschein_nummer: str | None = None
+    fixtermin: date | None = None
+    spedition: str | None = None
+    tracking_referenz: str | None = None
+    dateien: list[DossierDatei] = Field(default_factory=list)
+    checkliste: dict[str, bool] = Field(default_factory=dict)
+    offene_punkte: list[str] = Field(default_factory=list)
+    vorgeschlagener_zielordner: str | None = None
+    erstellt_am: datetime | None = None
+    aktualisiert_am: datetime | None = None
+
+
+Ampel = Literal["gruen", "gelb", "rot", "grau"]
+
+
+class UeberwachungsPunkt(BaseModel):
+    fixtermin: Fixtermin
+    ampel: Ampel
+    grund: str
+    aktionen: list[str] = Field(default_factory=list)
+    sendung: Sendung | None = None
+
+
+class Ueberwachungsbericht(BaseModel):
+    zeitpunkt: datetime
+    zeitraum_bis: date
+    punkte: list[UeberwachungsPunkt] = Field(default_factory=list)
+    entwuerfe: list[EmailEntwurf] = Field(default_factory=list)
+    terminaenderungen: list[Terminaenderung] = Field(default_factory=list)
+    kontaktaenderungen: list[KontaktAenderung] = Field(default_factory=list)
+    fehler: list[str] = Field(default_factory=list)
