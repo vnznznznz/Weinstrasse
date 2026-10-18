@@ -92,13 +92,13 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
 
 ### `stammdaten/`
 * `basis.py` (vorhanden): Protocol `StammdatenQuelle`, Klasse `Stammdaten` (Indizes).
-* `csv_quelle.py`: `CsvQuelle(firma_id, konfig: CsvQuellen)`. Spalten laut Fixtures
+* `csv_quelle.py`: `CsvStammdatenQuelle(firma_id, konfig: CsvQuellen)`. Spalten laut Fixtures
   (`tests/fixtures/stammdaten/*/*.csv`, Trennzeichen `;`, cp1252, deutsche Dezimalzahlen,
   `aktiv`/`holzkiste` als 0/1). Spaltenzuordnung über `konfig.spalten_*` (unser Name ->
   Exportspalte), unbekannte Spalten ignorieren, fehlende Pflichtspalten -> klare Fehlermeldung.
   `volumen_cl` leer -> aus der Bezeichnung ableiten (`matching.volumen.parse_volumen_cl`),
   `holzkiste` leer -> `matching.volumen.ist_holzkiste(bezeichnung)`.
-* `odbc_quelle.py`: `OdbcQuelle(firma_id, konfig: OdbcQuelle)`. `pyodbc` nur bei Bedarf
+* `odbc_quelle.py`: `OdbcStammdatenQuelle(firma_id, konfig: config.OdbcQuelle)`. `pyodbc` nur bei Bedarf
   importieren (Linux-Tests ohne pyodbc müssen laufen). Ausschließlich SELECT; die SQL kommt
   aus der Konfiguration (`sql_artikel` usw.), mit dokumentierten Standardabfragen als
   Vorschlag (`# TODO-LEXWARE`). Verbindung mit `readonly=True` öffnen, `autocommit=False`,

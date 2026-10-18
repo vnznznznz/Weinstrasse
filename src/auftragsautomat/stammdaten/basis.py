@@ -1,6 +1,6 @@
 """Schnittstelle für Stammdatenquellen (Lexware, NUR LESEND).
 
-Implementierungen: csv_quelle.CsvQuelle, odbc_quelle.OdbcQuelle.
+Implementierungen: csv_quelle.CsvStammdatenQuelle, odbc_quelle.OdbcStammdatenQuelle.
 """
 
 from __future__ import annotations
