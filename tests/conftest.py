@@ -31,6 +31,7 @@ def settings(tmp_path: Path) -> Settings:
     s.log_ordner = tmp_path / "logs"
     s.xml_ausgabe_ordner = tmp_path / "logs" / "opentrans"
     s.lexware.screenshots_ordner = tmp_path / "logs" / "screenshots"
+    s.meldungen.ausgabe_ordner = tmp_path / "meldungen"
     for firma in s.firmen.values():
         if firma.opentrans.import_ordner is not None:
             firma.opentrans.import_ordner = tmp_path / "lexware_import" / firma.id

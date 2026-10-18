@@ -1,0 +1,18 @@
+Belegart;Belegnummer;Belegdatum;Lieferdatum;Partnernummer;Partnername;Land;UStIdNr;Artikelnummer;Bezeichnung;Menge;Netto;Fracht
+ER;ER-2026-0901;05.10.2026;02.10.2026;72;Cide srl;IT;IT01234567890;1643;Villa Armellina Gloria Secco Frizzante 0,75 l;600;2520,00;0
+ER;ER-2026-0901;05.10.2026;02.10.2026;72;Cide srl;IT;IT01234567890;2001;Prosecco DOC Spumante 0,75 l;240;1200,00;0
+ER;ER-2026-0902;12.10.2026;;87;Cantine Colosi;IT;IT09876543210;3001;Colosi Nero d'Avola 2022 0,75 l;300;1500,40;0
+ER;ER-2026-0902;12.10.2026;;87;Cantine Colosi;IT;IT09876543210;2002;Prosecco leicht 0,75 l;60;240,00;0
+ER;ER-2026-0903;20.10.2026;;138;Bollina srl;IT;;3002;Gavi di Gavi 2023 Karton 6;50;1800,00;90,00
+ER;ER-2026-0904;22.10.2026;;150;Weingut Beispiel;DE;DE123456789;3001;Colosi Nero d'Avola 2022 0,75 l;12;60,00;0
+ER;ER-2026-0905;25.10.2026;;160;Domaine Exemple;FR;FR12345678901;4001;Franzose 0,75 l;120;720,30;0
+ER;ER-2026-0906;28.10.2026;;170;Schweizer Kellerei;CH;;3001;Colosi Nero d'Avola 2022 0,75 l;12;60,00;0
+ER;ER-2026-0907;29.10.2026;;87;Cantine Colosi;IT;IT09876543210;6001;Unbekannter Artikel;10;50,00;0
+EG;EG-2026-0010;30.10.2026;;72;Cide srl;IT;IT01234567890;1643;Rücksendung Bruch;12;50,40;0
+RE;RE-2026-1001;06.10.2026;;3441;Hegmann Weinmarkt;DE;;1643;Villa Armellina Gloria Secco Frizzante 0,75 l;120;828,00;0
+RE;RE-2026-1001;06.10.2026;;3441;Hegmann Weinmarkt;DE;;2001;Prosecco DOC Spumante 0,75 l;60;414,00;0
+RE;RE-2026-1002;15.10.2026;;1392;Weinhaus Menrath;DE;;3001;Colosi Nero d'Avola 2022 0,75 l;72;500,40;0
+RE;RE-2026-1003;18.10.2026;;9001;Wijnhandel Amsterdam;NL;NL123456789B01;3001;Colosi Nero d'Avola 2022 0,75 l;120;834,00;0
+RE;RE-2026-1004;19.10.2026;;9002;Vinothek Wien;AT;;3002;Gavi di Gavi 2023 Karton 6;10;500,00;0
+GS;GS-2026-0003;21.10.2026;;1392;Weinhaus Menrath;DE;;3001;Gutschrift Bruch;6;41,70;0
+RE;RE-2026-1005;03.11.2026;;1392;Weinhaus Menrath;DE;;3001;Colosi Nero d'Avola – gehört in den November;24;166,80;0

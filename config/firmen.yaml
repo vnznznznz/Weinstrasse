@@ -28,6 +28,35 @@ firmen:
       lizenziert: null                 # noch zu prüfen
     belegfelder_standard:
       spedition: ""
+    meldungen:                           # Intrastat / Schaumweinsteuer / Verpackung (siehe docs/MELDUNGEN.md)
+      aktiv: true
+      intrastat:
+        bundesland: "05"                 # Bestimmungsbundesland (Sitz/Lager): 05 = Nordrhein-Westfalen – prüfen
+        ustid: null                      # USt-IdNr. der Firma
+        materialnummer_eingang: null     # Destatis-Materialnummer (steht im IDEV-Anschreiben)
+        materialnummer_versendung: null
+        meldepflichtig_eingang: null     # true/false nach Prüfung der Schwelle (3 Mio. EUR Eingang)
+        meldepflichtig_versendung: null  # Schwelle 1 Mio. EUR Versendung
+        art_des_geschaefts_standard: "11"
+        verkehrszweig_standard: "3"      # Straßenverkehr (LKW)
+        statistischer_wert_angeben: true
+        frachtzuschlag_prozent: 0        # z. B. 3 = Fracht bis deutsche Grenze pauschal 3 % des Rechnungsbetrags
+      schaumwein:
+        status: keiner                   # keiner | zertifizierter_empfaenger | registrierter_empfaenger | steuerlager
+        verbrauchsteuernummer: null      # Erlaubnis-/Verbrauchsteuernummer vom Hauptzollamt
+        hauptzollamt: null               # z. B. "Duisburg"
+        steuerentstehung: eingang        # eingang (Empfänger) | entnahme (Steuerlager)
+      verpackung:
+        systembetreiber: null            # z. B. "Der Grüne Punkt – Duales System Deutschland GmbH"
+        vertragsnummer: null
+        lucid_registrierungsnummer: null # DE... aus dem Verpackungsregister LUCID
+        meldeturnus: jaehrlich           # monatlich | quartal | halbjahr | jaehrlich (laut Systembeteiligungsvertrag)
+        nur_inland: true
+      bewegungen:
+        muster: "daten/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"   # oder .xlsx
+        trennzeichen: ";"
+        kodierung: "cp1252"
+        spalten: {}                      # unser Feldname -> Spaltenname im Lexware-Export, z. B. {belegnummer: "Belegnummer"}
 
   wik_fh_seh:
     name: "Wein-Import-Kreis FH & SEH"
@@ -46,6 +75,35 @@ firmen:
       lizenziert: null
     belegfelder_standard:
       spedition: ""
+    meldungen:                           # Intrastat / Schaumweinsteuer / Verpackung (siehe docs/MELDUNGEN.md)
+      aktiv: true
+      intrastat:
+        bundesland: "05"                 # Bestimmungsbundesland (Sitz/Lager): 05 = Nordrhein-Westfalen – prüfen
+        ustid: null                      # USt-IdNr. der Firma
+        materialnummer_eingang: null     # Destatis-Materialnummer (steht im IDEV-Anschreiben)
+        materialnummer_versendung: null
+        meldepflichtig_eingang: null     # true/false nach Prüfung der Schwelle (3 Mio. EUR Eingang)
+        meldepflichtig_versendung: null  # Schwelle 1 Mio. EUR Versendung
+        art_des_geschaefts_standard: "11"
+        verkehrszweig_standard: "3"      # Straßenverkehr (LKW)
+        statistischer_wert_angeben: true
+        frachtzuschlag_prozent: 0        # z. B. 3 = Fracht bis deutsche Grenze pauschal 3 % des Rechnungsbetrags
+      schaumwein:
+        status: keiner                   # keiner | zertifizierter_empfaenger | registrierter_empfaenger | steuerlager
+        verbrauchsteuernummer: null      # Erlaubnis-/Verbrauchsteuernummer vom Hauptzollamt
+        hauptzollamt: null               # z. B. "Duisburg"
+        steuerentstehung: eingang        # eingang (Empfänger) | entnahme (Steuerlager)
+      verpackung:
+        systembetreiber: null            # z. B. "Der Grüne Punkt – Duales System Deutschland GmbH"
+        vertragsnummer: null
+        lucid_registrierungsnummer: null # DE... aus dem Verpackungsregister LUCID
+        meldeturnus: jaehrlich           # monatlich | quartal | halbjahr | jaehrlich (laut Systembeteiligungsvertrag)
+        nur_inland: true
+      bewegungen:
+        muster: "daten/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"   # oder .xlsx
+        trennzeichen: ";"
+        kodierung: "cp1252"
+        spalten: {}                      # unser Feldname -> Spaltenname im Lexware-Export, z. B. {belegnummer: "Belegnummer"}
 
   wik_leh:
     name: "Wein-Import-Kreis LEH"
@@ -64,6 +122,35 @@ firmen:
       lizenziert: null
     belegfelder_standard:
       spedition: ""
+    meldungen:                           # Intrastat / Schaumweinsteuer / Verpackung (siehe docs/MELDUNGEN.md)
+      aktiv: true
+      intrastat:
+        bundesland: "05"                 # Bestimmungsbundesland (Sitz/Lager): 05 = Nordrhein-Westfalen – prüfen
+        ustid: null                      # USt-IdNr. der Firma
+        materialnummer_eingang: null     # Destatis-Materialnummer (steht im IDEV-Anschreiben)
+        materialnummer_versendung: null
+        meldepflichtig_eingang: null     # true/false nach Prüfung der Schwelle (3 Mio. EUR Eingang)
+        meldepflichtig_versendung: null  # Schwelle 1 Mio. EUR Versendung
+        art_des_geschaefts_standard: "11"
+        verkehrszweig_standard: "3"      # Straßenverkehr (LKW)
+        statistischer_wert_angeben: true
+        frachtzuschlag_prozent: 0        # z. B. 3 = Fracht bis deutsche Grenze pauschal 3 % des Rechnungsbetrags
+      schaumwein:
+        status: keiner                   # keiner | zertifizierter_empfaenger | registrierter_empfaenger | steuerlager
+        verbrauchsteuernummer: null      # Erlaubnis-/Verbrauchsteuernummer vom Hauptzollamt
+        hauptzollamt: null               # z. B. "Duisburg"
+        steuerentstehung: eingang        # eingang (Empfänger) | entnahme (Steuerlager)
+      verpackung:
+        systembetreiber: null            # z. B. "Der Grüne Punkt – Duales System Deutschland GmbH"
+        vertragsnummer: null
+        lucid_registrierungsnummer: null # DE... aus dem Verpackungsregister LUCID
+        meldeturnus: jaehrlich           # monatlich | quartal | halbjahr | jaehrlich (laut Systembeteiligungsvertrag)
+        nur_inland: true
+      bewegungen:
+        muster: "daten/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"   # oder .xlsx
+        trennzeichen: ";"
+        kodierung: "cp1252"
+        spalten: {}                      # unser Feldname -> Spaltenname im Lexware-Export, z. B. {belegnummer: "Belegnummer"}
 
   woe_leh:
     name: "Wine-of-Excellence LEH"
@@ -82,3 +169,32 @@ firmen:
       lizenziert: null
     belegfelder_standard:
       spedition: ""
+    meldungen:                           # Intrastat / Schaumweinsteuer / Verpackung (siehe docs/MELDUNGEN.md)
+      aktiv: true
+      intrastat:
+        bundesland: "05"                 # Bestimmungsbundesland (Sitz/Lager): 05 = Nordrhein-Westfalen – prüfen
+        ustid: null                      # USt-IdNr. der Firma
+        materialnummer_eingang: null     # Destatis-Materialnummer (steht im IDEV-Anschreiben)
+        materialnummer_versendung: null
+        meldepflichtig_eingang: null     # true/false nach Prüfung der Schwelle (3 Mio. EUR Eingang)
+        meldepflichtig_versendung: null  # Schwelle 1 Mio. EUR Versendung
+        art_des_geschaefts_standard: "11"
+        verkehrszweig_standard: "3"      # Straßenverkehr (LKW)
+        statistischer_wert_angeben: true
+        frachtzuschlag_prozent: 0        # z. B. 3 = Fracht bis deutsche Grenze pauschal 3 % des Rechnungsbetrags
+      schaumwein:
+        status: keiner                   # keiner | zertifizierter_empfaenger | registrierter_empfaenger | steuerlager
+        verbrauchsteuernummer: null      # Erlaubnis-/Verbrauchsteuernummer vom Hauptzollamt
+        hauptzollamt: null               # z. B. "Duisburg"
+        steuerentstehung: eingang        # eingang (Empfänger) | entnahme (Steuerlager)
+      verpackung:
+        systembetreiber: null            # z. B. "Der Grüne Punkt – Duales System Deutschland GmbH"
+        vertragsnummer: null
+        lucid_registrierungsnummer: null # DE... aus dem Verpackungsregister LUCID
+        meldeturnus: jaehrlich           # monatlich | quartal | halbjahr | jaehrlich (laut Systembeteiligungsvertrag)
+        nur_inland: true
+      bewegungen:
+        muster: "daten/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"   # oder .xlsx
+        trennzeichen: ";"
+        kodierung: "cp1252"
+        spalten: {}                      # unser Feldname -> Spaltenname im Lexware-Export, z. B. {belegnummer: "Belegnummer"}

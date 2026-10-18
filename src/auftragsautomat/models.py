@@ -78,6 +78,12 @@ class Pruefcode(StrEnum):
     BELEGFELD_FEHLT = "BELEGFELD_FEHLT"  # Spedition / Weingut / Shipment / Kunde
     # Lexware
     LEXWARE = "LEXWARE"
+    # Meldungen (Intrastat / Schaumweinsteuer / Verpackung)
+    MELDEDATEN_FEHLEN = "MELDEDATEN_FEHLEN"  # Artikel ohne Warennummer, Volumen, Alkohol, Verpackungsprofil
+    MELDUNG_SCHWELLE = "MELDUNG_SCHWELLE"  # Intrastat-Schwelle / Meldepflicht ungeklärt
+    MELDUNG_GUTSCHRIFT = "MELDUNG_GUTSCHRIFT"  # Rücksendung/Gutschrift: gesondert prüfen (AdG 21)
+    MELDUNG_PRUEFEN = "MELDUNG_PRUEFEN"  # fachlich zu prüfender Einzelfall
+    MELDUNG_FRIST = "MELDUNG_FRIST"  # Frist überschritten oder nah
 
 
 class Pruefhinweis(BaseModel):

@@ -64,6 +64,73 @@ class OpenTransKonfig(BaseModel):
     mwst_satz: Decimal = Decimal("19")
 
 
+class SchaumweinKonfig(BaseModel):
+    """Verbrauchsteuerlicher Status der Firma (vom Hauptzollamt erteilt)."""
+
+    status: Literal["keiner", "zertifizierter_empfaenger", "registrierter_empfaenger", "steuerlager"] = (
+        "keiner"
+    )
+    verbrauchsteuernummer: str | None = None  # z. B. DE 1234567 (Erlaubnis), auf dem Erlaubnisschein
+    hauptzollamt: str | None = None
+    # "eingang": Steuer entsteht mit Empfang (zertifizierter/registrierter Empfänger)
+    # "entnahme": Steuer entsteht mit Entnahme aus dem Steuerlager (= Verkauf/Lieferung)
+    steuerentstehung: Literal["eingang", "entnahme"] = "eingang"
+
+
+class VerpackungKonfig(BaseModel):
+    systembetreiber: str | None = None  # z. B. "Der Grüne Punkt – Duales System Deutschland GmbH"
+    vertragsnummer: str | None = None
+    lucid_registrierungsnummer: str | None = None  # DE... aus LUCID
+    meldeturnus: Literal["monatlich", "quartal", "halbjahr", "jaehrlich"] = "jaehrlich"
+    # Nur Lieferungen an deutsche Kunden gelten als Inverkehrbringen in Deutschland.
+    # Lieferungen an Endverbraucher (B2C) sind immer systembeteiligungspflichtig; bei
+    # Lieferungen an den Handel entscheidet das Verpackungsprofil je Komponente.
+    nur_inland: bool = True
+
+
+class IntrastatKonfig(BaseModel):
+    bundesland: str = "05"  # Schlüssel laut Anhang 1 Leitfaden (05 = Nordrhein-Westfalen)
+    ustid: str | None = None
+    materialnummer_eingang: str | None = None  # Destatis-Materialnummer (Meldernummer) Eingang
+    materialnummer_versendung: str | None = None
+    meldepflichtig_eingang: bool | None = None  # None = Schwelle (3 Mio. EUR) noch nicht geprüft
+    meldepflichtig_versendung: bool | None = None  # Schwelle 1 Mio. EUR
+    art_des_geschaefts_standard: str = "11"
+    verkehrszweig_standard: str = "3"  # Straßenverkehr
+    # Statistischer Wert = frei deutsche Grenze. Bei verbrauchsteuerpflichtigen Waren immer
+    # anzugeben; wir füllen ihn standardmäßig aus Rechnungsbetrag + Frachtzuschlag.
+    statistischer_wert_angeben: bool = True
+    frachtzuschlag_prozent: Decimal = Decimal("0")  # wenn Fracht nicht separat bekannt ist
+
+
+class BewegungenExport(BaseModel):
+    """Lexware-Export der Belegpositionen eines Monats (CSV oder XLSX)."""
+
+    muster: str = "daten/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"
+    trennzeichen: str = ";"
+    kodierung: str = "cp1252"
+    spalten: dict[str, str] = Field(default_factory=dict)  # unser Feldname -> Spaltenname im Export
+    belegtyp_werte: dict[str, str] = Field(
+        default_factory=lambda: {
+            "ER": "einkauf",
+            "WE": "einkauf",
+            "BE": "einkauf",
+            "RE": "verkauf",
+            "LS": "verkauf",
+            "GS": "gutschrift_verkauf",
+            "EG": "gutschrift_einkauf",
+        }
+    )
+
+
+class FirmaMeldungen(BaseModel):
+    aktiv: bool = True
+    intrastat: IntrastatKonfig = Field(default_factory=IntrastatKonfig)
+    schaumwein: SchaumweinKonfig = Field(default_factory=SchaumweinKonfig)
+    verpackung: VerpackungKonfig = Field(default_factory=VerpackungKonfig)
+    bewegungen: BewegungenExport = Field(default_factory=BewegungenExport)
+
+
 class Firma(BaseModel):
     id: str
     name: str
@@ -73,6 +140,7 @@ class Firma(BaseModel):
     opentrans: OpenTransKonfig = Field(default_factory=OpenTransKonfig)
     belegfelder_standard: dict[str, str] = Field(default_factory=dict)  # z. B. spedition
     eingang_unterordner: str | None = None  # Eingang/<unterordner> -> Firma
+    meldungen: FirmaMeldungen = Field(default_factory=FirmaMeldungen)
 
 
 class MatchingKonfig(BaseModel):
@@ -98,6 +166,58 @@ class LexwareKonfig(BaseModel):
     screenshots_ordner: Path | None = None
 
 
+class MeldungenKonfig(BaseModel):
+    ausgabe_ordner: Path = Path("meldungen")
+    artikel_meldedaten: Path = Path("config/meldungen/artikel_meldedaten.csv")
+    verpackungen: Path = Path("config/meldungen/verpackungen.yaml")
+    warennummern: Path = Path("config/meldungen/warennummern.yaml")
+    dichte_kg_je_l: Decimal = Decimal("0.99")  # Wein, für die Eigenmasse (ohne Flasche)
+    # Steuersätze SchaumwZwStG (§ 2, § 30) in EUR je Hektoliter. TODO-ZOLL: bei Gesetzesänderung anpassen.
+    steuersaetze_eur_je_hl: dict[str, Decimal] = Field(
+        default_factory=lambda: {
+            "schaumwein_ab_6_vol": Decimal("136.00"),
+            "schaumwein_unter_6_vol": Decimal("51.00"),
+            "zwischenerzeugnis_bis_15_vol": Decimal("102.00"),
+            "zwischenerzeugnis_ueber_15_vol": Decimal("153.00"),
+            "zwischenerzeugnis_schaeumend": Decimal("136.00"),
+        }
+    )
+    intrastat_schwelle_eingang_eur: Decimal = Decimal("3000000")
+    intrastat_schwelle_versendung_eur: Decimal = Decimal("1000000")
+    # Spaltenreihenfolge der CSV-Datei für den Import ins IDEV-Formular. Semikolon, ohne Kopfzeile.
+    # TODO-DESTATIS: gegen die Musterdatei aus dem IDEV-Formular "Intrahandel" prüfen.
+    idev_spalten_eingang: list[str] = Field(
+        default_factory=lambda: [
+            "warennummer",
+            "partner_mitgliedstaat",
+            "ursprungsland",
+            "bundesland",
+            "art_des_geschaefts",
+            "verkehrszweig",
+            "eigenmasse_kg",
+            "besondere_masseinheit",
+            "rechnungsbetrag_eur",
+            "statistischer_wert_eur",
+        ]
+    )
+    idev_spalten_versendung: list[str] = Field(
+        default_factory=lambda: [
+            "warennummer",
+            "partner_mitgliedstaat",
+            "ursprungsland",
+            "bundesland",
+            "art_des_geschaefts",
+            "verkehrszweig",
+            "eigenmasse_kg",
+            "besondere_masseinheit",
+            "rechnungsbetrag_eur",
+            "statistischer_wert_eur",
+            "partner_ustid",
+        ]
+    )
+    idev_kopfzeile: bool = True
+
+
 class Settings(BaseModel):
     eingang_ordner: Path = Path("eingang")
     archiv_ordner: Path = Path("archiv")
@@ -109,6 +229,8 @@ class Settings(BaseModel):
     lexware: LexwareKonfig = Field(default_factory=LexwareKonfig)
     firmen: dict[str, Firma] = Field(default_factory=dict)
     alias_ordner: Path = Path("config/aliase")
+    meldungen: MeldungenKonfig = Field(default_factory=MeldungenKonfig)
+    projekt_stamm: Path | None = None  # wird von lade_settings gesetzt
 
     def firma(self, firma_id: str) -> Firma:
         try:
@@ -154,4 +276,7 @@ def lade_settings(stamm: Path | None = None) -> Settings:
     settings = Settings.model_validate({**roh, "firmen": firmen})
     for feld in ("eingang_ordner", "archiv_ordner", "log_ordner", "xml_ausgabe_ordner", "alias_ordner"):
         setattr(settings, feld, _absolut(getattr(settings, feld), stamm))
+    for feld in ("ausgabe_ordner", "artikel_meldedaten", "verpackungen", "warennummern"):
+        setattr(settings.meldungen, feld, _absolut(getattr(settings.meldungen, feld), stamm))
+    settings.projekt_stamm = stamm
     return settings

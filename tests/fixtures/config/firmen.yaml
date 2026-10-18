@@ -50,6 +50,41 @@ firmen:
       lizenziert: true
     belegfelder_standard:
       spedition: "Spedition Weinlogistik"
+    meldungen:
+      aktiv: true
+      intrastat:
+        bundesland: "05"
+        ustid: "DE111111111"
+        meldepflichtig_eingang: true
+        meldepflichtig_versendung: null
+        frachtzuschlag_prozent: 0
+      schaumwein:
+        status: zertifizierter_empfaenger
+        verbrauchsteuernummer: "DE 1234567"
+        hauptzollamt: "Duisburg"
+        steuerentstehung: eingang
+      verpackung:
+        systembetreiber: "Der Grüne Punkt"
+        vertragsnummer: "GP-4711"
+        lucid_registrierungsnummer: "DE1234567890123"
+        meldeturnus: monatlich
+      bewegungen:
+        muster: "meldungen/{firma}/belegpositionen_{jahr}-{monat:02d}.csv"
+        kodierung: "utf-8"
+        spalten:
+          belegtyp: "Belegart"
+          belegnummer: "Belegnummer"
+          belegdatum: "Belegdatum"
+          lieferdatum: "Lieferdatum"
+          partnernummer: "Partnernummer"
+          partnername: "Partnername"
+          partner_land: "Land"
+          partner_ustid: "UStIdNr"
+          artikelnummer: "Artikelnummer"
+          bezeichnung: "Bezeichnung"
+          menge: "Menge"
+          netto_eur: "Netto"
+          fracht_eur: "Fracht"
   woe_leh:
     name: "Wine-of-Excellence LEH"
     lexware_firmenname: "Wine-of-Excellence LEH"

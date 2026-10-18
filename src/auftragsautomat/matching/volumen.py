@@ -112,9 +112,7 @@ def parse_jahrgang(text: str | None) -> int | None:
 
 def _ohne_akzente(text: str) -> str:
     text = text.replace("ß", "ss").replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
-    return "".join(
-        c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)
-    )
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
 
 
 def normalisiere_bezeichnung(text: str | None) -> str:

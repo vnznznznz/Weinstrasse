@@ -193,6 +193,22 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
 * `dry_run.py`: `DryRunSchreiber` (für Tests/CLI): simuliert beide Belege, liefert
   Summen, schreibt die openTRANS-XML in den Ausgabeordner.
 
+### `meldungen/` (vorhanden) – siehe docs/MELDUNGEN.md
+* `modelle.py`: `Meldemonat`, `Bewegung` (Belegposition aus dem Lexware-Export, `richtung`
+  EINGANG/VERSENDUNG/INLAND/DRITTLAND), `ArtikelMeldedaten`, `VerpackungsProfil`, `Material`
+  (LUCID-Materialarten), Ergebnisse `IntrastatMeldung`, `SchaumweinsteuerMeldung`,
+  `VerpackungsMeldung`, `Frist`, `Monatsmeldungen`.
+* `quellen.py`: `lade_bewegungen(pfad, firma)` (CSV/XLSX, Spaltenzuordnung), `lade_meldedaten`,
+  `lade_verpackungsprofile`, `lade_warennummern`, `schreibe_meldedaten_vorlage`.
+* `intrastat.py`: `erstelle_intrastat(...)`, `idev_csv_zeilen(...)` (Leitfaden 2026: Rundung,
+  Zusammenfassung, Fehlanzeige, Gutschriften als Hinweis).
+* `schaumweinsteuer.py`: `steuerklasse(...)`, `erstelle_schaumweinsteuer(...)`, Fristen § 15.
+* `verpackung.py`: `erstelle_verpackung(...)` (kg je Materialart, Monat/Jahr/Hochrechnung).
+* `fristen.py`: `intrastat_frist` (10. Arbeitstag), `fristen_fuer(monat, firma)`.
+* `ausgabe.py` / `lauf.py`: `erstelle_monatsmeldungen`, `schreibe_monatsmeldungen` (CSV, XLSX,
+  Markdown-Checkliste, JSON, `logs/meldungen_protokoll.csv`).
+* CLI: `auftragsautomat meldungen erstellen|pruefen|fristen|jahr`.
+
 ### `protokoll.py`
 `schreibe_protokoll(paket, ergebnis, log_ordner) -> Path` hängt eine Zeile an
 `logs/protokoll.csv` an (Zeitpunkt, Firma, Quelldatei, Kunde, Lieferant, Beleg-Nr. Einkauf,
@@ -213,7 +229,8 @@ schreibt eine Kurz-Zusammenfassung `logs/<datei>_<zeit>.txt`.
   erstellen". Nach Buchen: Zusammenfassung + Protokollpfad. Start über
   `auftragsautomat freigabe` (ruft `streamlit run app.py`).
 
-### `cli.py` (typer)
+### `cli.py` (typer, vorhanden mit `meldungen`)
+`auftragsautomat meldungen erstellen|pruefen|fristen|jahr` (vorhanden); geplant:
 `auftragsautomat extrahieren <datei> [--json]`, `pruefen <datei> [--firma] [--json]`,
 `buchen <paket.json> [--scharf]`, `freigabe`, `watch`, `stammdaten-pruefen --firma`,
 `odbc-erkunden --firma`, `beispiel-pdfs [ordner]`. Ohne `--scharf` immer Dry Run.

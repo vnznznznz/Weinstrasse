@@ -23,3 +23,8 @@ lexware:
   screenshots_ordner: "logs/screenshots"
 # Die echten Alias-Tabellen aus dem Repo verwenden:
 alias_ordner: "../../config/aliase"
+meldungen:
+  ausgabe_ordner: "meldungen_ausgabe"
+  artikel_meldedaten: "meldungen/artikel_meldedaten.csv"
+  verpackungen: "meldungen/verpackungen.yaml"
+  warennummern: "../../config/meldungen/warennummern.yaml"

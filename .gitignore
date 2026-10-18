@@ -16,3 +16,5 @@ logs/*
 !archiv/.gitkeep
 !logs/.gitkeep
 !daten/*/.gitkeep
+# Erzeugte Meldungen (enthalten echte Belegdaten)
+/meldungen/

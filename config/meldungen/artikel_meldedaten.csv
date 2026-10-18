@@ -1,0 +1,7 @@
+firma_id;artikelnummer;warennummer;ursprungsland;volumen_cl;alkohol_vol;erzeugnisart;ueberdruck_bar;schaumweinstopfen;dichte_kg_je_l;verpackung_profil;einheit_je_position;bezeichnung_hinweis
+# Pflegedatei je Artikel (Trennzeichen ;). Zeilen mit # werden ignoriert. Beispiele (Testartikel aus wik_leh):
+# wik_leh;1643;22042109;IT;75;11,0;perlwein;2,0;0;;frizzante_75_kronkorken;1;Villa Armellina Gloria Secco Frizzante (Perlwein, nicht steuerbar)
+# wik_leh;2001;22041015;IT;75;11,0;schaumwein;5,0;1;;sekt_75_schaumweinflasche;1;Prosecco DOC Spumante
+# wik_leh;3001;22042142;IT;75;13,5;stillwein;;0;;flasche_75_naturkork_kapsel;1;Colosi Nero d'Avola
+# Spalten: erzeugnisart = stillwein|perlwein|schaumwein|zwischenerzeugnis|sonstiges; schaumweinstopfen = 0/1;
+# einheit_je_position = Flaschen je Lexware-Mengeneinheit (bei Verkauf in Kartons z. B. 6).

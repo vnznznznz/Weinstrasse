@@ -1,0 +1,66 @@
+# Verpackungsprofile: Gewicht je Komponente in Gramm pro Flasche (Verkaufseinheit).
+#
+# systembeteiligungspflichtig: true  = Verkaufs-/Umverpackung, die beim privaten Endverbraucher
+#                                      (oder vergleichbarer Anfallstelle, z. B. Gastronomie) anfällt
+#                                      -> wird an Systembetreiber + LUCID gemeldet.
+#                              false = Transportverpackung (bleibt beim Handel, § 15 VerpackG Rücknahme),
+#                                      wird nur informatorisch geführt.
+# Die Gewichte sind Erfahrungswerte und MÜSSEN einmalig mit einer Waage bzw. den
+# Verpackungsspezifikationen der Weingüter verifiziert werden (TODO-VERPACKUNG).
+#
+# Materialarten exakt wie im LUCID-Formular:
+#   Glas | PPK | Eisenmetalle | Aluminium | Getränkekartonverpackungen |
+#   Sonstige Verbundverpackungen | Kunststoffe | Sonstige Materialien
+
+profile:
+  flasche_75_naturkork_kapsel:
+    beschreibung: "0,75-l-Standardflasche, Naturkork, Kunststoffkapsel, Papieretikett, 6er-Karton"
+    komponenten:
+      - { bezeichnung: "Flasche", material: "Glas", gewicht_g: 500 }
+      - { bezeichnung: "Etikett + Rückenetikett", material: "PPK", gewicht_g: 3 }
+      - { bezeichnung: "Naturkork", material: "Sonstige Materialien", gewicht_g: 4 }
+      - { bezeichnung: "Kapsel (PVC/Polylaminat)", material: "Kunststoffe", gewicht_g: 2 }
+      - { bezeichnung: "6er-Karton anteilig (1/6 von 420 g)", material: "PPK", gewicht_g: 70, systembeteiligungspflichtig: false }
+
+  flasche_75_schraubverschluss:
+    beschreibung: "0,75-l-Flasche mit Aluminium-Schraubverschluss, Papieretikett, 6er-Karton"
+    komponenten:
+      - { bezeichnung: "Flasche", material: "Glas", gewicht_g: 480 }
+      - { bezeichnung: "Etikett + Rückenetikett", material: "PPK", gewicht_g: 3 }
+      - { bezeichnung: "Schraubverschluss", material: "Aluminium", gewicht_g: 4 }
+      - { bezeichnung: "6er-Karton anteilig", material: "PPK", gewicht_g: 70, systembeteiligungspflichtig: false }
+
+  sekt_75_schaumweinflasche:
+    beschreibung: "0,75-l-Schaumweinflasche, Schaumweinkorken mit Drahtkorb (Agraffe), Folienkapsel, 6er-Karton"
+    komponenten:
+      - { bezeichnung: "Schaumweinflasche", material: "Glas", gewicht_g: 830 }
+      - { bezeichnung: "Etikett + Rückenetikett + Halsetikett", material: "PPK", gewicht_g: 4 }
+      - { bezeichnung: "Korken", material: "Sonstige Materialien", gewicht_g: 9 }
+      - { bezeichnung: "Agraffe (Draht) + Plakette", material: "Eisenmetalle", gewicht_g: 3 }
+      - { bezeichnung: "Folienkapsel", material: "Aluminium", gewicht_g: 3 }
+      - { bezeichnung: "6er-Karton anteilig", material: "PPK", gewicht_g: 80, systembeteiligungspflichtig: false }
+
+  frizzante_75_kronkorken:
+    beschreibung: "0,75-l-Perlweinflasche (Frizzante) mit Kronkorken oder Schraubverschluss"
+    komponenten:
+      - { bezeichnung: "Flasche", material: "Glas", gewicht_g: 600 }
+      - { bezeichnung: "Etikett", material: "PPK", gewicht_g: 3 }
+      - { bezeichnung: "Kronkorken (Weißblech)", material: "Eisenmetalle", gewicht_g: 2 }
+      - { bezeichnung: "6er-Karton anteilig", material: "PPK", gewicht_g: 70, systembeteiligungspflichtig: false }
+
+  flasche_375_naturkork:
+    beschreibung: "0,375-l-Flasche, Naturkork, Kapsel"
+    komponenten:
+      - { bezeichnung: "Flasche", material: "Glas", gewicht_g: 320 }
+      - { bezeichnung: "Etikett", material: "PPK", gewicht_g: 2 }
+      - { bezeichnung: "Kork", material: "Sonstige Materialien", gewicht_g: 3 }
+      - { bezeichnung: "Kapsel", material: "Kunststoffe", gewicht_g: 1.5 }
+
+  magnum_150_naturkork_holzkiste:
+    beschreibung: "1,5-l-Magnum, Naturkork, Kapsel, Einzel-Holzkiste (Holz = Sonstige Materialien)"
+    komponenten:
+      - { bezeichnung: "Flasche", material: "Glas", gewicht_g: 1300 }
+      - { bezeichnung: "Etikett", material: "PPK", gewicht_g: 5 }
+      - { bezeichnung: "Kork", material: "Sonstige Materialien", gewicht_g: 7 }
+      - { bezeichnung: "Kapsel", material: "Kunststoffe", gewicht_g: 3 }
+      - { bezeichnung: "Holzkiste", material: "Sonstige Materialien", gewicht_g: 900 }

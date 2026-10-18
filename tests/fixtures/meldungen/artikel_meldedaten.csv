@@ -1,0 +1,11 @@
+firma_id;artikelnummer;warennummer;ursprungsland;volumen_cl;alkohol_vol;erzeugnisart;ueberdruck_bar;schaumweinstopfen;dichte_kg_je_l;verpackung_profil;einheit_je_position;bezeichnung_hinweis
+# Kommentarzeile wird ignoriert
+wik_leh;1643;22042109;IT;75;11,0;perlwein;2,0;0;;frizzante_75_kronkorken;1;Gloria Secco Frizzante (Perlwein)
+wik_leh;2001;22041015;IT;75;11,0;schaumwein;5,0;1;;sekt_75_schaumweinflasche;1;Prosecco DOC Spumante
+wik_leh;2002;22041015;IT;75;5,5;schaumwein;5,0;1;;sekt_75_schaumweinflasche;1;Prosecco leicht (unter 6 % vol)
+wik_leh;3001;22042142;IT;75;13,5;stillwein;;0;;flasche_75_naturkork_kapsel;1;Colosi Nero d'Avola
+wik_leh;3002;22042138;IT;75;12,5;stillwein;;0;;flasche_75_naturkork_kapsel;6;Gavi (Lexware-Einheit Karton = 6 Fl.)
+wik_leh;4001;22042179;FR;75;13,0;stillwein;;0;;flasche_75_schraubverschluss;1;Franzose aus Frankreich
+;5001;22042142;IT;150;14,0;stillwein;;0;;magnum_150_naturkork_holzkiste;1;Magnum (gilt in allen Firmen)
+wik_leh;6001;;;;;stillwein;;0;;;1;Artikel ohne Warennummer
+wik_leh;7001;;;75;18,0;zwischenerzeugnis;;0;;flasche_75_naturkork_kapsel;1;Marsala (Zwischenerzeugnis ohne Warennummer)

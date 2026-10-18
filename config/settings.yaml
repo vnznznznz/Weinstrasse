@@ -31,3 +31,20 @@ lexware:
   screenshots_ordner: "logs/screenshots"
 
 alias_ordner: "config/aliase"
+
+# Monatliche Meldungen (Intrastat, Schaumweinsteuer, Verpackung) – siehe docs/MELDUNGEN.md
+meldungen:
+  ausgabe_ordner: "meldungen"
+  artikel_meldedaten: "config/meldungen/artikel_meldedaten.csv"
+  verpackungen: "config/meldungen/verpackungen.yaml"
+  warennummern: "config/meldungen/warennummern.yaml"
+  dichte_kg_je_l: 0.99                 # Eigenmasse = Liter x Dichte (ohne Flasche)
+  steuersaetze_eur_je_hl:              # § 2 / § 30 SchaumwZwStG, Stand 2026
+    schaumwein_ab_6_vol: 136.00
+    schaumwein_unter_6_vol: 51.00
+    zwischenerzeugnis_bis_15_vol: 102.00
+    zwischenerzeugnis_ueber_15_vol: 153.00
+    zwischenerzeugnis_schaeumend: 136.00
+  intrastat_schwelle_eingang_eur: 3000000
+  intrastat_schwelle_versendung_eur: 1000000
+  idev_kopfzeile: true                 # Kopfzeile in der IDEV-Import-CSV (im IDEV-Import ggf. "erste Zeile überspringen")

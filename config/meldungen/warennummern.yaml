@@ -1,0 +1,26 @@
+# Nachschlagetabelle Warennummern (Kombinierte Nomenklatur, 8-stellig) für Wein.
+# Quelle: KN 2026 Kapitel 22 (Position 2204). Besondere Maßeinheit bei 2204: Liter (l).
+# TODO-DESTATIS: Vor der ersten Meldung jede verwendete Nummer im Warenverzeichnis für die
+# Außenhandelsstatistik (www.destatis.de -> Warenverzeichnis) bzw. in TARIC gegenprüfen;
+# die Unterpositionen 2204 21 xx hängen von Farbe, g.U./g.g.A., Region und Alkoholgehalt ab.
+
+warennummern:
+  "22041011": { bezeichnung: "Champagner", besondere_masseinheit: "l" }
+  "22041013": { bezeichnung: "Cava", besondere_masseinheit: "l" }
+  "22041015": { bezeichnung: "Prosecco (Schaumwein mit g.U.)", besondere_masseinheit: "l" }
+  "22041091": { bezeichnung: "Asti spumante", besondere_masseinheit: "l" }
+  "22041093": { bezeichnung: "Anderer Schaumwein mit g.U.", besondere_masseinheit: "l" }
+  "22041094": { bezeichnung: "Schaumwein mit g.g.A.", besondere_masseinheit: "l" }
+  "22041096": { bezeichnung: "Anderer Rebsortenschaumwein", besondere_masseinheit: "l" }
+  "22041098": { bezeichnung: "Anderer Schaumwein", besondere_masseinheit: "l" }
+  "22042106": { bezeichnung: "Wein in Flaschen mit Schaumweinstopfen, Behältnis <= 2 l, mit g.U.", besondere_masseinheit: "l", hinweis: "steuerlich Schaumwein (§ 1 SchaumwZwStG)" }
+  "22042107": { bezeichnung: "Wein in Flaschen mit Schaumweinstopfen, <= 2 l, mit g.g.A.", besondere_masseinheit: "l", hinweis: "steuerlich Schaumwein" }
+  "22042108": { bezeichnung: "Anderer Rebsortenwein in Flaschen mit Schaumweinstopfen, <= 2 l", besondere_masseinheit: "l", hinweis: "steuerlich Schaumwein" }
+  "22042109": { bezeichnung: "Anderer Wein in Flaschen mit Schaumweinstopfen, <= 2 l", besondere_masseinheit: "l", hinweis: "steuerlich Schaumwein" }
+  "22042111": { bezeichnung: "Perlwein / anderer Wein (1-3 bar) mit g.U., <= 2 l – Einreihung prüfen", besondere_masseinheit: "l", hinweis: "Frizzante: 2204 21 1x je nach Region/g.U. – prüfen" }
+  "22042138": { bezeichnung: "Weißwein mit g.U., andere Regionen (z. B. italienische g.U.), <= 2 l, <= 15 % vol", besondere_masseinheit: "l", hinweis: "Beispielnummer – im Warenverzeichnis prüfen" }
+  "22042142": { bezeichnung: "Rot-/Roséwein mit g.U., andere Regionen, <= 2 l, <= 15 % vol", besondere_masseinheit: "l", hinweis: "Beispielnummer – im Warenverzeichnis prüfen" }
+  "22042179": { bezeichnung: "Weißwein mit g.g.A., <= 2 l, <= 15 % vol", besondere_masseinheit: "l", hinweis: "Beispielnummer – prüfen" }
+  "22042180": { bezeichnung: "Rot-/Roséwein mit g.g.A., <= 2 l, <= 15 % vol", besondere_masseinheit: "l", hinweis: "Beispielnummer – prüfen" }
+  "22042193": { bezeichnung: "Anderer Weißwein ohne g.U./g.g.A., <= 2 l, <= 15 % vol", besondere_masseinheit: "l" }
+  "22042194": { bezeichnung: "Anderer Rot-/Roséwein ohne g.U./g.g.A., <= 2 l, <= 15 % vol", besondere_masseinheit: "l" }
