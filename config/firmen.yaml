@@ -1,0 +1,84 @@
+# Die vier Firmen in Lexware premium.
+#
+# WICHTIG: "lexware_firmenname" muss exakt dem Namen in der Lexware-Firmenauswahl
+# entsprechen (Lexware -> Datei -> Firma wechseln). Bitte prüfen und anpassen.
+#
+# stammdaten.typ: "csv" (Export aus Lexware) oder "odbc" (nur lesender Zugriff auf die
+# Lexware-Datenbank). Pfade sind relativ zum Projektordner.
+#
+# eingang_unterordner: Liegt ein PDF in eingang/<unterordner>/, ist die Firma damit
+# vorgegeben. Liegt es direkt in eingang/, wird die Firma über die Kunden-/Lieferanten-
+# Aliase bzw. den Stamm ermittelt und in der Freigabe-Ansicht angezeigt.
+
+firmen:
+  weinstrasse_agentur:
+    name: "Weinstrasse Agentur"
+    lexware_firmenname: "Weinstrasse Agentur"
+    einkauf_bestellung: false          # hier keine Bestellung im Einkauf
+    eingang_unterordner: "weinstrasse_agentur"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "daten/weinstrasse_agentur/artikel.csv"
+        kunden: "daten/weinstrasse_agentur/kunden.csv"
+        lieferanten: "daten/weinstrasse_agentur/lieferanten.csv"
+        belege: "daten/weinstrasse_agentur/belege.csv"
+    opentrans:
+      import_ordner: null              # z. B. "C:/Lexware/Shopimport/weinstrasse_agentur"
+      lizenziert: null                 # noch zu prüfen
+    belegfelder_standard:
+      spedition: ""
+
+  wik_fh_seh:
+    name: "Wein-Import-Kreis FH & SEH"
+    lexware_firmenname: "Wein-Import-Kreis FH & SEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "wik_fh_seh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "daten/wik_fh_seh/artikel.csv"
+        kunden: "daten/wik_fh_seh/kunden.csv"
+        lieferanten: "daten/wik_fh_seh/lieferanten.csv"
+        belege: "daten/wik_fh_seh/belege.csv"
+    opentrans:
+      import_ordner: null
+      lizenziert: null
+    belegfelder_standard:
+      spedition: ""
+
+  wik_leh:
+    name: "Wein-Import-Kreis LEH"
+    lexware_firmenname: "Wein-Import-Kreis LEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "wik_leh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "daten/wik_leh/artikel.csv"
+        kunden: "daten/wik_leh/kunden.csv"
+        lieferanten: "daten/wik_leh/lieferanten.csv"
+        belege: "daten/wik_leh/belege.csv"
+    opentrans:
+      import_ordner: null
+      lizenziert: null
+    belegfelder_standard:
+      spedition: ""
+
+  woe_leh:
+    name: "Wine-of-Excellence LEH"
+    lexware_firmenname: "Wine-of-Excellence LEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "woe_leh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "daten/woe_leh/artikel.csv"
+        kunden: "daten/woe_leh/kunden.csv"
+        lieferanten: "daten/woe_leh/lieferanten.csv"
+        belege: "daten/woe_leh/belege.csv"
+    opentrans:
+      import_ordner: null
+      lizenziert: null
+    belegfelder_standard:
+      spedition: ""

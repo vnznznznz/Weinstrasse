@@ -1,0 +1,25 @@
+# Kunden-Aliase: "Name wie er im PDF steht" -> Kundennummer in Lexware.
+# Mehrere Schreibweisen pro Kunde sind erlaubt. Die Firma (Lexware-Mandant) ist
+# Pflicht, damit der richtige Stamm verwendet wird.
+#
+# Format:
+#   - kundennummer: "3441"
+#     firma: wik_leh
+#     aliase: ["Weinmarkt Kirchhellen", "Hegmann"]
+#     anzeigename: "Hegmann / Bottrop-Kirchhellen"
+
+kunden:
+  - kundennummer: "3441"
+    firma: wik_leh                      # TODO prüfen: Mandant des Kunden
+    anzeigename: "Hegmann / Bottrop-Kirchhellen"
+    aliase:
+      - "Weinmarkt Kirchhellen"
+      - "Hegmann"
+      - "Hegmann Bottrop-Kirchhellen"
+
+  - kundennummer: "1392"
+    firma: wik_leh                      # TODO prüfen: Mandant des Kunden
+    anzeigename: "Weinhaus Menrath"
+    aliase:
+      - "Weinhaus Menrath"
+      - "Menrath"

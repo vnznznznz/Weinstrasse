@@ -1,0 +1,33 @@
+# Allgemeine Einstellungen des Auftrags-Automaten.
+# Pfade relativ zum Projektordner.
+
+eingang_ordner: "eingang"
+archiv_ordner: "archiv"
+log_ordner: "logs"
+xml_ausgabe_ordner: "logs/opentrans"
+
+# Standard ist der Testmodus: alles wird ausgeführt bis kurz vor "Speichern".
+# Scharf schalten erst nach erfolgreichem Dry-Run-Test (CLI: --scharf).
+dry_run: true
+
+matching:
+  schwelle_sicher: 90        # ab diesem Score (0-100) automatisch zuordnen
+  schwelle_kandidat: 60      # ab diesem Score als Kandidat anzeigen
+  standard_volumen_cl: 75
+  preis_toleranz_eur: 0.00   # Abweichung PDF-Preis vs. Stammpreis größer als das => rot
+  konfidenz_schwelle: 0.80   # Vision: Mengen mit geringerer Konfidenz werden markiert
+
+claude:
+  modell: "claude-opus-5-5"
+  max_tokens: 16000
+  effort: "high"
+  api_key_env: "ANTHROPIC_API_KEY"
+
+lexware:
+  exe_pfad: null             # z. B. "C:/Program Files (x86)/Lexware/premium/LxWin.exe" (bitte prüfen)
+  fenster_titel_regex: ".*Lexware.*"
+  wartezeit_sekunden: 1.5
+  maximale_wartezeit_sekunden: 30
+  screenshots_ordner: "logs/screenshots"
+
+alias_ordner: "config/aliase"

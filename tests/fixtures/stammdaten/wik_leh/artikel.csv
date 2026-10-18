@@ -1,0 +1,14 @@
+artikelnummer;bezeichnung;warengruppe;lieferantennummer;volumen_cl;holzkiste;jahrgang;ek_preis;vk_preis_1;einheit;matchcode;aktiv
+1643;Villa Armellina Gloria Secco Frizzante 0,75 l;Cide;72;75;0;;4,20;6,90;Fl;GLORIA;1
+957;Villa Armellina Rosato Secco Frizzante 0,75 l;Cide;72;75;0;;4,20;6,90;Fl;ROSATO;1
+958;Villa Armellina Rosato Secco Frizzante 1,5 l Magnum;Cide;72;150;0;;9,50;14,90;Fl;ROSATO15;1
+1644;Villa Armellina Gloria Secco Frizzante 0,375 l;Cide;72;37,5;0;;2,60;4,20;Fl;GLORIA375;1
+2001;Colosi Nero d'Avola Sicilia DOC 2022 0,75 l;Colosi;87;75;0;2022;5,10;8,40;Fl;NERO22;1
+2002;Colosi Nero d'Avola Sicilia DOC 2021 0,75 l;Colosi;87;75;0;2021;5,10;8,40;Fl;NERO21;1
+2003;Colosi Grillo Sicilia DOC 2023 0,75 l;Colosi;87;75;0;2023;5,30;8,60;Fl;GRILLO23;1
+2004;Colosi Nero d'Avola 2022 6er Holzkiste;Colosi;87;75;1;2022;36,00;58,00;Kt;NEROHK;1
+2005;Colosi Salina Bianco IGT 2023 0,75 l;Colosi;87;;0;2023;6,10;9,80;Fl;SALINA;1
+3001;Bollina Gavi di Gavi DOCG 2023 0,75 l;Bollina;138;75;0;2023;7,80;12,50;Fl;GAVI23;1
+3002;Bollina Gavi di Gavi DOCG 2023 0,375 l;Bollina;138;37,5;0;2023;4,50;7,20;Fl;GAVI375;1
+3003;Bollina Gavi di Gavi DOCG 2022 0,75 l;Bollina;138;75;0;2022;7,60;12,20;Fl;GAVI22;0
+4001;Weingut Beispiel Riesling trocken 2023 0,75 l;Weingut Beispiel;150;75;0;2023;4,90;7,90;Fl;RIESL;1

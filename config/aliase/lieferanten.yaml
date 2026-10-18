@@ -1,0 +1,26 @@
+# Lieferanten-Aliase: "Name wie er im PDF/Artikel steht" -> Lieferantennummer in Lexware.
+#
+# "produktmarken": Produkte dieser Marken laufen über diesen Lieferanten
+# (z. B. "Villa Armellina" über Cide).
+#
+# firma: Mandant, in dem die Lieferantennummer gilt. Gilt die Nummer in mehreren
+# Mandanten, mehrere Einträge anlegen.
+
+lieferanten:
+  - lieferantennummer: "87"
+    firma: wik_leh                      # TODO prüfen
+    anzeigename: "Colosi"
+    aliase: ["Colosi", "Cantine Colosi"]
+    produktmarken: ["Colosi"]
+
+  - lieferantennummer: "138"
+    firma: wik_leh                      # TODO prüfen
+    anzeigename: "Bollina srl"
+    aliase: ["Bollina", "Bollina srl", "Bollina s.r.l."]
+    produktmarken: ["Bollina"]
+
+  - lieferantennummer: "72"
+    firma: wik_leh                      # TODO prüfen
+    anzeigename: "Cide"
+    aliase: ["Cide", "Cide srl"]
+    produktmarken: ["Villa Armellina", "Cide"]

@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.env
+# Echte Stammdaten-Exporte und Eingangsbelege gehören nicht ins Repo
+daten/*/*.csv
+eingang/*
+archiv/*
+logs/*
+!eingang/.gitkeep
+!archiv/.gitkeep
+!logs/.gitkeep
+!daten/*/.gitkeep

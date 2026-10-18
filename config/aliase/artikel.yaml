@@ -1,0 +1,24 @@
+# Artikel-Aliase: "Bezeichnung wie sie im PDF steht" -> Artikelnummer in Lexware.
+# Ein Alias schlägt das Fuzzy-Matching. Sondervarianten (37,5 cl, 1,5 l, Holzkiste)
+# werden auch per Alias nur mit manueller Bestätigung übernommen.
+#
+# "ueberspringen": Positionen, die bekannt sind und immer übersprungen + gemeldet
+# werden sollen (z. B. Werbemittel ohne Stammartikel, 0,00 €).
+
+artikel:
+  - artikelnummer: "1643"
+    firma: wik_leh                      # TODO prüfen
+    aliase:
+      - "Villa Armellina Gloria Secco Frizzante"
+      - "Gloria Secco Frizzante"
+      - "Villa Armellina Gloria"
+
+  - artikelnummer: "957"
+    firma: wik_leh                      # TODO prüfen
+    aliase:
+      - "Villa Armellina Rosato Secco Frizzante"
+      - "Rosato Secco Frizzante"
+      - "Villa Armellina Rosato"
+
+ueberspringen:
+  - "DAA Neptun"

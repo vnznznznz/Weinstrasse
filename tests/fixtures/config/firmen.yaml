@@ -1,0 +1,69 @@
+firmen:
+  weinstrasse_agentur:
+    name: "Weinstrasse Agentur"
+    lexware_firmenname: "Weinstrasse Agentur"
+    einkauf_bestellung: false
+    eingang_unterordner: "weinstrasse_agentur"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "stammdaten/weinstrasse_agentur/artikel.csv"
+        kunden: "stammdaten/weinstrasse_agentur/kunden.csv"
+        lieferanten: "stammdaten/weinstrasse_agentur/lieferanten.csv"
+        belege: "stammdaten/weinstrasse_agentur/belege.csv"
+    opentrans:
+      import_ordner: "lexware_import/weinstrasse_agentur"
+      lizenziert: true
+    belegfelder_standard:
+      spedition: "Selbstabholung"
+  wik_fh_seh:
+    name: "Wein-Import-Kreis FH & SEH"
+    lexware_firmenname: "Wein-Import-Kreis FH & SEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "wik_fh_seh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "stammdaten/wik_fh_seh/artikel.csv"
+        kunden: "stammdaten/wik_fh_seh/kunden.csv"
+        lieferanten: "stammdaten/wik_fh_seh/lieferanten.csv"
+        belege: "stammdaten/wik_fh_seh/belege.csv"
+    opentrans:
+      import_ordner: "lexware_import/wik_fh_seh"
+      lizenziert: true
+    belegfelder_standard:
+      spedition: "Spedition Weinlogistik"
+  wik_leh:
+    name: "Wein-Import-Kreis LEH"
+    lexware_firmenname: "Wein-Import-Kreis LEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "wik_leh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "stammdaten/wik_leh/artikel.csv"
+        kunden: "stammdaten/wik_leh/kunden.csv"
+        lieferanten: "stammdaten/wik_leh/lieferanten.csv"
+        belege: "stammdaten/wik_leh/belege.csv"
+    opentrans:
+      import_ordner: "lexware_import/wik_leh"
+      lizenziert: true
+    belegfelder_standard:
+      spedition: "Spedition Weinlogistik"
+  woe_leh:
+    name: "Wine-of-Excellence LEH"
+    lexware_firmenname: "Wine-of-Excellence LEH"
+    einkauf_bestellung: true
+    eingang_unterordner: "woe_leh"
+    stammdaten:
+      typ: csv
+      csv:
+        artikel: "stammdaten/woe_leh/artikel.csv"
+        kunden: "stammdaten/woe_leh/kunden.csv"
+        lieferanten: "stammdaten/woe_leh/lieferanten.csv"
+        belege: "stammdaten/woe_leh/belege.csv"
+    opentrans:
+      import_ordner: "lexware_import/woe_leh"
+      lizenziert: false
+    belegfelder_standard:
+      spedition: "Spedition Weinlogistik"

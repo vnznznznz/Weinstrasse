@@ -1,0 +1,25 @@
+# Test-Einstellungen: identisch zur Produktion, aber Pfade zeigen in tests/fixtures.
+eingang_ordner: "eingang"
+archiv_ordner: "archiv"
+log_ordner: "logs"
+xml_ausgabe_ordner: "logs/opentrans"
+dry_run: true
+matching:
+  schwelle_sicher: 90
+  schwelle_kandidat: 60
+  standard_volumen_cl: 75
+  preis_toleranz_eur: 0.00
+  konfidenz_schwelle: 0.80
+claude:
+  modell: "claude-opus-5-5"
+  max_tokens: 16000
+  effort: "high"
+  api_key_env: "ANTHROPIC_API_KEY"
+lexware:
+  exe_pfad: null
+  fenster_titel_regex: ".*Lexware.*"
+  wartezeit_sekunden: 0.0
+  maximale_wartezeit_sekunden: 1.0
+  screenshots_ordner: "logs/screenshots"
+# Die echten Alias-Tabellen aus dem Repo verwenden:
+alias_ordner: "../../config/aliase"
