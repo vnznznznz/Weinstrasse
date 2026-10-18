@@ -49,6 +49,8 @@ class OdbcQuelle(BaseModel):
     sql_kunden: str | None = None
     sql_lieferanten: str | None = None
     sql_belege: str | None = None
+    kodierung: str = "cp1252"  # Zeichensatz der ODBC-Verbindung (SQL Anywhere/Windows-1252)
+    timeout_sekunden: float = 15.0  # Verbindungs-Timeout
 
 
 class StammdatenKonfig(BaseModel):
@@ -62,6 +64,10 @@ class OpenTransKonfig(BaseModel):
     lizenziert: bool | None = None  # None = noch nicht geprüft
     waehrung: str = "EUR"
     mwst_satz: Decimal = Decimal("19")
+    # TODO-LEXWARE: Firmen-GUID für REMARK origin_company_id je Firma ermitteln (catalog.xml-Export).
+    firmen_guid: str | None = None
+    preistyp: Literal["net_list", "gros_list"] = "net_list"  # Nettofirma: net_list, Bruttofirma: gros_list
+    steuergebiet: Literal["Merchant", "EU", "Non_EU"] = "Merchant"  # REMARK type=tax_area
 
 
 class Firma(BaseModel):
@@ -96,6 +102,9 @@ class LexwareKonfig(BaseModel):
     wartezeit_sekunden: float = 1.5
     maximale_wartezeit_sekunden: float = 30.0
     screenshots_ordner: Path | None = None
+    firmenwechsel_erlaubt: bool = False  # darf die UI-Automation die Lexware-Firma wechseln?
+    backend: Literal["uia", "win32"] = "uia"  # pywinauto-Backend
+    controls_datei: Path | None = None  # Standard: config/lexware_controls.yaml
 
 
 class DateiRefKonfig(BaseModel):
@@ -249,6 +258,8 @@ def lade_settings(stamm: Path | None = None) -> Settings:
     settings = Settings.model_validate({**roh, "firmen": firmen})
     for feld in ("eingang_ordner", "archiv_ordner", "log_ordner", "xml_ausgabe_ordner", "alias_ordner"):
         setattr(settings, feld, _absolut(getattr(settings, feld), stamm))
+    settings.lexware.screenshots_ordner = _absolut(settings.lexware.screenshots_ordner, stamm)
+    settings.lexware.controls_datei = _absolut(settings.lexware.controls_datei, stamm)
     k = settings.kommunikation
     for feld in ("vorlagen_ordner", "signaturen_datei", "anrede_datei", "entwuerfe_ordner"):
         setattr(k, feld, _absolut(getattr(k, feld), stamm))

@@ -1,0 +1,153 @@
+# Control-Bezeichner der Lexware-Oberfläche für die UI-Automation (pywinauto, UIA).
+#
+# Diese Datei enthält ALLE Standardwerte aus src/auftragsautomat/lexware/ui_automation.py
+# (Klasse LexwareControls). Nach dem Aufnehmen der Oberfläche mit Inspect.exe / Accessibility
+# Insights bzw. print_control_identifiers() (Checkliste in docs/recherche/ui_automation_lexware.md,
+# Abschnitt 9) hier die echten Werte eintragen. Einträge, die fehlen, behalten den Standard.
+#
+# Formate:
+#   NAME: "Titel"                      -> sucht nach title="Titel"
+#   NAME: {title: ..., title_re: ..., auto_id: ..., control_type: ..., class_name: ..., found_index: n}
+#   MENUE_*: ["Datei", "Wechseln"]    -> Menüpfad
+#   *_REGEX: Regex (re.search, ohne Groß-/Kleinschreibung); Titel-Regexe beginnen mit .*
+#   SPALTE_*: Spaltenüberschrift in Listen; AUFTRAGSART_*: Einträge der Auftragsart-Liste
+#
+# [V] = laut Handbuch belegt, [A] = Annahme, TODO-LEXWARE = am System prüfen.
+
+controls:
+  # [V-Dritt] Hauptprozess von Lexware pro/premium; im Task-Manager (Details) bestätigen
+  PROZESSNAME: "Framework.exe"
+  # [V] Die aktive Firma steht in der Titelleiste; exaktes Format prüfen (Checkliste 2)
+  HAUPTFENSTER_TITEL_REGEX: ".*Lexware.*"
+  # TODO-LEXWARE: Titel des Dialogs Datei -> Wechseln
+  FIRMENWAHL_TITEL_REGEX: ".*(Firma|Wechseln).*"
+  # TODO-LEXWARE: Liste der Firmen im Wechseln-Dialog (Doppelklick laut Handbuch)
+  FIRMENLISTE: {control_type: "List"}
+  # [V] Strg+M öffnet immer den Auftragsassistenten (Einkauf)
+  TASTE_NEUER_EINKAUFSAUFTRAG: "^m"
+  # [V] Strg+N öffnet immer den Auftragsassistenten (Verkauf)
+  TASTE_NEUER_VERKAUFSAUFTRAG: "^n"
+  # [V] Menü Datei -> Wechseln
+  MENUE_FIRMA_WECHSELN: ["Datei", "Wechseln"]
+  # [V] Bearbeiten -> Aufträge -> Weiterführen (Auftrag vorher in der Liste markieren)
+  MENUE_AUFTRAG_WEITERFUEHREN: ["Bearbeiten", "Aufträge", "Weiterführen"]
+  # TODO-LEXWARE: Weg zur Verkaufsauftragsliste (Navigation/Menü)
+  MENUE_AUFTRAGSLISTE_VERKAUF: ["Verkauf", "Aufträge"]
+  # TODO-LEXWARE: Weg zur Einkaufsauftragsliste
+  MENUE_AUFTRAGSLISTE_EINKAUF: ["Einkauf", "Aufträge"]
+  # TODO-LEXWARE: Fenstertitel des Auftragsassistenten (Checkliste 5)
+  ASSISTENT_TITEL_REGEX: ".*(Auftrag|Bestellung|Angebot|Lieferschein|Rechnung).*"
+  # TODO-LEXWARE: Titel im Einkauf (vermutlich 'Einkaufsauftrag ...' / 'Bestellung')
+  ASSISTENT_EINKAUF_TITEL_REGEX: ".*(Einkauf|Bestell).*"
+  # TODO-LEXWARE: Titel im Verkauf
+  ASSISTENT_VERKAUF_TITEL_REGEX: ".*(Verkauf|Auftrag|Lieferschein).*"
+  # TODO-LEXWARE: Seitenliste links (blau = aktiv, grün = erledigt); List/Tree/Tab?
+  SEITENLISTE: {control_type: "List", found_index: 0}
+  # [A] Seite 1 heißt im Verkauf 'Kunde', im Einkauf vermutlich 'Lieferant'
+  SCHRITT_KOPF_REGEX: "^\\s*(\\d+\\W*)?(Kunde|Lieferant|Adress|Kopf|Rahmen)"
+  # [V] Seite 2 'Positionen'
+  SCHRITT_POSITIONEN_REGEX: "^\\s*(\\d+\\W*)?Position"
+  # [V] Seite 3 'Summen'
+  SCHRITT_SUMMEN_REGEX: "^\\s*(\\d+\\W*)?(Summe|Kondition)"
+  # [V] Schaltfläche Weiter
+  WEITER: {title: "Weiter", control_type: "Button"}
+  # [V] Schaltfläche Zurück
+  ZURUECK: {title: "Zurück", control_type: "Button"}
+  # [V] Schaltfläche Speichern (nur auf der letzten Seite benutzen)
+  SPEICHERN: {title: "Speichern", control_type: "Button"}
+  # [V] Schaltfläche Abbrechen (verlässt den Assistenten ohne zu speichern)
+  ABBRECHEN: {title: "Abbrechen", control_type: "Button"}
+  # TODO-LEXWARE: Auswahlliste Auftragsart auf Seite 1
+  AUFTRAGSART: {title: "Auftragsart", control_type: "ComboBox"}
+  # TODO-LEXWARE: Feld Kundennummer (Seite 1, Verkauf); AutoSuggest -> Ziffern einzeln tippen
+  KUNDENNUMMER: {title: "Kundennummer", control_type: "Edit"}
+  # TODO-LEXWARE: Feld Lieferantennummer (Seite 1, Einkauf)
+  LIEFERANTENNUMMER: {title: "Lieferantennummer", control_type: "Edit"}
+  # TODO-LEXWARE: Feld, das nach Übernahme der Stammdaten den Namen zeigt (Kontrolle)
+  PARTNER_NAME: {title: "Firma", control_type: "Edit"}
+  # TODO-LEXWARE: Belegdatum (wird nicht geändert)
+  BELEGDATUM: {title: "Belegdatum", control_type: "Edit"}
+  # [V] Feld Lieferdatum auf Seite 1
+  LIEFERDATUM: {title: "Lieferdatum", control_type: "Edit"}
+  # [V] Feld Bestellnummer (Kundenbestellnummer); Position im Assistenten prüfen
+  BESTELLNUMMER: {title: "Bestellnummer", control_type: "Edit"}
+  # TODO-LEXWARE: Auftragsbeschreibung (Freitext)
+  AUFTRAGSBESCHREIBUNG: {title: "Auftragsbeschreibung", control_type: "Edit"}
+  # TODO-LEXWARE: abweichende Lieferanschrift (evtl. nur am Lieferschein)
+  LIEFERADRESSE: {title: "Lieferanschrift", control_type: "ComboBox"}
+  # TODO-LEXWARE: Auftrags-Freifeld 'Spedition' (Verwaltung -> Einstellungen -> Freifelder)
+  FREIFELD_SPEDITION: {title: "Spedition", control_type: "Edit"}
+  # TODO-LEXWARE: Auftrags-Freifeld 'Weingut'
+  FREIFELD_WEINGUT: {title: "Weingut", control_type: "Edit"}
+  # TODO-LEXWARE: Auftrags-Freifeld 'Shipment'
+  FREIFELD_SHIPMENT: {title: "Shipment", control_type: "Edit"}
+  # TODO-LEXWARE: Auftrags-Freifeld 'Customer' (= Endkunde)
+  FREIFELD_KUNDE: {title: "Customer", control_type: "Edit"}
+  # [V] Auswahlliste Positionsart (Seite 2)
+  POSITIONSART: {title: "Positionsart", control_type: "ComboBox"}
+  # [V] Eintrag Stammartikel
+  POSITIONSART_STAMMARTIKEL: "Stammartikel"
+  # TODO-LEXWARE: Auswahl Suchkriterium (Nummer / Matchcode / Alle (AutoSuggest))
+  SUCHKRITERIUM: {title: "Suchkriterium", control_type: "ComboBox"}
+  # [V] Eintrag Nummer
+  SUCHKRITERIUM_NUMMER: "Nummer"
+  # TODO-LEXWARE: Eingabefeld für die Artikelnummer
+  ARTIKELNUMMER: {title: "Artikelnummer", control_type: "Edit"}
+  # TODO-LEXWARE: Feld, das nach Übernahme die Bezeichnung zeigt (Kontrolle)
+  ARTIKEL_BEZEICHNUNG: {title: "Bezeichnung", control_type: "Edit"}
+  # [V] Mengenfeld; Ziffern einzeln tippen, Wert zurücklesen
+  MENGE: {title: "Menge", control_type: "Edit"}
+  # TODO-LEXWARE: Einzelpreis (EK bzw. VK aus dem Stamm, nur lesen)
+  PREIS: {title: "Einzelpreis", control_type: "Edit"}
+  # TODO-LEXWARE: grünes Häkchen (Position in die Liste übernehmen)
+  POSITION_UEBERNEHMEN: {title: "Übernehmen", control_type: "Button"}
+  # TODO-LEXWARE: Symbol zum Verwerfen der Eingabe
+  POSITION_VERWERFEN: {title: "Verwerfen", control_type: "Button"}
+  # TODO-LEXWARE: Positionsliste (untere Hälfte Seite 2); DataGrid/Table/List?
+  POSITIONSLISTE: {control_type: "DataGrid"}
+  # TODO-LEXWARE: Nettobetrag auf Seite 'Summen'
+  SUMME_NETTO: {title: "Netto", control_type: "Edit"}
+  # TODO-LEXWARE: Bruttobetrag
+  SUMME_BRUTTO: {title: "Brutto", control_type: "Edit"}
+  # TODO-LEXWARE: Steuerbetrag
+  SUMME_STEUER: {title: "Steuer", control_type: "Edit"}
+  # [V] Lieferart (Seite 3), nur lesen
+  LIEFERART: {title: "Lieferart", control_type: "ComboBox"}
+  # [V] Zahlungsbedingung (Seite 3), nur lesen
+  ZAHLUNGSBEDINGUNG: {title: "Zahlungsbedingung", control_type: "ComboBox"}
+  # TODO-LEXWARE: Textelemente eines Dialogs (alle Text-Controls werden gelesen)
+  DIALOG_TEXT: {control_type: "Text"}
+  # Button Ja
+  DIALOG_JA: {title: "Ja", control_type: "Button"}
+  # Button Nein (USt-IdNr.-Dialog, eRechnung, Festschreiben ...)
+  DIALOG_NEIN: {title: "Nein", control_type: "Button"}
+  # Button OK
+  DIALOG_OK: {title: "OK", control_type: "Button"}
+  # Button Abbrechen in Dialogen
+  DIALOG_ABBRECHEN: {title: "Abbrechen", control_type: "Button"}
+  # TODO-LEXWARE: Button 'weder drucken noch mailen' in der Druck-/E-Mail-Abfrage (Wortlaut nicht belegt)
+  DIALOG_UEBERSPRINGEN: {title_re: ".*(Überspringen|Weder|Nicht drucken|Schließen).*", control_type: "Button"}
+  # TODO-LEXWARE: Verkaufsauftragsliste im Hauptfenster
+  AUFTRAGSLISTE_VERKAUF: {control_type: "DataGrid"}
+  # TODO-LEXWARE: Einkaufsauftragsliste im Hauptfenster
+  AUFTRAGSLISTE_EINKAUF: {control_type: "DataGrid"}
+  # TODO-LEXWARE: Belegnummer im Infobereich der Kopfzeile (derzeit nicht genutzt)
+  INFO_BELEGNUMMER: {title: "Belegnummer", control_type: "Text"}
+  # [V] Auftragsart für den Einkauf
+  AUFTRAGSART_BESTELLUNG: "Bestellung"
+  # [V] Auftragsart für den Verkauf
+  AUFTRAGSART_AB: "Auftragsbestätigung"
+  # [V] Auftragsart beim Weiterführen
+  AUFTRAGSART_LIEFERSCHEIN: "Lieferschein"
+  # TODO-LEXWARE: Spaltenüberschriften der Listen (Auftragsliste / Positionsliste)
+  SPALTE_BELEGNUMMER: "Belegnummer"
+  SPALTE_AUFTRAGSART: "Auftragsart"
+  SPALTE_KUNDENNUMMER: "Kundennummer"
+  SPALTE_LIEFERANTENNUMMER: "Lieferantennummer"
+  SPALTE_DATUM: "Belegdatum"
+  SPALTE_NETTO: "Netto"
+  SPALTE_STATUS: "Status"
+  SPALTE_ARTIKELNUMMER: "Artikelnummer"
+  SPALTE_BEZEICHNUNG: "Bezeichnung"
+  SPALTE_MENGE: "Menge"
+  SPALTE_PREIS: "Einzelpreis"

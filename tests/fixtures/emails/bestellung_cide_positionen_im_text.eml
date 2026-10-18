@@ -1,0 +1,60 @@
+From: Wein-Import-Kreis LEH <bestellung@wein-import-kreis.example>
+To: Cide srl <ordini@cide.example>
+Cc: =?utf-8?q?J=C3=B6rg?= Beispiel <j.beispiel@wein-import-kreis.example>
+Date: Sat, 17 Oct 2026 09:12:00 +0200
+Subject: Bestellung BE-2026-0078 =?utf-8?q?f=C3=BCr?= Weinhaus Menrath
+Message-ID: <bestellung-be-2026-0078@wein-import-kreis.example>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="==auftragsautomat-fixture-1=="
+
+--==auftragsautomat-fixture-1==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Sehr geehrte Damen und Herren der Cide srl,
+
+hiermit bestellen wir f=C3=BCr unseren Kunden Weinhaus Menrath zu den vereinb=
+arten Einkaufspreisen:
+
+- 60 Fl Villa Armellina Gloria Secco Frizzante 0,75 l =C3=A0 4,20 =E2=82=AC
+- 24 Fl Villa Armellina Rosato Secco Frizzante 0,75 l =C3=A0 4,20 =E2=82=AC
+- 6 Fl Villa Armellina Rosato Secco Frizzante Magnum 1,5 l =C3=A0 9,50 =E2=82=
+=AC
+
+Gesamt: 90 Fl.
+
+Liefertermin: 28.10.2026
+Lieferadresse: Spedition Weinlogistik, Hafenstra=C3=9Fe 2, 47119 Duisburg
+
+Mit freundlichen Gr=C3=BC=C3=9Fen
+Wein-Import-Kreis LEH
+Musterweg 10
+40210 D=C3=BCsseldorf
+Tel. 0211 123456
+
+--==auftragsautomat-fixture-1==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head><meta charset=3D"utf-8"><style>p { font-family: Arial; }</style><=
+/head><body>
+<p>Sehr geehrte Damen und Herren der Cide srl,</p>
+<p>hiermit bestellen wir f=C3=BCr unseren Kunden Weinhaus Menrath zu den vere=
+inbarten Einkaufspreisen:</p>
+<ul>
+<li>60 Fl Villa Armellina Gloria Secco Frizzante 0,75 l =C3=A0 4,20 =E2=82=AC=
+</li>
+<li>24 Fl Villa Armellina Rosato Secco Frizzante 0,75 l =C3=A0 4,20 =E2=82=AC=
+</li>
+<li>6 Fl Villa Armellina Rosato Secco Frizzante Magnum 1,5 l =C3=A0 9,50 =E2=
+=82=AC</li>
+</ul>
+<p>Gesamt: 90 Fl.</p>
+<p>Liefertermin: 28.10.2026<br>Lieferadresse: Spedition Weinlogistik, Hafenst=
+ra=C3=9Fe 2, 47119 Duisburg</p>
+<p>Mit freundlichen Gr=C3=BC=C3=9Fen<br>Wein-Import-Kreis LEH<br>Musterweg 10=
+<br>40210 D=C3=BCsseldorf<br>Tel. 0211 123456</p>
+</body></html>
+
+--==auftragsautomat-fixture-1==--

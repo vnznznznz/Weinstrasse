@@ -53,14 +53,22 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
 ## Modulübersicht und öffentliche Schnittstellen
 
 ### `config.py` (vorhanden)
-`lade_settings(stamm) -> Settings`; `Settings.firma(id) -> Firma`; `Firma.stammdaten.csv|odbc`,
-`Firma.opentrans`, `Firma.einkauf_bestellung`, `Firma.belegfelder_standard`,
-`Settings.matching` (Schwellen), `Settings.claude`, `Settings.lexware`, `Settings.alias_ordner`.
+`lade_settings(stamm) -> Settings`; `Settings.firma(id) -> Firma`; `Firma.stammdaten.csv|odbc`
+(`OdbcQuelle` zusätzlich `kodierung`, `timeout_sekunden`), `Firma.opentrans` (`import_ordner`,
+`lizenziert`, `waehrung`, `mwst_satz`, `firmen_guid`, `preistyp` net_list|gros_list, `steuergebiet`),
+`Firma.einkauf_bestellung`, `Firma.belegfelder_standard`, `Settings.matching` (Schwellen),
+`Settings.claude`, `Settings.lexware` (`exe_pfad`, `fenster_titel_regex`, Wartezeiten,
+`screenshots_ordner`, `firmenwechsel_erlaubt`, `backend` uia|win32, `controls_datei`),
+`Settings.alias_ordner`.
 
 ### `models.py` (vorhanden)
-`Eingangstyp`, `RohPosition`, `RohBestellung`, `Artikel`, `Kunde`, `Lieferant`, `Beleg`,
+`Eingangstyp`, `RohPosition`, `RohBestellung` (u. a. `kundennummer_dokument`,
+`empfaenger_firma_text`), `Artikel`, `Kunde`, `Lieferant`, `Beleg`,
 `Pruefhinweis`/`Pruefcode`/`Schweregrad`, `PositionsZuordnung`, `KundeZuordnung`,
-`LieferantZuordnung`, `Belegfelder`, `Belegpaket`, `Belegergebnis`, `BuchungsErgebnis`.
+`LieferantZuordnung`, `Belegfelder`, `Belegpaket`, `Belegergebnis` (`partner` = Lieferant der
+Einkauf-Bestellung), `BuchungsErgebnis` (`einkauf`, `einkauf_weitere` für weitere Weingüter,
+`verkauf`, `lieferschein`, `protokoll`, `archiv`; `alle_einkaeufe()`).
+`Pruefcode.MEHRERE_LIEFERANTEN`: Positionen mehrerer Weingüter in einer Bestellung.
 
 ### `extraktion/`
 * `basis.py` (vorhanden): Protocol `Extraktor` mit `kann_verarbeiten(datei)`, `extrahiere(datei)`.
@@ -77,7 +85,9 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
 * `vision.py`: `VisionExtraktor(settings, client: anthropic.Anthropic | None = None)`.
   Sendet das PDF (Dokument-Block, base64) bzw. Bilder an die Claude API mit
   `client.messages.parse(..., output_format=<pydantic-Modell>)`, Modell aus
-  `settings.claude.modell` (`claude-opus-5-5`), `output_config={"effort": ...}`.
+  `settings.claude.modell` (`claude-opus-5-5`), `output_config={"effort": ...}`. Ohne API-Schlüssel
+  (`ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`) wirft `erzeuge_client` einen `VisionApiFehler`
+  (die CLI meldet das als eine Zeile, kein Traceback).
   Ergebnis: Positionen mit `konfidenz_menge`/`konfidenz_preis`, `durchgestrichen`,
   Summenvermerke ("180 R"). Konfidenz < Schwelle -> `Pruefhinweis(KONFIDENZ_NIEDRIG, WARNUNG)`,
   durchgestrichen -> `Pruefhinweis(DURCHGESTRICHEN, WARNUNG)` und Position bleibt mit
@@ -104,8 +114,10 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
   Vorschlag (`# TODO-LEXWARE`). Verbindung mit `readonly=True` öffnen, `autocommit=False`,
   niemals `commit()`. `erkunde_schema(konfig) -> list[dict]` listet Tabellen/Spalten
   (für die Erkundung am echten System).
-* `laden.py`: `lade_stammdaten(firma: Firma) -> Stammdaten` (wählt csv/odbc) mit
-  einfachem Cache pro Prozess; `lade_alle(settings) -> dict[str, Stammdaten]`.
+* `laden.py`: `lade_stammdaten(firma: Firma, *, cache=True) -> Stammdaten` (wählt csv/odbc) mit
+  einfachem Cache pro Prozess; `lade_alle(settings, *, cache=True) -> dict[str, Stammdaten]`;
+  `stammdaten_bericht(stammdaten) -> str`. `StammdatenFehler` liegt in `csv_quelle` (re-exportiert
+  aus `laden` und `odbc_quelle`).
 
 ### `matching/`
 * `aliase.py`: `AliasTabellen.lade(alias_ordner: Path) -> AliasTabellen` liest
@@ -119,11 +131,14 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
   "0,375", "1,5 l", "Magnum", "halbe Flasche"); `ist_holzkiste(text) -> bool`
   ("Holzkiste", "HK", "OHK", "Kiste"); `normalisiere_bezeichnung(text) -> str` (entfernt
   Volumen, Jahrgang, Einheit, Satzzeichen).
-* `partner.py`: `KundenMatcher(stammdaten, aliase, konfig).finde(text, adresse=None)
-  -> KundeZuordnung`; `LieferantenMatcher(stammdaten, aliase, konfig).finde(text,
-  positionen) -> LieferantZuordnung` (Lieferant aus Text, sonst aus Produktmarken der
-  Positionen, sonst aus Warengruppe der zugeordneten Artikel). rapidfuzz, Score 0..100,
-  Alias = 100. Mehrere gleich gute Kandidaten -> UNSICHER.
+* `partner.py`: `KundenMatcher(stammdaten, aliase, konfig).finde(text, adresse=None, *,
+  kundennummer=None) -> KundeZuordnung`; `LieferantenMatcher(stammdaten, aliase, konfig).finde(text,
+  positionen) -> LieferantZuordnung` (Lieferant aus Text-Alias, sonst aus den zugeordneten
+  Artikeln/Produktmarken der Positionen, sonst Fuzzy über die Lieferantennamen). rapidfuzz,
+  Score 0..100, Alias = 100. Mehrere gleich gute Kandidaten -> UNSICHER. Zeigen die Positionen auf
+  **mehrere Weingüter** (Kundenbestellung mit Weinen mehrerer Lieferanten), wird der
+  Hauptlieferant SICHER gesetzt (im Text genannt, sonst die meisten Positionen, dann die meisten
+  Flaschen) und alle Beteiligten bleiben Kandidaten; Prüfung und Buchung teilen den Einkauf auf.
 * `artikel.py`: `ArtikelMatcher(stammdaten, aliase, konfig).finde(roh: RohPosition,
   lieferant: Lieferant | None) -> PositionsZuordnung`. Regeln:
   1. `aliase.ist_zu_ueberspringen` oder (Preis 0,00 und kein Treffer) -> Status
@@ -138,29 +153,43 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
   5. Inaktive Artikel nur als Kandidat, nie automatisch.
   6. `menge = roh.menge`, `ek_preis = artikel.ek_preis`, `vk_preis = artikel.vk_preis_1`,
      `preis_dokument = roh.preis`.
-* `firma.py`: `ermittle_firma(roh, datei, settings, aliase) -> tuple[str | None, str | None]`:
+* `firma.py`: `ermittle_firma(roh, settings, aliase, *, stammdaten_lader=None, datei=None)
+  -> FirmaErgebnis` (`firma_id`, `quelle`, `hinweise`, `kandidaten`; als Tupel entpackbar):
   1. Unterordner von `eingang/` (`Firma.eingang_unterordner`), 2. Kunden-Alias, 3. Lieferanten-
-  Alias, 4. Suche in allen Stämmen (eindeutiger Kundentreffer), sonst `(None, None)` ->
-  `Pruefhinweis(FIRMA_UNKLAR, FEHLER)`.
+  Alias, 4. Suche in allen Stämmen (eindeutiger Kundentreffer), sonst `firma_id=None` ->
+  die Prüfung meldet `Pruefhinweis(FIRMA_UNKLAR, FEHLER)`.
 * `pruefung.py`: `pruefe(paket: Belegpaket, stammdaten: Stammdaten, settings) -> Belegpaket`:
   * Preisabweichung `|vk_preis - preis_dokument| > preis_toleranz_eur` -> `PREIS_ABWEICHUNG`
     (WARNUNG, rot in der UI; **nie stillschweigend übernehmen**, immer im Bericht).
   * Summenvermerk vs. Gesamtmenge -> `SUMME_ABWEICHUNG` (WARNUNG).
   * Menge fehlt/0 bei aktiver Position -> `MENGE_FEHLT` (FEHLER).
   * EK fehlt (bei Einkauf erforderlich) -> `EK_FEHLT` (FEHLER); VK fehlt -> `VK_FEHLT` (FEHLER).
-  * Kein Kunde -> `KEIN_KUNDE` (FEHLER); kein Lieferant bei Einkauf -> `KEIN_LIEFERANT` (FEHLER).
+  * Kein Kunde -> `KEIN_KUNDE` (FEHLER); kein Lieferant bei Einkauf -> `KEIN_LIEFERANT` (FEHLER);
+    bei Kandidaten zusätzlich `KUNDE_UNSICHER`/`LIEFERANT_UNSICHER` (WARNUNG).
+  * Positionen mehrerer Weingüter (`gruppiere_nach_lieferant(paket, stammdaten) ->
+    list[LieferantenGruppe]`, Lieferant je Position über `Artikel.lieferantennummer` bzw.
+    Warengruppe) -> `MEHRERE_LIEFERANTEN` (WARNUNG; je Weingut eine eigene Einkauf-Bestellung).
+    Gehört keine Position zum zugeordneten Lieferanten -> `MEHRERE_LIEFERANTEN` (FEHLER).
   * Dubletten: `roh.belegnummer`/`roh.bestellnummer` in `stammdaten.belege`
     (Belegnummer oder Kundenbestellnummer, Partner gleich) -> `DUBLETTE` (FEHLER).
   * Belegfelder (Spedition, Weingut, Shipment, Kunde) leer -> `BELEGFELD_FEHLT` (FEHLER).
-    Vorbelegung: `weingut` = Lieferantenname, `kunde` = Kundenname, `spedition` aus
+    Vorbelegung (`belegfelder_vorbelegen(paket, settings, stammdaten=None)`): `weingut` =
+    Lieferantenname (bei mehreren Weingütern alle Namen, " / "-getrennt; bei Firmen ohne Einkauf
+    das Weingut laut Dokument), `kunde` = Kundenname, `spedition` aus
     `Firma.belegfelder_standard`, `shipment` = Liefertag oder leer.
+  * `pruefe_dubletten(paket, stammdaten, *, eintragen=False) -> list[Pruefhinweis]` auch für die
+    erneute Prüfung unmittelbar vor dem Buchen; `zusammenfassung_hinweise(paket) -> str`.
 * `pipeline.py`: `erstelle_belegpaket(roh: RohBestellung, settings, *, firma_id: str | None
-  = None, stammdaten: Stammdaten | None = None) -> Belegpaket` orchestriert alles oben.
-  `einkauf_erforderlich = Firma.einkauf_bestellung`.
+  = None, stammdaten: Stammdaten | None = None, aliase=None, stammdaten_lader=None) -> Belegpaket`
+  orchestriert alles oben. `einkauf_erforderlich = Firma.einkauf_bestellung`.
+  `pruefe_erneut(paket, settings, *, stammdaten=None, aliase=None) -> Belegpaket` nach Korrekturen
+  (manuelle Zuordnungen bleiben), `setze_firma(paket, firma_id, settings, ...) -> Belegpaket` (neu).
 
 ### `lexware/`
 * `basis.py` (vorhanden): Protocol `LexwareSchreiber`.
-* `opentrans.py`: `OpenTransSchreiber(settings, firma)`: `erzeuge_xml(paket) -> bytes`
+* `opentrans.py`: `OpenTransSchreiber(settings, firma, *, preistyp=None, steuergebiet=None,
+  firmen_guid=None, jetzt=None)` (Standardwerte aus `firma.opentrans`): `pruefe_paket(paket) ->
+  list[str]`; `erzeuge_xml(paket) -> bytes`
   (openTRANS ORDER für die Lexware-Standard-Shopschnittstelle; Preise = `vk_preis` aus
   dem Stamm, NICHT PDF-Preis; Kundennummer, Kundenbestellnummer, Liefertag, Lieferadresse,
   Positionen mit Artikelnummer/Menge/Preis, übersprungene Positionen weglassen);
@@ -185,25 +214,35 @@ umbenennen oder Felder entfernen**; neue optionale Felder sind erlaubt.
 * `instanz.py`: `lexware_laeuft() -> bool`, `stelle_sicher_dass_lexware_laeuft(settings)`
   (startet nicht doppelt), `aktive_firma(fenster) -> str`.
 * `buchen.py`: `buche(paket: Belegpaket, settings, *, dry_run: bool = True,
-  schreiber: LexwareSchreiber | None = None) -> BuchungsErgebnis`. Reihenfolge: 1. Einkauf
-  (wenn `paket.einkauf_erforderlich`), 2. Verkauf-AB (openTRANS, wenn
+  schreiber: LexwareSchreiber | None = None, stammdaten: Stammdaten | None = None)
+  -> BuchungsErgebnis`. Reihenfolge: 1. Einkauf (wenn `paket.einkauf_erforderlich`; bei
+  Positionen mehrerer Weingüter je Weingut eine eigene Bestellung über `einkaufs_teilpakete`,
+  Ergebnisse in `einkauf` + `einkauf_weitere`), 2. Verkauf-AB (openTRANS, wenn
   `firma.opentrans.lizenziert`, sonst UI), 3. Lieferschein (nur wenn
-  `paket.lieferschein_erstellen`). Verweigert ohne `paket.freigegeben` oder bei
-  `paket.blockiert`. Dubletten unmittelbar vor dem Schreiben erneut prüfen.
+  `paket.lieferschein_erstellen` und AB-Nummer bekannt). Verweigert ohne `paket.freigegeben` oder
+  bei `paket.blockiert`. Dubletten unmittelbar vor dem Schreiben erneut prüfen. Scharf nur, wenn
+  zusätzlich `settings.dry_run` aus ist und Lexware erreichbar (Windows); sonst DryRunSchreiber.
+  `lieferschein_nachziehen(paket, ab_belegnummer, settings, *, dry_run=True, schreiber=None)
+  -> BuchungsErgebnis` legt nur den Lieferschein zu einer vorhandenen AB an (nach dem
+  openTRANS-Import, wenn Lexware die AB-Nummer vergeben hat).
 * `dry_run.py`: `DryRunSchreiber` (für Tests/CLI): simuliert beide Belege, liefert
   Summen, schreibt die openTRANS-XML in den Ausgabeordner.
 
 ### `protokoll.py`
 `schreibe_protokoll(paket, ergebnis, log_ordner) -> Path` hängt eine Zeile an
-`logs/protokoll.csv` an (Zeitpunkt, Firma, Quelldatei, Kunde, Lieferant, Beleg-Nr. Einkauf,
-Beleg-Nr. Verkauf, Netto EK, Brutto EK, Netto VK, Brutto VK, Dry Run, Warnungen) und
-schreibt eine Kurz-Zusammenfassung `logs/<datei>_<zeit>.txt`.
+`logs/protokoll.csv` an (Zeitpunkt, Firma, Dry Run, Quelldatei, Kunde, Lieferant, Bestellnummer,
+Beleg-Nr. Einkauf (bei mehreren Weingütern " + "-getrennt), Beleg-Nr. Verkauf, Beleg-Nr.
+Lieferschein, Netto/Brutto EK (Summe aller Einkauf-Bestellungen), Netto/Brutto VK, Positionen,
+übersprungen, Warnungen, erfolgreich; UTF-8 mit BOM, Trennzeichen `;`) und schreibt einen
+Bericht `logs/berichte/<datei>_<zeit>.txt`.
 `zusammenfassung(paket, ergebnis) -> str` (mehrzeiliger Text für CLI/UI).
 `archiviere(datei, settings, firma_id) -> Path` verschiebt die Quelldatei nach `archiv/<firma>/<jahr>/`.
 
 ### `freigabe/`
-* `zustand.py`: `speichere_paket(paket, ordner) -> Path`, `lade_paket(pfad) -> Belegpaket`
-  (JSON; `Belegpaket.model_validate_json`), `liste_pakete(ordner)`.
+* `zustand.py`: `speichere_paket(paket, ordner, *, dateiname=None) -> Path`, `lade_paket(pfad)
+  -> Belegpaket` (JSON; `Belegpaket.model_validate_json`), `liste_pakete(ordner)`,
+  `loesche_paket(pfad)`, `beschreibe_paket(pfad) -> PaketInfo`, `paket_ordner(settings)`
+  (`logs/pakete`).
 * `app.py`: Streamlit-App. Seitenleiste: Firma, Dry Run (Standard an), Eingangsdateien.
   Hauptbereich: Kopf (Kunde, Lieferant, Belegnr., Bestellnr., Liefertag, Firma, Belegfelder
   editierbar), Positionstabelle (Dokumenttext, Zuordnung mit Kandidaten-Auswahl, Menge
@@ -214,13 +253,18 @@ schreibt eine Kurz-Zusammenfassung `logs/<datei>_<zeit>.txt`.
   `auftragsautomat freigabe` (ruft `streamlit run app.py`).
 
 ### `cli.py` (typer)
-`auftragsautomat extrahieren <datei> [--json]`, `pruefen <datei> [--firma] [--json]`,
-`buchen <paket.json> [--scharf]`, `freigabe`, `watch`, `stammdaten-pruefen --firma`,
-`odbc-erkunden --firma`, `beispiel-pdfs [ordner]`. Ohne `--scharf` immer Dry Run.
+`auftragsautomat extrahieren <datei> [--json]`, `pruefen <datei> [--firma] [--json]
+[--paket-ordner]`, `buchen <paket.json> [--scharf] [--lieferschein] [--freigeben] [--ja]`,
+`lieferschein <paket.json> --ab <AB-Nr> [--scharf] [--ja]`, `freigabe [--port] [--kein-browser]`,
+`watch [--einmalig]`, `stammdaten-pruefen [--firma]`, `odbc-erkunden --firma [--ziel]`,
+`beispiel-pdfs [ordner]`, `version`. Ohne `--scharf` immer Dry Run; `--home` bzw.
+`AUFTRAGSAUTOMAT_HOME` wählt den Projektstamm.
 
 ### `watcher.py`
-`starte_watch(settings, verarbeite: Callable[[Path], None])` mit watchdog; neue Dateien
-in `eingang/` (und Unterordnern) erst verarbeiten, wenn sie fertig geschrieben sind.
+`starte_watch(settings, verarbeite: Callable[[Path], None], *, einmalig=False, stabil_sekunden=...,
+stop_ereignis=None) -> int` mit watchdog; neue Dateien in `eingang/` (und Unterordnern) erst
+verarbeiten, wenn sie fertig geschrieben sind. `verarbeite_standard(settings, *, paket_ordner=None)`
+liefert den Standard-Verarbeiter (extrahieren, prüfen, Paket speichern; nie buchen).
 
 ## Testdaten
 * `tests/fixtures/stammdaten/<firma>/*.csv`: synthetische Stämme (Spaltennamen = Modellfelder).
@@ -235,7 +279,9 @@ in `eingang/` (und Unterordnern) erst verarbeiten, wenn sie fertig geschrieben s
 ## Geschäftsregeln (Checkliste, Quelle: Spezifikation)
 1. Firma immer prüfen; ohne eindeutige Firma keine Buchung.
 2. Einkauf-Bestellung: Lieferant = Weingut, Preise = EK, Feld "Customer" = Endkunde.
-   Bei Weinstrasse Agentur keine Einkauf-Bestellung.
+   Enthält eine Kundenbestellung Weine mehrerer Weingüter, entsteht je Weingut eine eigene
+   Einkauf-Bestellung (die Verkauf-AB bleibt ein Beleg). Bei Weinstrasse Agentur keine
+   Einkauf-Bestellung.
 3. Verkauf-AB: Kunde aus Kundenliste, Preise = VK Preisgruppe 1, nie der PDF-Preis.
 4. Nichts drucken, nichts mailen; USt-IdNr.-Dialog -> Nein.
 5. Keine Dubletten (Belegnr./Kundenbestellnr. vorher prüfen).

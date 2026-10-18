@@ -66,6 +66,7 @@ class Pruefcode(StrEnum):
     KUNDE_UNSICHER = "KUNDE_UNSICHER"
     KEIN_LIEFERANT = "KEIN_LIEFERANT"
     LIEFERANT_UNSICHER = "LIEFERANT_UNSICHER"
+    MEHRERE_LIEFERANTEN = "MEHRERE_LIEFERANTEN"  # Positionen mehrerer Weingüter -> je Weingut eine Bestellung
     FIRMA_UNKLAR = "FIRMA_UNKLAR"
     # Prüfung
     PREIS_ABWEICHUNG = "PREIS_ABWEICHUNG"
@@ -394,6 +395,7 @@ class Belegergebnis(BaseModel):
     fehler: str | None = None
     warnungen: list[str] = Field(default_factory=list)
     artefakt: Path | None = None  # z. B. erzeugte openTRANS-XML
+    partner: str | None = None  # z. B. "87 Cantine Colosi" (Lieferant der Einkauf-Bestellung)
 
 
 class BuchungsErgebnis(BaseModel):
@@ -405,11 +407,21 @@ class BuchungsErgebnis(BaseModel):
     verkauf: Belegergebnis | None = None
     lieferschein: Belegergebnis | None = None
     warnungen: list[str] = Field(default_factory=list)
+    # Weitere Einkauf-Bestellungen, wenn die Positionen zu mehreren Weingütern gehören
+    # (je Weingut eine eigene Bestellung; ``einkauf`` ist die des Hauptlieferanten).
+    einkauf_weitere: list[Belegergebnis] = Field(default_factory=list)
+    protokoll: Path | None = None  # geschriebene protokoll.csv
+    archiv: Path | None = None  # Zielpfad der archivierten Quelldatei (nur scharf und erfolgreich)
+
+    def alle_einkaeufe(self) -> list[Belegergebnis]:
+        """Einkauf-Bestellung des Hauptlieferanten plus die weiteren (Reihenfolge wie angelegt)."""
+        return ([self.einkauf] if self.einkauf is not None else []) + list(self.einkauf_weitere)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def erfolgreich(self) -> bool:
         teile = [t for t in (self.einkauf, self.verkauf, self.lieferschein) if t is not None]
+        teile.extend(self.einkauf_weitere)
         return bool(teile) and all(t.erfolgreich for t in teile)
 
 

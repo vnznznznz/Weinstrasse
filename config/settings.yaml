@@ -24,11 +24,14 @@ claude:
   api_key_env: "ANTHROPIC_API_KEY"
 
 lexware:
-  exe_pfad: null             # z. B. "C:/Program Files (x86)/Lexware/premium/LxWin.exe" (bitte prüfen)
+  exe_pfad: null             # z. B. "C:/Program Files (x86)/Lexware/premium/Framework.exe" (Prozessname laut Recherche; bitte prüfen)
   fenster_titel_regex: ".*Lexware.*"
   wartezeit_sekunden: 1.5
   maximale_wartezeit_sekunden: 30
   screenshots_ordner: "logs/screenshots"
+  firmenwechsel_erlaubt: false   # true: die UI-Automation darf die Lexware-Firma wechseln (Datei -> Wechseln)
+  backend: "uia"               # pywinauto-Backend: uia (Standard) oder win32
+  controls_datei: "config/lexware_controls.yaml"   # Control-IDs/Titel der Lexware-Oberfläche
 
 alias_ordner: "config/aliase"
 
