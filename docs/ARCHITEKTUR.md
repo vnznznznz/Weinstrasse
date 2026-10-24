@@ -266,6 +266,101 @@ stop_ereignis=None) -> int` mit watchdog; neue Dateien in `eingang/` (und Untero
 verarbeiten, wenn sie fertig geschrieben sind. `verarbeite_standard(settings, *, paket_ordner=None)`
 liefert den Standard-Verarbeiter (extrahieren, prüfen, Paket speichern; nie buchen).
 
+## Erweiterungen: Lexware-Prozess, Benennung, Rabatte, Firmenwahl, Ablage, Eingang
+
+Design und Geschäftsregeln: `docs/AUSBAUSTUFE_2.md`, Abschnitte 5 bis 9. Verträge in
+`models.py` (`Aktion`, `AktionTreffer`, `Rabattliste`, `Kundengruppe`, `Firmenregel`,
+`AblageErgebnis`, `DOKUMENTKUERZEL`, `KUERZEL_DATEITYP`, `Belegart.ANGEBOT`,
+`PositionsZuordnung.rabatt_prozent`/`rabatt_quelle`/`vk_preis_rabattiert`,
+`Belegpaket.ist_revision`/`aktionen`/`firma_merken`/`kundengruppe`,
+`BuchungsErgebnis.angebot`/`pdfs`/`ablage`) und `config.py` (`Firma.kuerzel`/`kurz`,
+`verkauf_weg`, `lieferdatum_in_ab_loeschen`, `ab_text_loeschen`, `bestellnummer_in_nachbemerkung`,
+`lieferschein_erlaubt`, `formulare`, `kundengruppen`, `ablage_ordner`; `LexwareKonfig.pdf_ausgabe`,
+`pdf_drucker`, `pdf_ausgabe_ordner`; `BenennungKonfig`, `RabatteKonfig`, `FirmenwahlKonfig`,
+`AblageKonfig`, `EingangKonfig`).
+
+### `benennung.py`
+* `dateiname(kuerzel: str, *, firma: Firma, lieferant: str, kunde: str, bestellnummer: str | None,
+  auftragsnummer: str | None, datum: date, settings, endung=".pdf") -> str` nach Titulierung
+  (WS: `Lieferant – Kunde – [Auftragsnummer –] Kürzel – Datum`; WIK/WOE:
+  `Lieferant – WIK|WOE – Bestell-Nr – Kürzel – Datum`).
+* `speditionsname(art: Literal["Speditionsauftrag", "Speditionsbestätigung", "Lieferschein"], *,
+  spedition, lieferant, kunde_oder_bestellnr, datum, settings, endung=".pdf") -> str`.
+* `name_fuer_paket(kuerzel, paket: Belegpaket, settings, *, datum=None, endung=".pdf") -> str`
+  (Kurznamen aus Kunde/Lieferant-Matchcode, sonst Dokumenttext; Revision → "Neu"/"Neu Kopie").
+* `bereinige(text, settings) -> str` (verbotene Zeichen, Mehrfach-Leerzeichen, Länge),
+  `pruefe_auftragskopie_name(name, settings) -> list[str]` (verbotene Wörter).
+
+### `rabatte/`
+* `aktionen_excel.py`: `lese_aktionen(excel: ExcelBackend, ref: DateiRefKonfig, konfig: RabatteKonfig)
+  -> list[Aktion]` (Kopfzeile tolerant suchen, Spaltenzuordnung, Datumswerte als date/Serienzahl/Text,
+  Prozent als "10 %", "0,1" oder 10; Fehlerzeilen als Pruefhinweis sammeln →
+  `AktionenLadeErgebnis(aktionen, hinweise)`).
+* `rabattliste_pdf.py`: `lese_rabattliste(pdf: Path, settings, *, client=None) -> Rabattliste`
+  (pdfplumber-Tabellen; ohne Textebene Claude Vision mit `output_format`; Konfidenz je Zeile),
+  `speichere_aktionen(aktionen, datei: Path)`, `lade_gespeicherte_aktionen(datei) -> list[Aktion]`
+  (`config/aktionen.yaml`).
+* `anwenden.py`: `finde_aktionen(paket: Belegpaket, aktionen: list[Aktion], settings, *, heute=None)
+  -> list[AktionTreffer]`, `wende_an(paket, treffer, settings) -> Belegpaket` (setzt
+  `rabatt_prozent`/`rabatt_quelle`, Pruefhinweise RABATT_*), `rabatt_prozent_aus(aktion, vk_preis)
+  -> Decimal | None` (EUR/Aktionspreis → %), `alle_aktionen(settings, backends=None) -> list[Aktion]`
+  (Excel + gespeicherte PDF-Aktionen; ohne Datei leer, nie Exception).
+
+### `matching/firmenwahl.py`
+* `Firmenkatalog.lade(pfad) -> Firmenkatalog`; `klassifiziere(kunde_text, adresse=None,
+  kundennummer=None, *, firma_kandidaten=None) -> Klassifikation(kundengruppe, firmen: list[str],
+  entscheidung: "eindeutig"|"lieferant"|"fragen", grund)`; `firma_fuer_lieferant(lieferant_text) ->
+  str | None`.
+* `Firmengedaechtnis.lade(pfad)`, `.finde(kunde_kurz, lieferant_kurz) -> Firmenregel | None`
+  (erst Kunde+Lieferant, dann Kunde allgemein), `.merke(regel: Firmenregel)`, `.speichere()`
+  (YAML, atomar schreiben), `.regeln`.
+* `merke_firma(paket: Belegpaket, settings, *, benutzer=None) -> Firmenregel | None` (aus der Freigabe,
+  wenn `paket.firma_merken` und Firma gesetzt).
+* `matching/firma.py`: neue Stufen Gedächtnis (`QUELLE_GEDAECHTNIS = "gedaechtnis"`, nach dem
+  Eingangsordner) und Katalog (`QUELLE_KATALOG = "katalog"`, nach dem Kunden-Alias);
+  `FirmaErgebnis.kundengruppe`; bei "fragen" → `FirmaErgebnis(None, None, [FIRMA_UNKLAR WARNUNG],
+  kandidaten)`; `matching/pruefung.py` macht daraus den blockierenden FEHLER mit Kandidaten.
+
+### `ablage/`
+* `lege_ab(paket: Belegpaket, ergebnis: BuchungsErgebnis, settings, *, datei_backend: DateiBackend,
+  dry_run=True) -> list[AblageErgebnis]`: Dateien aus `ergebnis.pdfs` (+ Quelldatei als "Kd",
+  wenn `eingang.als_kundenbestellung_ablegen`) nach `ablage.struktur` unter
+  `ablage.auftraege_ordner`; Dry Run oder `ablage.aktiv = False` → nur protokollieren.
+* `zielordner(paket, settings, *, datum=None) -> str` (Platzhalter füllen),
+  `freier_name(backend, ref, ordner, name) -> str` (" (2)", " (3)" …).
+
+### `freigabe/app.py` (Erweiterungen)
+* Seitenleiste "Auftrag hochladen" (`eingang.upload_*`) → speichert in `eingang/[<firma>/]`,
+  startet `verarbeite_standard`.
+* Firma: wenn `FIRMA_UNKLAR` mit Kandidaten → Auswahl + Häkchen "für diesen Kunden und
+  Lieferanten merken" (Standard an) → `setze_firma` + `merke_firma`.
+* Positionstabelle: Spalte "Rabatt %" (editierbar, Quelle als Tooltip), Hinweise RABATT_* farbig;
+  Seite "Rabatte": Aktionen aus Excel + Gedächtnis, Upload "Rabattliste (PDF)" → Tabelle prüfen →
+  "Übernehmen" speichert nach `config/aktionen.yaml`.
+* Nach Buchen: Liste der erzeugten Dateinamen und Ablage-Ergebnisse.
+
+### `cli.py` (Erweiterungen)
+`rabatte-einlesen <pdf> [--uebernehmen]`, `aktionen [--firma] [--datum]` (Liste der gültigen
+Aktionen), `firma-merken <paket.json> --firma <id>`, `ablegen <paket.json> [--scharf]`,
+`benennen <paket.json> --kuerzel Cde` (Vorschau des Dateinamens).
+
+## Geschäftsregeln (Ergänzung aus dem dokumentierten Ablauf)
+13. Verkauf läuft über Angebot → Weiterführen/Wandeln → AB (`Firma.verkauf_weg`); in der AB
+    Lieferdatum und AB-Text löschen, wenn konfiguriert.
+14. WIK/WOE: Kundenbestellnummer in die Nachbemerkung der Einkauf-Bestellung; Formulare laut
+    `Firma.formulare`; WS: kein Lieferschein.
+15. Revised Order: Cde und AB neu anlegen, nie ändern; Kürzel "Neu" / "Neu Kopie".
+16. Rabatte nur als Positionsrabatt in % im Verkauf; VK bleibt Preisgruppe 1; Aktionsrabatt
+    nur aus Aktionszeiträumen/Rabattliste, unsichere Treffer und Abweichungen zum Dokument
+    sichtbar markieren; nie im Einkauf.
+17. Firma bei Region/Kette/Großkunde nur nach Antwort des Anwenders; gelernte Regel je Kunde +
+    Lieferant wiederverwenden und als solche kennzeichnen.
+18. Dateinamen ausschließlich nach Titulierung (`benennung.py`); Auftragskopie nie
+    "Auftragsbestätigung".
+19. Ablage nur nach Freigabe und scharfem Lauf nach "Aufträge/1 Eingang"; nichts verschieben,
+    nichts überschreiben.
+20. Hochgeladene Dateien gelten als Eingang: extrahieren und prüfen ja, buchen nur nach Freigabe.
+
 ## Testdaten
 * `tests/fixtures/stammdaten/<firma>/*.csv`: synthetische Stämme (Spaltennamen = Modellfelder).
   wik_leh enthält bewusst Sondervarianten (1644 = 0,375 l, 958 = 1,5 l, 2004 = Holzkiste),

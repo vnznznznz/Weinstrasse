@@ -15,6 +15,17 @@ firmen:
     name: "Weinstrasse Agentur"
     lexware_firmenname: "Weinstrasse Agentur"
     einkauf_bestellung: false          # hier keine Bestellung im Einkauf
+    kuerzel: "WS"
+    verkauf_weg: angebot_weiterfuehren   # Angebot (Lieferdatum löschen, Rabatte) -> Weiterführen -> AB "WS_AB" = Auftragskopie
+    lieferdatum_in_ab_loeschen: true
+    ab_text_loeschen: true
+    bestellnummer_in_nachbemerkung: false
+    lieferschein_erlaubt: false          # Agentur: kein Lieferschein
+    formulare:
+      angebot_en: "WS_EN"                # Angebot drucken: Cde + Speditionsauftrag
+      verkauf_ab: "WS_AB"                # Auftragskopie an den Kunden
+    kundengruppen: [fachhandel]          # laut Katalog: Fachhandelslieferanten der Agentur
+    ablage_ordner: "WS"
     eingang_unterordner: "weinstrasse_agentur"
     stammdaten:
       typ: csv
@@ -33,6 +44,17 @@ firmen:
     name: "Wein-Import-Kreis FH & SEH"
     lexware_firmenname: "Wein-Import-Kreis FH & SEH"
     einkauf_bestellung: true
+    kuerzel: "WIK"
+    verkauf_weg: angebot_weiterfuehren   # Angebot -> Weiterführen -> AB (Lieferdatum/AB-Text löschen); alternativ angebot_wandeln
+    lieferdatum_in_ab_loeschen: true
+    ab_text_loeschen: true
+    bestellnummer_in_nachbemerkung: true # Kundenbestellnummer in die Nachbemerkung der Einkauf-Bestellung
+    lieferschein_erlaubt: true
+    formulare:
+      einkauf_en: "WIK EN"               # 2x: Cde an das Weingut + Speditionsauftrag
+      verkauf_ab: "WIK AB_LS"
+    kundengruppen: [fachhandel, eigenstaendiger_leh]
+    ablage_ordner: "WIK FH"
     eingang_unterordner: "wik_fh_seh"
     stammdaten:
       typ: csv
@@ -51,6 +73,17 @@ firmen:
     name: "Wein-Import-Kreis LEH"
     lexware_firmenname: "Wein-Import-Kreis LEH"
     einkauf_bestellung: true
+    kuerzel: "WIK"
+    verkauf_weg: angebot_weiterfuehren
+    lieferdatum_in_ab_loeschen: true
+    ab_text_loeschen: true
+    bestellnummer_in_nachbemerkung: true
+    lieferschein_erlaubt: true
+    formulare:
+      einkauf_en: "WIK EN"
+      verkauf_ab: "WIK AB_LS"
+    kundengruppen: [region, kette, grosskunde]   # mehrdeutig mit WOE -> Tool fragt und merkt sich die Antwort
+    ablage_ordner: "WIK LEH"
     eingang_unterordner: "wik_leh"
     stammdaten:
       typ: csv
@@ -69,6 +102,17 @@ firmen:
     name: "Wine-of-Excellence LEH"
     lexware_firmenname: "Wine-of-Excellence LEH"
     einkauf_bestellung: true
+    kuerzel: "WOE"
+    verkauf_weg: angebot_weiterfuehren
+    lieferdatum_in_ab_loeschen: true
+    ab_text_loeschen: true
+    bestellnummer_in_nachbemerkung: true
+    lieferschein_erlaubt: true
+    formulare:
+      einkauf_en: "WIK EN"               # bitte prüfen: eigene WOE-Formulare?
+      verkauf_ab: "WIK AB_LS"
+    kundengruppen: [region, kette, grosskunde]
+    ablage_ordner: "WOE"
     eingang_unterordner: "woe_leh"
     stammdaten:
       typ: csv

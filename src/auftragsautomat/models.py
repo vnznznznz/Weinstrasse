@@ -68,6 +68,8 @@ class Pruefcode(StrEnum):
     LIEFERANT_UNSICHER = "LIEFERANT_UNSICHER"
     MEHRERE_LIEFERANTEN = "MEHRERE_LIEFERANTEN"  # Positionen mehrerer Weingüter -> je Weingut eine Bestellung
     FIRMA_UNKLAR = "FIRMA_UNKLAR"
+    FIRMA_GELERNT = "FIRMA_GELERNT"  # Firma aus dem Firmen-Gedächtnis (Kunde + Lieferant) übernommen
+    REVISION = "REVISION"  # "Revised order": ersetzt eine frühere Bestellung (Cde + AB neu)
     # Prüfung
     PREIS_ABWEICHUNG = "PREIS_ABWEICHUNG"
     NULLPREIS_OHNE_ARTIKEL = "NULLPREIS_OHNE_ARTIKEL"
@@ -77,8 +79,13 @@ class Pruefcode(StrEnum):
     EK_FEHLT = "EK_FEHLT"
     VK_FEHLT = "VK_FEHLT"
     BELEGFELD_FEHLT = "BELEGFELD_FEHLT"  # Spedition / Weingut / Shipment / Kunde
-    # Lexware
+    # Aktionen / Rabatte
+    RABATT_VORSCHLAG = "RABATT_VORSCHLAG"  # Aktionsrabatt laut Aktionszeiträumen/Rabattliste vorgeschlagen
+    RABATT_ABWEICHUNG = "RABATT_ABWEICHUNG"  # Rabatt laut Dokument weicht von der Aktion ab
+    RABATT_UNSICHER = "RABATT_UNSICHER"  # Aktion passt nur unscharf (Artikeltext/Kunde), Anwender entscheidet
+    # Lexware / Ablage
     LEXWARE = "LEXWARE"
+    ABLAGE = "ABLAGE"  # Ablage in OneDrive (Buchhaltung/Aufträge) nicht möglich
 
 
 class Pruefhinweis(BaseModel):
@@ -120,6 +127,8 @@ class RohPosition(BaseModel):
     ve_inhalt: Decimal | None = None  # Flaschen je Verpackungseinheit
     kundenartikelnummer: str | None = None  # Artikelnummer des Kunden (z. B. SPAR, Rheinberg)
     gtin: str | None = None
+    rabatt_prozent: Decimal | None = None  # Rabatt laut Dokument (z. B. Aktionsrabatt); nur Hinweis, nie Buchungspreis
+    rabatt_text: str | None = None  # Rohtext des Rabatts ("Aktion -10 %", "Naturalrabatt 11+1")
 
 
 class RohBestellung(BaseModel):
@@ -143,6 +152,9 @@ class RohBestellung(BaseModel):
     empfaenger_firma_text: str | None = None  # an welche unserer Firmen das Dokument adressiert ist
     ladeadresse: str | None = None  # Abholadresse beim Weingut (LEH-Bestellungen)
     lieferbedingung: str | None = None  # z. B. "Frei Haus", "ex cellar"
+    ist_revision: bool = False  # "Revised order": ersetzt eine frühere Bestellung (-> Cde + AB neu, Kürzel "Neu")
+    revision_von: str | None = None  # Bestell-/Belegnummer der ersetzten Bestellung, falls genannt
+    aktionshinweis: str | None = None  # Aktionshinweis laut Dokument ("Aktion KW 45", "Promo")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -212,6 +224,7 @@ class Lieferant(BaseModel):
 
 
 class Belegart(StrEnum):
+    ANGEBOT = "AN"  # Zwischenschritt im Verkauf (Angebot -> weiterführen/wandeln -> AB)
     AUFTRAGSBESTAETIGUNG = "AB"
     LIEFERSCHEIN = "LS"
     RECHNUNG = "RE"
@@ -229,6 +242,98 @@ class Beleg(BaseModel):
     partnernummer: str | None = None  # Kunden- oder Lieferantennummer
     datum: date | None = None
     netto: Decimal | None = None
+
+
+# ---------------------------------------------------------------------------
+# Aktionen / Rabatte (Aktionszeiträume-Excel, hochgeladene Rabattlisten-PDF)
+# ---------------------------------------------------------------------------
+
+
+class Aktion(BaseModel):
+    """Ein Aktionszeitraum mit Rabatt, aus der Aktionszeiträume-Excel oder einer Rabattlisten-PDF.
+
+    Trifft eine Aktion auf eine Position zu (Kunde, Lieferant/Artikel, Zeitraum), wird der Rabatt
+    als ``PositionsZuordnung.rabatt_prozent`` vorgeschlagen und nach Freigabe in den Auftrag
+    übernommen. Der VK bleibt Preisgruppe 1, der Rabatt ist ein Positionsrabatt in Prozent.
+    """
+
+    aktion_id: str
+    bezeichnung: str | None = None  # z. B. "Herbstaktion Edeka Rhein-Ruhr"
+    firma_id: str | None = None  # None = gilt in allen Firmen
+    kunde_kurz: str | None = None  # Kunde / Kundengruppe / Region wie in der Excel; None = alle Kunden
+    kundennummern: list[str] = Field(default_factory=list)  # optional: konkrete Lexware-Kundennummern
+    lieferant_kurz: str | None = None  # Weingut / Lieferant; None = alle
+    artikelnummern: list[str] = Field(default_factory=list)  # konkrete Artikel; leer = alle des Lieferanten
+    artikel_text: str | None = None  # Freitext-Artikel aus der PDF ("Primitivo 0,75 l")
+    von: date
+    bis: date
+    rabatt_prozent: Decimal | None = None
+    rabatt_eur: Decimal | None = None  # alternativ: Betrag je Flasche (wird in % auf VK umgerechnet)
+    aktionspreis: Decimal | None = None  # alternativ: Aktions-VK je Flasche (wird in % auf VK umgerechnet)
+    bezug: Literal["liefertag", "auftragsdatum"] = "liefertag"  # welches Datum in den Zeitraum fallen muss
+    quelle: str  # "excel:<Blatt>:<Zeile>" oder "pdf:<Datei>:<Seite>"
+    konfidenz: float | None = None  # nur bei PDF-Extraktion
+    bemerkung: str | None = None
+    aktiv: bool = True
+
+    def gilt_am(self, tag: date | None) -> bool:
+        return self.aktiv and tag is not None and self.von <= tag <= self.bis
+
+
+class AktionTreffer(BaseModel):
+    """Eine Aktion, die auf eine Position (oder den ganzen Beleg) zutrifft."""
+
+    aktion: Aktion
+    position_laufnr: int | None = None  # None = Beleg-Ebene (alle Positionen des Lieferanten)
+    rabatt_prozent: Decimal | None = None  # tatsächlich vorgeschlagener Prozentsatz (ggf. aus EUR/Aktionspreis)
+    grund: str
+    sicher: bool = True  # False -> Pruefhinweis RABATT_UNSICHER, Anwender entscheidet
+    angewendet: bool = False  # in der Freigabe übernommen
+
+
+class Rabattliste(BaseModel):
+    """Ergebnis eines Rabattlisten-Uploads (PDF) in der Freigabe-UI."""
+
+    quelldatei: Path
+    extraktionsmethode: Extraktionsmethode
+    aktionen: list[Aktion] = Field(default_factory=list)
+    hinweise: list[Pruefhinweis] = Field(default_factory=list)
+    rohtext: str | None = None
+    eingelesen_am: datetime | None = None
+
+
+# ---------------------------------------------------------------------------
+# Firmenwahl: Katalog (Kundengruppen) + Gedächtnis (Kunde + Lieferant -> Firma)
+# ---------------------------------------------------------------------------
+
+
+class Kundengruppe(StrEnum):
+    """Kundengruppen laut Katalog; sie entscheiden, über welche Firma ein Auftrag läuft."""
+
+    FACHHANDEL = "fachhandel"  # Weinstrasse Agentur oder WIK FH & SEH (je nach Lieferant/Katalog)
+    EIGENSTAENDIGER_LEH = "eigenstaendiger_leh"  # selbständige Einzelhändler -> WIK FH & SEH
+    REGION = "region"  # Einkaufsregionen (z. B. Rhein-Ruhr, Minden) -> WIK LEH oder WOE
+    KETTE = "kette"  # große Supermarktketten -> WIK LEH oder WOE
+    GROSSKUNDE = "grosskunde"  # -> WIK LEH oder WOE
+    UNBEKANNT = "unbekannt"
+
+
+class Firmenregel(BaseModel):
+    """Gelernte Zuordnung "Kunde (+ Lieferant/Produkt) -> Firma" aus der Freigabe.
+
+    Fragt das Tool nach der Firma (z. B. Region: WIK LEH oder WOE?), merkt es sich die Antwort je
+    Kunde und Lieferant; beim nächsten Auftrag dieses Kunden mit diesem Lieferanten wird sie
+    übernommen (Quelle ``"gedaechtnis"``, Pruefhinweis FIRMA_GELERNT als Info).
+    """
+
+    kunde_kurz: str  # normalisierter Kundenname / Alias
+    lieferant_kurz: str | None = None  # None = alle Lieferanten/Produkte dieses Kunden
+    firma_id: str
+    kundengruppe: Kundengruppe | None = None
+    gelernt_am: datetime | None = None
+    gelernt_von: str | None = None
+    quelle: Literal["freigabe", "katalog", "manuell"] = "freigabe"
+    bemerkung: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -287,12 +392,25 @@ class PositionsZuordnung(BaseModel):
     ek_preis: Decimal | None = None  # aus Lexware (Artikelstamm)
     vk_preis: Decimal | None = None  # aus Lexware (Preisgruppe 1)
     preis_dokument: Decimal | None = None  # laut PDF, NIE als Buchungspreis verwenden
+    rabatt_prozent: Decimal | None = None  # Positionsrabatt in % (Aktion); None/0 = kein Rabatt
+    rabatt_quelle: str | None = None  # "aktion:<aktion_id>", "dokument", "manuell"
     hinweise: list[Pruefhinweis] = Field(default_factory=list)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def uebersprungen(self) -> bool:
         return self.status == MatchStatus.UEBERSPRUNGEN
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def vk_preis_rabattiert(self) -> Decimal | None:
+        """VK Preisgruppe 1 abzüglich Positionsrabatt (None, wenn kein VK)."""
+        if self.vk_preis is None:
+            return None
+        if not self.rabatt_prozent:
+            return self.vk_preis
+        faktor = (Decimal(100) - self.rabatt_prozent) / Decimal(100)
+        return (self.vk_preis * faktor).quantize(Decimal("0.0001"))
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -312,9 +430,10 @@ class PositionsZuordnung(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def netto_vk(self) -> Decimal:
-        if self.uebersprungen or self.vk_preis is None:
+        preis = self.vk_preis_rabattiert
+        if self.uebersprungen or preis is None:
             return Decimal(0)
-        return (self.vk_preis * self.menge).quantize(Decimal("0.01"))
+        return (preis * self.menge).quantize(Decimal("0.01"))
 
 
 class Belegfelder(BaseModel):
@@ -342,7 +461,12 @@ class Belegpaket(BaseModel):
     belegfelder: Belegfelder = Field(default_factory=Belegfelder)
     hinweise: list[Pruefhinweis] = Field(default_factory=list)  # Belegebene
     einkauf_erforderlich: bool = True  # False bei Weinstrasse Agentur
-    lieferschein_erstellen: bool = False  # nur nach Vorlage und Freigabe
+    lieferschein_erstellen: bool = False  # nur nach Vorlage und Freigabe (und Firma.lieferschein_erlaubt)
+    ist_revision: bool = False  # Revised Order: Bestellung + AB neu anlegen, Benennung "Neu" / "Neu Kopie"
+    revision_von: str | None = None  # ersetzte Bestell-/Belegnummer
+    aktionen: list[AktionTreffer] = Field(default_factory=list)  # zutreffende Aktionen (Anzeige in der Freigabe)
+    firma_merken: bool = False  # Freigabe: gewählte Firma für Kunde + Lieferant ins Firmen-Gedächtnis schreiben
+    kundengruppe: Kundengruppe | None = None  # laut Katalog ermittelt
     freigegeben: bool = False
     freigegeben_am: datetime | None = None
     freigegeben_von: str | None = None
@@ -396,6 +520,21 @@ class Belegergebnis(BaseModel):
     warnungen: list[str] = Field(default_factory=list)
     artefakt: Path | None = None  # z. B. erzeugte openTRANS-XML
     partner: str | None = None  # z. B. "87 Cantine Colosi" (Lieferant der Einkauf-Bestellung)
+    pdf: Path | None = None  # erzeugte PDF (Formular laut Firma.formulare, Name laut Benennungsschema)
+    nachbemerkung: str | None = None  # z. B. Bestellnummer des Kunden (WIK/WOE: in der Nachbemerkung)
+
+
+class AblageErgebnis(BaseModel):
+    """Ablage einer fertigen Datei in OneDrive unter Buchhaltung/Aufträge (nur nach Freigabe)."""
+
+    datei: Path  # lokale Quelle
+    kuerzel: str  # Dokumentkürzel laut Benennungsschema (Kd, Cde, Kopie, Oc, Neu, Ls, ...)
+    zielordner: str  # Zielordner relativ zu "Aufträge", z. B. "WIK/2026/Cantine Colosi"
+    zielname: str  # Dateiname laut Benennungsschema
+    abgelegt: bool
+    dry_run: bool
+    speicherort: str | None = None  # Graph-Item-ID, lokaler Pfad oder None im Dry Run
+    fehler: str | None = None
 
 
 class BuchungsErgebnis(BaseModel):
@@ -403,6 +542,7 @@ class BuchungsErgebnis(BaseModel):
     quelldatei: Path
     dry_run: bool
     zeitpunkt: datetime
+    angebot: Belegergebnis | None = None  # Zwischenschritt Angebot (Weg "angebot_weiterfuehren"/"angebot_wandeln")
     einkauf: Belegergebnis | None = None
     verkauf: Belegergebnis | None = None
     lieferschein: Belegergebnis | None = None
@@ -412,6 +552,9 @@ class BuchungsErgebnis(BaseModel):
     einkauf_weitere: list[Belegergebnis] = Field(default_factory=list)
     protokoll: Path | None = None  # geschriebene protokoll.csv
     archiv: Path | None = None  # Zielpfad der archivierten Quelldatei (nur scharf und erfolgreich)
+    pdfs: dict[str, Path] = Field(default_factory=dict)  # erzeugte PDFs je Dokumentkürzel ("Cde", "Kopie", "Ls", ...)
+    ablage: list[AblageErgebnis] = Field(default_factory=list)  # Ablage in OneDrive Buchhaltung/Aufträge
+    ist_revision: bool = False
 
     def alle_einkaeufe(self) -> list[Belegergebnis]:
         """Einkauf-Bestellung des Hauptlieferanten plus die weiteren (Reihenfolge wie angelegt)."""
@@ -420,7 +563,7 @@ class BuchungsErgebnis(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def erfolgreich(self) -> bool:
-        teile = [t for t in (self.einkauf, self.verkauf, self.lieferschein) if t is not None]
+        teile = [t for t in (self.angebot, self.einkauf, self.verkauf, self.lieferschein) if t is not None]
         teile.extend(self.einkauf_weitere)
         return bool(teile) and all(t.erfolgreich for t in teile)
 
@@ -590,15 +733,51 @@ DossierDateityp = Literal[
     "deckblatt",
     "kundenbestellung",
     "bestellung",
+    "angebot",
     "auftragskopie",
+    "auftragsbestaetigung_lieferant",  # Oc: Bestätigung des Weinguts
+    "revision",  # Revised Order (Neu / Neu Kopie)
     "speditionsauftrag",
+    "speditionsbestaetigung",
     "lieferschein",
+    "reklamation",
+    "rabattliste",
     "mail",
     "fixtermin",
     "index",
     "gesamt_pdf",
     "sonstiges",
 ]
+
+#: Dokumentkürzel laut Benennungsschema ("Titulierung") – sie stehen im Dateinamen jedes Belegs.
+Dokumentkuerzel = Literal["Kd", "Cde", "Kopie", "Oc", "Neu", "Neu Kopie", "Rekl", "Ls", "Speditionsauftrag", "Speditionsbestätigung"]
+
+DOKUMENTKUERZEL: dict[str, str] = {
+    "Kd": "Kundenbestellung (Eingang vom Kunden)",
+    "Cde": "Bestellung an den Lieferanten (Commande)",
+    "Kopie": "Auftragskopie an den Kunden (nie 'Auftragsbestätigung')",
+    "Oc": "Auftragsbestätigung des Lieferanten (Order confirmation)",
+    "Neu": "Revised Order: neue Bestellung an den Lieferanten",
+    "Neu Kopie": "Revised Order: neue Auftragskopie an den Kunden",
+    "Rekl": "Reklamation",
+    "Ls": "Lieferschein",
+    "Speditionsauftrag": "Auftrag an die Spedition",
+    "Speditionsbestätigung": "Bestätigung der Spedition",
+}
+
+#: Zuordnung Dokumentkürzel -> Dossier-Dateityp
+KUERZEL_DATEITYP: dict[str, DossierDateityp] = {
+    "Kd": "kundenbestellung",
+    "Cde": "bestellung",
+    "Kopie": "auftragskopie",
+    "Oc": "auftragsbestaetigung_lieferant",
+    "Neu": "revision",
+    "Neu Kopie": "revision",
+    "Rekl": "reklamation",
+    "Ls": "lieferschein",
+    "Speditionsauftrag": "speditionsauftrag",
+    "Speditionsbestätigung": "speditionsbestaetigung",
+}
 
 
 class DossierDatei(BaseModel):

@@ -70,15 +70,51 @@ class OpenTransKonfig(BaseModel):
     steuergebiet: Literal["Merchant", "EU", "Non_EU"] = "Merchant"  # REMARK type=tax_area
 
 
+class FormularKonfig(BaseModel):
+    """Namen der Lexware-Druckformulare je Belegart (Lexware: Drucken -> Formular wählen).
+
+    ``None`` = Lexware-Standardformular. Laut dokumentiertem Ablauf: WIK/WOE drucken die
+    Einkauf-Bestellung mit "WIK EN" zweimal (Cde an das Weingut und Speditionsauftrag) und die
+    AB mit "WIK AB_LS"; die Weinstrasse Agentur druckt das Angebot mit "WS_EN" (Cde und
+    Speditionsauftrag) und die AB mit "WS_AB" (= Auftragskopie).
+    """
+
+    einkauf_en: str | None = None  # Einkauf-Bestellung: Cde + Speditionsauftrag
+    angebot_en: str | None = None  # Angebot (Weinstrasse Agentur): Cde + Speditionsauftrag
+    verkauf_ab: str | None = None  # Auftragsbestätigung (für den Kunden = Auftragskopie)
+    lieferschein: str | None = None
+    speditionsauftrag_kopien: int = 2  # EN-Formular zweimal: Cde + Speditionsauftrag
+
+
 class Firma(BaseModel):
     id: str
     name: str
     lexware_firmenname: str  # exakter Name in der Lexware-Firmenauswahl
+    kuerzel: str = ""  # Kurzname im Dateinamen/Ablagepfad (WS, WIK, WOE); leer = aus der ID abgeleitet
     einkauf_bestellung: bool = True  # Weinstrasse Agentur: False
     stammdaten: StammdatenKonfig = Field(default_factory=StammdatenKonfig)
     opentrans: OpenTransKonfig = Field(default_factory=OpenTransKonfig)
     belegfelder_standard: dict[str, str] = Field(default_factory=dict)  # z. B. spedition
     eingang_unterordner: str | None = None  # Eingang/<unterordner> -> Firma
+    # Verkaufsweg laut dokumentiertem Lexware-Ablauf (docs/AUSBAUSTUFE_2.md, Abschnitt 5):
+    #   angebot_weiterfuehren: Angebot anlegen -> "Weiterführen" -> AB (Lieferdatum/AB-Text löschen)
+    #   angebot_wandeln:       Angebot anlegen -> "Auftrag wandeln" -> AB
+    #   direkt_ab:             AB direkt anlegen (ohne Angebot)
+    verkauf_weg: Literal["angebot_weiterfuehren", "angebot_wandeln", "direkt_ab"] = "angebot_weiterfuehren"
+    lieferdatum_in_ab_loeschen: bool = True  # Lieferdatum in der AB leeren (Fixtermin steht in der Excel)
+    ab_text_loeschen: bool = True  # Standard-AB-Text leeren
+    bestellnummer_in_nachbemerkung: bool = True  # Kundenbestellnummer in die Nachbemerkung der Einkauf-Bestellung
+    lieferschein_erlaubt: bool = True  # Weinstrasse Agentur: False (kein Lieferschein)
+    formulare: FormularKonfig = Field(default_factory=FormularKonfig)
+    kundengruppen: list[str] = Field(default_factory=list)  # Kundengruppen laut Katalog, die hier abgewickelt werden
+    ablage_ordner: str | None = None  # Unterordner unter "Buchhaltung/Aufträge"; None = kuerzel
+
+    @property
+    def kurz(self) -> str:
+        """Kürzel für Dateinamen/Ablage (``kuerzel`` oder aus der ID: wik_leh -> WIK)."""
+        if self.kuerzel:
+            return self.kuerzel
+        return self.id.split("_")[0].upper()
 
 
 class MatchingKonfig(BaseModel):
@@ -105,6 +141,29 @@ class LexwareKonfig(BaseModel):
     firmenwechsel_erlaubt: bool = False  # darf die UI-Automation die Lexware-Firma wechseln?
     backend: Literal["uia", "win32"] = "uia"  # pywinauto-Backend
     controls_datei: Path | None = None  # Standard: config/lexware_controls.yaml
+    # PDF-Ausgabe der Belege (Cde, Kopie, Ls) – nie auf Papier, nie per E-Mail aus Lexware:
+    #   keine:    keine PDF aus Lexware (nur Dry-Run-Vorschau)
+    #   drucker:  Lexware-Druckdialog mit PDF-Drucker (pdf_drucker), Dateiname laut Benennungsschema
+    #   export:   Lexware-Funktion "Exportieren als PDF" (sofern im Belegfenster vorhanden)
+    pdf_ausgabe: Literal["keine", "drucker", "export"] = "keine"
+    pdf_drucker: str = "Microsoft Print to PDF"
+    pdf_ausgabe_ordner: Path = Path("logs/pdf")
+
+
+class BenennungKonfig(BaseModel):
+    """Benennungsschema der Dateien ("Titulierung").
+
+    Weinstrasse Agentur: ``Lieferant – Kunde – Kürzel – Datum`` (Kunden in
+    ``kunden_mit_auftragsnummer`` zusätzlich mit Auftragsnummer);
+    WIK/WOE: ``Lieferant – WIK|WOE – Bestell-Nr – Kürzel – Datum``;
+    Spedition: ``Spedition – Speditionsauftrag|Speditionsbestätigung|Lieferschein – Lieferant – Kunde|Bestell-Nr – Datum``.
+    """
+
+    trenner: str = " – "
+    datumsformat: str = "%d.%m.%Y"
+    kunden_mit_auftragsnummer: list[str] = Field(default_factory=lambda: ["Spar"])
+    ersatzzeichen: str = "-"  # für Zeichen, die in Dateinamen verboten sind (/ \ : * ? " < > |)
+    max_laenge: int = 180
 
 
 class DateiRefKonfig(BaseModel):
@@ -185,6 +244,78 @@ class KontakteKonfig(BaseModel):
     standard_spedition: str = "Hillebrand"
 
 
+class RabatteKonfig(BaseModel):
+    """Aktionszeiträume (Excel in OneDrive) und hochgeladene Rabattlisten (PDF)."""
+
+    aktiv: bool = True
+    aktionen_datei: DateiRefKonfig = Field(default_factory=lambda: DateiRefKonfig(blatt="Aktionen"))
+    # Spaltenzuordnung "unser Feld" -> "Spaltenüberschrift in der Excel" (Groß-/Kleinschreibung egal)
+    spalten: dict[str, str] = Field(
+        default_factory=lambda: {
+            "kunde_kurz": "Kunde",
+            "lieferant_kurz": "Lieferant",
+            "artikel_text": "Artikel",
+            "artikelnummern": "Artikelnummer",
+            "von": "Von",
+            "bis": "Bis",
+            "rabatt_prozent": "Rabatt %",
+            "rabatt_eur": "Rabatt EUR",
+            "aktionspreis": "Aktionspreis",
+            "bezeichnung": "Aktion",
+            "bemerkung": "Bemerkung",
+            "firma_id": "Firma",
+        }
+    )
+    rabatt_pdf_ordner: Path = Path("eingang/rabatte")  # hierhin legt die Freigabe-UI hochgeladene PDFs
+    gedaechtnis_datei: Path = Path("config/aktionen.yaml")  # aus PDFs extrahierte Aktionen (nach Freigabe)
+    automatisch_anwenden: bool = True  # sichere Treffer direkt als rabatt_prozent eintragen (Anzeige rot/gelb)
+    bezug: Literal["liefertag", "auftragsdatum"] = "liefertag"
+    toleranz_tage: int = 0  # Zeitraum um x Tage großzügiger auslegen (dann RABATT_UNSICHER)
+    max_rabatt_prozent: Decimal = Decimal("50")  # Plausibilitätsgrenze: darüber FEHLER statt Vorschlag
+
+
+class FirmenwahlKonfig(BaseModel):
+    """Firma nach Katalog (Kundengruppen) wählen, Antworten des Anwenders je Kunde + Lieferant merken."""
+
+    katalog_datei: Path = Path("config/firmenkatalog.yaml")
+    gedaechtnis_datei: Path = Path("config/firmen_gedaechtnis.yaml")
+    merken: bool = True  # Antwort aus der Freigabe je Kunde + Lieferant speichern
+    fragen_wenn_unklar: bool = True  # mehrere Firmen möglich -> Pruefhinweis FIRMA_UNKLAR (FEHLER) bis zur Wahl
+    gedaechtnis_vor_katalog: bool = True  # gelernte Regel schlägt den Katalog
+
+
+class AblageKonfig(BaseModel):
+    """Fertige, benannte Dateien nach OneDrive "Buchhaltung/Aufträge/1 Eingang" einsortieren (nur nach Freigabe).
+
+    Alle Aufträge landen zunächst im Unterordner "1 Eingang" des Ordners "Aufträge" (Vorgabe des
+    Anwenders); von dort sortiert die Buchhaltung weiter. Die Struktur ist konfigurierbar
+    (Platzhalter ``{firma}`` = Kürzel, ``{jahr}``, ``{monat}``, ``{lieferant}``, ``{kunde}``).
+    """
+
+    aktiv: bool = False  # erst nach Freigabe des Benennungsschemas durch den Anwender einschalten
+    auftraege_ordner: DateiRefKonfig = Field(default_factory=DateiRefKonfig)  # OneDrive: Buchhaltung/Aufträge
+    struktur: str = "1 Eingang"  # Zielordner unter "Aufträge"; z. B. "1 Eingang" oder "1 Eingang/{firma}"
+    lokaler_ordner: Path = Path("logs/ablage")  # Dry Run / Backend "fake"
+    nur_scharf: bool = True  # im Dry Run nur protokollieren, nichts kopieren
+    vorhandene_ueberschreiben: bool = False  # Namenskollision -> " (2)" anhängen statt überschreiben
+    kundenbestellung_ablegen: bool = True  # das Eingangsdokument als "Kd" mit ablegen
+
+
+class EingangKonfig(BaseModel):
+    """Der eigene Eingang des Tools: Ordner, in den Kunden-/Verkäuferaufträge gelegt werden, plus Upload in der UI.
+
+    ``Settings.eingang_ordner`` darf ein OneDrive-synchronisierter Ordner sein, damit Verkäufer
+    Aufträge dort ablegen können; der Watcher und die Freigabe-UI lesen denselben Ordner.
+    """
+
+    upload_erlaubt: bool = True  # Freigabe-UI: "Auftrag (PDF) hochladen" -> Datei landet im Eingang
+    upload_max_mb: int = 50
+    upload_dateitypen: list[str] = Field(default_factory=lambda: [".pdf", ".msg", ".eml", ".png", ".jpg", ".jpeg"])
+    upload_in_firmen_unterordner: bool = True  # bei gewählter Firma nach eingang/<firma>/ speichern
+    onedrive_ordner: DateiRefKonfig = Field(default_factory=DateiRefKonfig)  # optional: Eingang in OneDrive (Graph)
+    als_kundenbestellung_ablegen: bool = True  # Eingangsdokument nach Freigabe als "Kd" mit in "1 Eingang" ablegen
+
+
 class DossierKonfig(BaseModel):
     ordner_name: str = "vorangefertigte Dossiers"
     lokaler_ordner: Path = Path("logs/dossiers")  # Dry Run / Backend "fake"
@@ -213,6 +344,12 @@ class Settings(BaseModel):
     ueberwachung: UeberwachungKonfig = Field(default_factory=UeberwachungKonfig)
     kontakte: KontakteKonfig = Field(default_factory=KontakteKonfig)
     dossier: DossierKonfig = Field(default_factory=DossierKonfig)
+    # Prozess laut Lexware-Doku, Aktionen/Rabatte, Firmenwahl, Ablage
+    benennung: BenennungKonfig = Field(default_factory=BenennungKonfig)
+    eingang: EingangKonfig = Field(default_factory=EingangKonfig)
+    rabatte: RabatteKonfig = Field(default_factory=RabatteKonfig)
+    firmenwahl: FirmenwahlKonfig = Field(default_factory=FirmenwahlKonfig)
+    ablage: AblageKonfig = Field(default_factory=AblageKonfig)
 
     def firma(self, firma_id: str) -> Firma:
         try:
@@ -260,6 +397,12 @@ def lade_settings(stamm: Path | None = None) -> Settings:
         setattr(settings, feld, _absolut(getattr(settings, feld), stamm))
     settings.lexware.screenshots_ordner = _absolut(settings.lexware.screenshots_ordner, stamm)
     settings.lexware.controls_datei = _absolut(settings.lexware.controls_datei, stamm)
+    settings.lexware.pdf_ausgabe_ordner = _absolut(settings.lexware.pdf_ausgabe_ordner, stamm)  # type: ignore[assignment]
+    settings.rabatte.rabatt_pdf_ordner = _absolut(settings.rabatte.rabatt_pdf_ordner, stamm)  # type: ignore[assignment]
+    settings.rabatte.gedaechtnis_datei = _absolut(settings.rabatte.gedaechtnis_datei, stamm)  # type: ignore[assignment]
+    settings.firmenwahl.katalog_datei = _absolut(settings.firmenwahl.katalog_datei, stamm)  # type: ignore[assignment]
+    settings.firmenwahl.gedaechtnis_datei = _absolut(settings.firmenwahl.gedaechtnis_datei, stamm)  # type: ignore[assignment]
+    settings.ablage.lokaler_ordner = _absolut(settings.ablage.lokaler_ordner, stamm)  # type: ignore[assignment]
     k = settings.kommunikation
     for feld in ("vorlagen_ordner", "signaturen_datei", "anrede_datei", "entwuerfe_ordner"):
         setattr(k, feld, _absolut(getattr(k, feld), stamm))
@@ -268,7 +411,14 @@ def lade_settings(stamm: Path | None = None) -> Settings:
     settings.ueberwachung.merkdatei = _absolut(settings.ueberwachung.merkdatei, stamm)  # type: ignore[assignment]
     settings.ueberwachung.berichte_ordner = _absolut(settings.ueberwachung.berichte_ordner, stamm)  # type: ignore[assignment]
     settings.dossier.lokaler_ordner = _absolut(settings.dossier.lokaler_ordner, stamm)  # type: ignore[assignment]
-    for ref in (settings.m365.fixtermin_datei, settings.m365.kontaktliste_datei, settings.m365.dossier_ordner):
+    for ref in (
+        settings.m365.fixtermin_datei,
+        settings.m365.kontaktliste_datei,
+        settings.m365.dossier_ordner,
+        settings.rabatte.aktionen_datei,
+        settings.ablage.auftraege_ordner,
+        settings.eingang.onedrive_ordner,
+    ):
         if ref.lokaler_pfad is not None:
             ref.lokaler_pfad = _absolut(ref.lokaler_pfad, stamm)
     return settings

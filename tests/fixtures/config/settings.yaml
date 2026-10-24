@@ -21,6 +21,9 @@ lexware:
   wartezeit_sekunden: 0.0
   maximale_wartezeit_sekunden: 1.0
   screenshots_ordner: "logs/screenshots"
+  pdf_ausgabe: keine             # keine | drucker | export  (PDF der Belege; nie Papier, nie E-Mail aus Lexware)
+  pdf_drucker: "Microsoft Print to PDF"
+  pdf_ausgabe_ordner: "logs/pdf"
 # Die echten Alias-Tabellen aus dem Repo verwenden:
 alias_ordner: "../../config/aliase"
 
@@ -71,3 +74,45 @@ dossier:
   lokaler_ordner: "logs/dossiers"
   gesamt_pdf: false
   verschieben_erlauben: false
+
+# ------------------------------------------- Prozess laut Lexware-Doku, Rabatte, Firmenwahl, Ablage
+benennung:
+  trenner: " – "
+  datumsformat: "%d.%m.%Y"
+  kunden_mit_auftragsnummer: ["Spar"]   # WS: "Lieferant – Kunde – Auftragsnummer – Kürzel – Datum"
+
+rabatte:
+  aktiv: true
+  aktionen_datei:
+    web_url: null                 # Aktionszeiträume-Excel in OneDrive/SharePoint
+    lokaler_pfad: null
+    blatt: "Aktionen"
+  rabatt_pdf_ordner: "eingang/rabatte"   # Upload "Rabattliste (PDF)" in der Freigabe-UI
+  gedaechtnis_datei: "config/aktionen.yaml"
+  automatisch_anwenden: true
+  bezug: liefertag
+  toleranz_tage: 0
+
+firmenwahl:
+  katalog_datei: "config/firmenkatalog.yaml"
+  gedaechtnis_datei: "config/firmen_gedaechtnis.yaml"
+  merken: true
+  fragen_wenn_unklar: true
+
+eingang:
+  upload_erlaubt: true          # Freigabe-UI: Auftrag (PDF/MSG/EML/Scan) hochladen -> landet im Eingang
+  upload_max_mb: 50
+  upload_in_firmen_unterordner: true
+  onedrive_ordner:
+    web_url: null               # optional: Eingangsordner in OneDrive (Verkäufer legen Aufträge dort ab)
+    lokaler_pfad: null          # oder eingang_ordner oben direkt auf den synchronisierten Ordner zeigen lassen
+  als_kundenbestellung_ablegen: true   # Eingangsdokument nach Freigabe als "Kd" mit ablegen
+
+ablage:
+  aktiv: false                  # einschalten, sobald Ordnerstruktur und Benennung freigegeben sind
+  auftraege_ordner:
+    web_url: null               # OneDrive: Buchhaltung/Aufträge
+    lokaler_pfad: null
+  struktur: "1 Eingang"         # alle Aufträge zuerst nach "Aufträge/1 Eingang"; Platzhalter {firma} {jahr} {lieferant} {kunde} möglich
+  lokaler_ordner: "logs/ablage"
+  nur_scharf: true
