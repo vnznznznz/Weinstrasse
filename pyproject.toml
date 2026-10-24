@@ -51,9 +51,10 @@ dev = [
 
 [project.scripts]
 auftragsautomat = "auftragsautomat.cli:app"
+postfach = "postfach.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/auftragsautomat"]
+packages = ["src/auftragsautomat", "src/postfach"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

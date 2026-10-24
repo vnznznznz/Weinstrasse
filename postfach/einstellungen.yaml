@@ -1,0 +1,37 @@
+# Einstellungen des Postfach-Assistenten (wird von den Skills gelesen; regeln.json bleibt unverändert).
+postfach: j.duenschede@weinstrasseadolph.de
+zeitzone: Europe/Berlin
+git_branch: claude/sleepy-wright-8zmnua      # Branch, auf dem Wissen/Journal/Zustand fortgeschrieben werden
+
+einsortieren:
+  rueckblick_tage: 60            # wie weit der Posteingang beim Knopfdruck durchgesehen wird
+  loeschen_erlaubt: true         # nur die beiden freigegebenen Lösch-Regeln, immer soft (Gelöschte Elemente)
+  bewerbungen_bleiben: true
+
+entwuerfe:
+  aktiv: true
+  rueckblick_stunden: 26         # Mails jünger als das bekommen beim ersten Lauf einen Entwurf
+  hoechstens_je_lauf: 12
+  signatur_anhaengen: true       # Graph-Entwürfe bekommen keine Outlook-Signatur, daher selbst anhängen
+  sprache: wie_absender          # Deutsch/Englisch/Spanisch/Italienisch/Französisch wie die eingehende Mail
+  nie_an:                        # zusätzliche Adressen/Domains, die nie einen Entwurf bekommen
+    - mailing.ubs.com
+    - email.openai.com
+    - linkedin.com
+  markierung_im_betreff: ""      # z. B. "[Entwurf KI] " – leer lassen, wenn der Entwurf direkt versandfertig sein soll
+
+briefing:
+  wochentage: [Mo, Di, Mi, Do, Fr]
+  kalender_tage_voraus: 7
+  anstehend_tage: 28
+  hoechstens_zuerst_erledigen: 5
+  zustellung:
+    - session          # Abschlussmeldung des geplanten Laufs (Push/E-Mail-Benachrichtigung von Claude)
+    - repo             # postfach/briefings/JJJJ-MM-TT.md
+    # - teams_chat     # zusätzlich als Teams-Chat an dich selbst (teams_send_chat_message)
+    # - mail_an_mich   # zusätzlich als Mail an dich selbst – einzige Ausnahme vom „nie senden“
+
+lernen:
+  gesendete_mails_rueckblick_tage: 14
+  neue_absender_melden: true
+  regeln_nie_automatisch_aendern: true   # Vorschläge landen in wissen/regelvorschlaege.md, JD entscheidet

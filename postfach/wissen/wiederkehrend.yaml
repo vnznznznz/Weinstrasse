@@ -1,0 +1,84 @@
+# Wiederkehrende Aufgaben und feste Termine für das Morgen-Briefing.
+# Format siehe src/postfach/termine.py. Einträge mit quelle "Annahme – bitte prüfen" stammen aus
+# Branchenwissen, nicht aus deinem Postfach – bitte streichen oder anpassen, der Assistent lernt daraus.
+
+- name: Wochenstartmeeting (Teams)
+  art: termin
+  woechentlich: Mo
+  vorlauf_tage: 1
+  aufgaben: ["offene Aufträge und Abholungen der Woche kurz zusammenstellen"]
+  quelle: Kalender 24.10.2026
+
+- name: Teammeeting (Teams)
+  art: termin
+  woechentlich: Di
+  vorlauf_tage: 1
+  quelle: Kalender 24.10.2026
+
+- name: Termin Steuerberater Böhling in Köln, 14:00 (mit AD) – DATEV smart Login, Lexware/DATEV-Einstellungen
+  art: termin
+  einmalig: 2026-11-02
+  vorlauf_tage: 10
+  aufgaben: ["persönlich vor Ort sein (ausdrücklich erbeten)", "Lexware-Zugang und Rechner bereithalten"]
+  quelle: Mail Böhling 23.10.2026
+
+- name: Claude-Lexware-Integration mit Frederik Heimes (Teams, 9:00)
+  art: termin
+  einmalig: 2026-10-28
+  vorlauf_tage: 3
+  quelle: Kalender 24.10.2026
+
+- name: Monatsabschluss Buchhaltung an Steuerberater (Belege, Lexware-Export, Lohn)
+  art: wiederkehrend
+  monatlich: 5
+  vorlauf_tage: 4
+  aufgaben: ["Belege vollständig?", "Lexware/DATEV-Export", "Gehaltsänderungen melden"]
+  quelle: Annahme – bitte prüfen
+
+- name: Provisionsabrechnungen Lieferanten prüfen (Kommissionen)
+  art: wiederkehrend
+  monatlich: 15
+  vorlauf_tage: 3
+  aufgaben: ["offene Commission statements abgleichen", "Pending Documents nachfordern"]
+  quelle: Annahme – bitte prüfen
+
+- name: Preislisten 2027 der Lieferanten einsammeln
+  art: projekt
+  jaehrlich: "12-15"
+  vorlauf_tage: 45
+  aufgaben: ["Lieferanten ohne neue Preisliste anschreiben", "Ordner Preislisten anlegen", "Kundenpreislisten ableiten"]
+  quelle: Annahme – bitte prüfen (Ordner „Preislisten 2026“ existiert)
+
+- name: Weihnachtsgeschäft / Jahresend-Logistik (letzte Abholungen, Speditionsfristen)
+  art: projekt
+  jaehrlich: "12-10"
+  vorlauf_tage: 40
+  aufgaben: ["Letztmögliche Abholtermine bei Hillebrand Gori / LKW Stark erfragen", "Kunden über Fristen informieren"]
+  quelle: Annahme – bitte prüfen
+
+- name: Wine Paris / Vinexposium (Februar)
+  art: messe
+  jaehrlich: "02-09"
+  vorlauf_tage: 60
+  aufgaben: ["Badges (mybadgeonline)", "Lieferantentermine", "Hotel/Reise"]
+  quelle: Annahme – bitte prüfen
+
+- name: ProWein Düsseldorf (März)
+  art: messe
+  jaehrlich: "03-15"
+  vorlauf_tage: 90
+  aufgaben: ["Standbeteiligung/Tickets", "Terminplan mit Lieferanten", "Hotel", "Musterbestellungen"]
+  quelle: Annahme – bitte prüfen
+
+- name: WBWE World Bulk Wine Exhibition Amsterdam (November)
+  art: messe
+  jaehrlich: "11-23"
+  vorlauf_tage: 30
+  quelle: Annahme – bitte prüfen
+
+- name: Inventur / Jahresabschluss
+  art: projekt
+  jaehrlich: "12-31"
+  vorlauf_tage: 30
+  aufgaben: ["Lagerbestände abstimmen", "offene Lieferantenrechnungen und Gutschriften klären"]
+  quelle: Annahme – bitte prüfen
