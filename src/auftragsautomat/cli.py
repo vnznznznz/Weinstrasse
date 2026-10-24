@@ -15,8 +15,27 @@ Befehle:
 * ``beispiel-pdfs [ORDNER]``                – Beispiel-PDFs erzeugen (scripts/beispiel_pdfs_erzeugen.py)
 * ``version``
 
+Ausbaustufe 2 (Fixtermine, Entwürfe, Dossiers, Überwachung, Tracking, Rabatte, Firmenwahl, Ablage):
+
+* ``m365-anmelden [--device-code] [--nur-status]`` – Microsoft-365-Anmeldung (Backend graph) bzw. Status
+* ``m365-pruefen``                          – nur lesen: Blätter der Fixterminüberwachung, Kontakte zählen
+* ``fixtermin-eintragen PAKET_JSON [--scharf]`` – Fixtermin in die Fixterminüberwachung (sonst Vorschau-CSV)
+* ``entwuerfe PAKET_JSON [--scharf]``       – E-Mail-Entwürfe (nie senden; ohne --scharf als .eml)
+* ``dossier PAKET_JSON [--scharf]``         – Dossier anlegen/fortschreiben (ohne --scharf lokal)
+* ``ablegen PAKET_JSON [--scharf]``         – fertige Dateien nach OneDrive "Aufträge" (ohne --scharf nur Protokoll)
+* ``benennen PAKET_JSON --kuerzel K``       – Dateiname laut Titulierung anzeigen
+* ``firma-merken PAKET_JSON --firma ID``    – Firma setzen und je Kunde + Lieferant merken
+* ``ueberwachen [--tage N] [--scharf] [--nur-lesen]`` – täglicher Überwachungslauf, Bericht schreiben
+* ``heute``                                 – letzten Überwachungsbericht anzeigen
+* ``tracking REFERENZ [--kundenreferenz]``  – Sendungsstatus über die Tracking-Kette
+* ``tracking-einrichten``                   – Portal-Login im eigenen Chrome-Profil einrichten
+* ``kontakte-pruefen``                      – Kontaktliste laden und zusammenfassen
+* ``rabatte-einlesen PDF [--uebernehmen]``  – Rabattlisten-PDF einlesen, optional ins Gedächtnis
+* ``aktionen [--firma] [--datum]``          – gültige Aktionen anzeigen
+
 Alle Meldungen sind deutsch; Fehler führen zu Exit-Code ≠ 0. ``--home`` (oder die Umgebungs-
-variable ``AUFTRAGSAUTOMAT_HOME``) wählt den Projektstamm mit ``config/``.
+variable ``AUFTRAGSAUTOMAT_HOME``) wählt den Projektstamm mit ``config/``. Ohne ``--scharf`` ist jeder
+Befehl ein Dry Run.
 """
 
 from __future__ import annotations
@@ -35,6 +54,7 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from auftragsautomat import __version__
@@ -393,6 +413,7 @@ def buchen(
     console = _console()
     console.print(zusammenfassung(paket, ergebnis))
     console.print(f"Paket aktualisiert: {ziel}")
+    _zeige_nachbereitung(console, paket, settings)
     if ergebnis.erfolgreich:
         console.print(f"Buchung {'simuliert (Dry Run)' if ergebnis.dry_run else 'ERFOLGREICH'}.", style="green")
     else:
@@ -557,6 +578,673 @@ def beispiel_pdfs(
     for datei in dateien:
         typer.echo(f"erzeugt: {datei}")
     typer.echo(f"{len(dateien)} Beispiel-PDF(s) erzeugt.")
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Hilfen
+# ---------------------------------------------------------------------------
+
+
+def _lade_paket_oder_fehler(paket_json: Path) -> Belegpaket:
+    from auftragsautomat.freigabe import zustand
+
+    try:
+        return zustand.lade_paket(paket_json)
+    except (FileNotFoundError, zustand.PaketFehler) as exc:
+        raise _fehler(str(exc)) from exc
+
+
+def _effektiver_dry_run(settings: Settings, scharf: bool) -> bool:
+    """Ohne ``--scharf`` Dry Run; mit ``--scharf`` nur dann scharf, wenn ``settings.dry_run`` aus ist (Hinweis)."""
+    if not scharf:
+        return True
+    if settings.dry_run:
+        typer.secho(
+            "Hinweis: settings.dry_run ist aktiv – der Lauf wird trotz --scharf als Dry Run ausgeführt.",
+            err=True,
+            fg=typer.colors.YELLOW,
+        )
+        return True
+    return False
+
+
+def _backends_oder_fehler(settings: Settings, *, dry_run: bool, hinweise: list[str] | None = None):
+    from auftragsautomat.lexware import nachbereitung
+
+    try:
+        return nachbereitung.erzeuge_backends_fuer(settings, dry_run=dry_run, hinweise=hinweise)
+    except Exception as exc:  # noqa: BLE001 - M365Fehler, fehlende Bibliothek, NichtAufWindows
+        logger.exception("Backends konnten nicht erzeugt werden")
+        raise _fehler(f"Backend '{settings.m365.backend}' nicht verfügbar: {type(exc).__name__}: {exc}") from exc
+
+
+def _zeige_nachbereitung(console: Console, paket: Belegpaket, settings: Settings) -> None:
+    from auftragsautomat.lexware import nachbereitung
+
+    nb = nachbereitung.lade_nachbereitung(paket, settings)
+    if nb is None:
+        return
+    console.print(nachbereitung.zusammenfassung_nachbereitung(nb))
+
+
+def _zeige_hinweisliste(console: Console, hinweise: Sequence[str]) -> None:
+    if not hinweise:
+        return
+    console.print("Hinweise:")
+    for h in hinweise:
+        console.print(f"  - {escape(str(h))}")
+
+
+def _modus_text(dry_run: bool) -> str:
+    return "Dry Run" if dry_run else "SCHARF"
+
+
+def _firma_pruefen(settings: Settings, firma: str | None) -> None:
+    if firma is not None and firma not in settings.firmen:
+        raise _fehler(f"Unbekannte Firma '{firma}'. Bekannt: {', '.join(settings.firmen) or '-'}")
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Microsoft 365
+# ---------------------------------------------------------------------------
+
+
+@app.command("m365-anmelden")
+def m365_anmelden(
+    device_code: Annotated[
+        bool, typer.Option("--device-code", help="Anmeldung per Gerätecode (ohne Browser auf diesem PC).")
+    ] = False,
+    nur_status: Annotated[bool, typer.Option("--nur-status", help="Nur den Anmeldestatus anzeigen, nicht anmelden.")] = False,
+) -> None:
+    """Bei Microsoft 365 anmelden (Backend graph) bzw. den Anmeldestatus anzeigen. Öffnet ohne --device-code den Browser."""
+    from auftragsautomat.m365.fabrik import anmelden, pruefe_anmeldung
+
+    settings = _lade_settings()
+    status = pruefe_anmeldung(settings)
+    if nur_status or settings.m365.backend != "graph":
+        typer.echo(status)
+        return
+    typer.echo(f"Status vorher: {status}")
+    try:
+        typer.echo(anmelden(settings, device_code=device_code, ausgabe=typer.echo))
+    except Exception as exc:  # noqa: BLE001 - msal/Netzwerk/Konfiguration: eine Zeile statt Traceback
+        logger.exception("Microsoft-365-Anmeldung fehlgeschlagen")
+        raise _fehler(f"Anmeldung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
+
+
+@app.command("m365-pruefen")
+def m365_pruefen() -> None:
+    """Nur lesen: Blattnamen der Fixterminüberwachung, Kontakte der Kontaktliste und den Dossier-Ordner prüfen."""
+    from auftragsautomat.kontakte.liste import KontakteFehler, kontaktliste_aus_settings
+    from auftragsautomat.lexware.nachbereitung import ist_konfiguriert
+    from auftragsautomat.m365.fabrik import pruefe_anmeldung
+
+    settings = _lade_settings()
+    typer.echo(f"Backend: {settings.m365.backend} – {pruefe_anmeldung(settings)}")
+    backends = _backends_oder_fehler(settings, dry_run=True)
+    probleme: list[str] = []
+    erfolge = 0
+
+    ref = settings.m365.fixtermin_datei
+    if ist_konfiguriert(ref):
+        try:
+            blaetter = backends.excel.blattnamen(ref)
+            typer.echo(f"Fixterminüberwachung: {len(blaetter)} Blätter: {', '.join(blaetter)}")
+            erfolge += 1
+        except Exception as exc:  # noqa: BLE001 - jede Ursache melden
+            probleme.append(f"Fixterminüberwachung nicht lesbar: {type(exc).__name__}: {exc}")
+    else:
+        typer.echo("Fixterminüberwachung: nicht konfiguriert (m365.fixtermin_datei).")
+
+    if ist_konfiguriert(settings.m365.kontaktliste_datei):
+        try:
+            liste = kontaktliste_aus_settings(settings, backends.excel)
+            typer.echo(
+                f"Kontaktliste: {len(liste.kontakte)} Kontakte ({len(liste.lieferanten)} Lieferanten, "
+                f"{len(liste.speditionen)} Speditionen, {len(liste.kunden)} Kunden)"
+            )
+            erfolge += 1
+        except (KontakteFehler, Exception) as exc:  # noqa: BLE001
+            probleme.append(f"Kontaktliste nicht lesbar: {type(exc).__name__}: {exc}")
+    else:
+        typer.echo("Kontaktliste: nicht konfiguriert (m365.kontaktliste_datei).")
+
+    if ist_konfiguriert(settings.m365.dossier_ordner):
+        try:
+            eintraege = backends.datei.liste(settings.m365.dossier_ordner)
+            typer.echo(f"Dossier-Ordner: {sum(1 for e in eintraege if e.ist_ordner)} Unterordner")
+            erfolge += 1
+        except Exception as exc:  # noqa: BLE001
+            probleme.append(f"Dossier-Ordner nicht lesbar: {type(exc).__name__}: {exc}")
+    else:
+        typer.echo(f"Dossier-Ordner: nicht konfiguriert (m365.dossier_ordner); Dry Run nutzt {settings.dossier.lokaler_ordner}.")
+
+    for p in probleme:
+        typer.secho(f"  {p}", err=True, fg=typer.colors.RED)
+    if probleme and not erfolge:
+        raise _fehler("Keine der konfigurierten Dateien konnte gelesen werden.")
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Fixtermin, Entwürfe, Dossier, Ablage, Benennung, Firma
+# ---------------------------------------------------------------------------
+
+
+@app.command("fixtermin-eintragen")
+def fixtermin_eintragen(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    scharf: Annotated[bool, typer.Option("--scharf", help="Wirklich in die Fixterminüberwachung schreiben (sonst Vorschau-CSV).")] = False,
+) -> None:
+    """Fixtermin des Pakets in die Fixterminüberwachung eintragen. Ohne --scharf nur Vorschau (logs/fixtermine_vorschau.csv)."""
+    from auftragsautomat.lexware import nachbereitung
+
+    settings = _lade_settings()
+    paket = _lade_paket_oder_fehler(paket_json)
+    dry_run = _effektiver_dry_run(settings, scharf)
+    hinweise: list[str] = []
+    backends = _backends_oder_fehler(settings, dry_run=dry_run, hinweise=hinweise)
+    kurznamen = nachbereitung.lade_kurznamen(settings, backends.excel, hinweise)
+    gespeichert = nachbereitung.lade_nachbereitung(paket, settings)
+    ergebnis = gespeichert.ergebnis if gespeichert is not None else None
+    fixtermin, vorschau = nachbereitung.fixtermin_eintragen(
+        paket, ergebnis, settings, backends=backends, dry_run=dry_run, kurznamen=kurznamen, hinweise=hinweise
+    )
+    console = _console()
+    if fixtermin is None:
+        _zeige_hinweisliste(console, hinweise)
+        raise _fehler("Kein Fixtermin eingetragen (siehe Hinweise).")
+    console.print(f"Fixtermin ({_modus_text(dry_run)}): {fixtermin.liefertag:%d.%m.%Y} | {fixtermin.lieferant_kurz} | {fixtermin.kunde_kurz}")
+    console.print(
+        f"  Auftragsdatum {formatiere_datum(fixtermin.auftragsdatum)}, Spedition {fixtermin.spedition or '-'}, "
+        f"Best.-Nr {fixtermin.bestellnummer or '-'}, AB {fixtermin.ab_nummer or '-'}, Kundenbestellnr. {fixtermin.kundenbestellnummer or '-'}"
+    )
+    if fixtermin.zeile is not None:
+        console.print(f"  Zeile {fixtermin.zeile}" + (" (Vorschau, nicht geschrieben)" if dry_run else " eingetragen"))
+    if vorschau is not None:
+        console.print(f"  Vorschau-CSV: {vorschau}")
+    _zeige_hinweisliste(console, hinweise)
+    if fixtermin.zeile is None:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def entwuerfe(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    scharf: Annotated[bool, typer.Option("--scharf", help="Entwürfe im echten Postfach anlegen (sonst .eml unter logs/entwuerfe).")] = False,
+) -> None:
+    """E-Mail-Entwürfe zur Buchung erzeugen (Bestellung ans Weingut, Auftragskopie, Speditionsauftrag). Es wird nie gesendet."""
+    from auftragsautomat.lexware import nachbereitung
+
+    settings = _lade_settings()
+    paket = _lade_paket_oder_fehler(paket_json)
+    dry_run = _effektiver_dry_run(settings, scharf)
+    hinweise: list[str] = []
+    backends = _backends_oder_fehler(settings, dry_run=dry_run, hinweise=hinweise)
+    gespeichert = nachbereitung.lade_nachbereitung(paket, settings)
+    ergebnis = gespeichert.ergebnis if gespeichert is not None else None
+    fixtermin = gespeichert.fixtermin if gespeichert is not None else None
+    kontakte = nachbereitung.lade_kontakte(settings, backends, hinweise=hinweise)
+    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings)
+    liste = nachbereitung.entwuerfe_erstellen(
+        paket, ergebnis, settings, backends=backends, fixtermin=fixtermin, kontakte=kontakte, lexware_pdfs=pdfs, hinweise=hinweise
+    )
+    console = _console()
+    console.print(f"{len(liste)} Entwürfe ({_modus_text(dry_run)}, nie gesendet):")
+    for e in liste:
+        console.print(escape(f"  - {e.typ.value}: '{e.betreff}' an {', '.join(e.an) or '(kein Empfänger)'}"))
+        if e.cc:
+            console.print(f"      CC: {', '.join(e.cc)}")
+        for a in e.anhaenge:
+            console.print(f"      Anhang: {Path(a).name}")
+        console.print(f"      Gespeichert: {e.speicherort or '-'}")
+    _zeige_hinweisliste(console, hinweise)
+    if not liste:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def dossier(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    scharf: Annotated[bool, typer.Option("--scharf", help="Dossier im OneDrive-Ordner 'vorangefertigte Dossiers' (sonst logs/dossiers).")] = False,
+) -> None:
+    """Dossier zum Paket anlegen oder fortschreiben (Deckblatt, Belege, Entwürfe, Fixtermin, Index)."""
+    from auftragsautomat.lexware import nachbereitung
+
+    settings = _lade_settings()
+    paket = _lade_paket_oder_fehler(paket_json)
+    dry_run = _effektiver_dry_run(settings, scharf)
+    hinweise: list[str] = []
+    backends = _backends_oder_fehler(settings, dry_run=dry_run, hinweise=hinweise)
+    gespeichert = nachbereitung.lade_nachbereitung(paket, settings)
+    ergebnis = gespeichert.ergebnis if gespeichert is not None else None
+    fixtermin = gespeichert.fixtermin if gespeichert is not None else None
+    entwuerfe_alt = gespeichert.entwuerfe if gespeichert is not None else []
+    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings)
+    if ergebnis is not None:
+        for kuerzel, pfad in ergebnis.pdfs.items():
+            if Path(pfad).is_file():
+                pdfs.setdefault(kuerzel, Path(pfad))
+    ergebnis_dossier = nachbereitung.dossier_anlegen(
+        paket, ergebnis, settings, backends=backends, dry_run=dry_run, entwuerfe=entwuerfe_alt,
+        fixtermin=fixtermin, lexware_pdfs=pdfs, hinweise=hinweise,
+    )
+    console = _console()
+    if ergebnis_dossier is None:
+        _zeige_hinweisliste(console, hinweise)
+        raise _fehler("Dossier konnte nicht angelegt werden (siehe Hinweise).")
+    console.print(f"Dossier ({_modus_text(dry_run)}): {ergebnis_dossier.name}")
+    console.print(f"  Ordner: {ergebnis_dossier.ordner}")
+    console.print(f"  Zielordner-Vorschlag: {ergebnis_dossier.vorgeschlagener_zielordner or '-'}")
+    console.print(f"  Dateien ({len(ergebnis_dossier.dateien)}):")
+    for d in ergebnis_dossier.dateien:
+        console.print(f"    - {escape(d.name)} ({d.typ})")
+    if ergebnis_dossier.offene_punkte:
+        console.print(f"  Offene Punkte ({len(ergebnis_dossier.offene_punkte)}):")
+        for p in ergebnis_dossier.offene_punkte:
+            console.print(f"    - {escape(p)}")
+    _zeige_hinweisliste(console, hinweise)
+
+
+@app.command()
+def ablegen(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    scharf: Annotated[bool, typer.Option("--scharf", help="Wirklich nach OneDrive 'Aufträge' kopieren (sonst nur Protokoll).")] = False,
+) -> None:
+    """Fertige Dateien (Kd, Cde, Kopie, Speditionsauftrag, Ls) in den OneDrive-Ordner 'Aufträge mit/ohne Provision' ablegen."""
+    from auftragsautomat.lexware import nachbereitung
+    from auftragsautomat.models import BuchungsErgebnis
+
+    settings = _lade_settings()
+    paket = _lade_paket_oder_fehler(paket_json)
+    dry_run = _effektiver_dry_run(settings, scharf)
+    hinweise: list[str] = []
+    backends = _backends_oder_fehler(settings, dry_run=dry_run, hinweise=hinweise)
+    gespeichert = nachbereitung.lade_nachbereitung(paket, settings)
+    if gespeichert is not None and gespeichert.ergebnis is not None:
+        ergebnis = gespeichert.ergebnis
+    else:
+        hinweise.append(
+            "Kein Buchungsergebnis gespeichert (zuerst 'buchen'); PDFs werden nach Hausmuster gesucht – "
+            "scharf ablegen ist erst nach einer erfolgreichen Buchung möglich"
+        )
+        ergebnis = BuchungsErgebnis(
+            firma_id=paket.firma_id or "unbekannt", quelldatei=Path(paket.roh.quelldatei), dry_run=True, zeitpunkt=datetime.now(),
+            pdfs=nachbereitung.finde_lexware_pdfs(paket, settings),
+        )
+    for kuerzel, pfad in nachbereitung.finde_lexware_pdfs(paket, settings).items():
+        if kuerzel not in ergebnis.pdfs or not Path(ergebnis.pdfs[kuerzel]).is_file():
+            ergebnis.pdfs[kuerzel] = pfad
+    ergebnisse = nachbereitung.ablegen(paket, ergebnis, settings, backends=backends, dry_run=dry_run, hinweise=hinweise)
+    console = _console()
+    tabelle = Table(title=f"Ablage ({_modus_text(dry_run)})")
+    for spalte in ("Kürzel", "Quelle", "Zielordner", "Zielname", "Status"):
+        tabelle.add_column(spalte)
+    for a in ergebnisse:
+        status = "nur protokolliert" if a.dry_run else ("abgelegt" if a.abgelegt else f"NICHT abgelegt: {a.fehler}")
+        if a.dry_run and a.fehler:
+            status += f" ({a.fehler})"
+        tabelle.add_row(a.kuerzel, Path(a.datei).name, a.zielordner, a.zielname, status)
+    console.print(tabelle)
+    _zeige_hinweisliste(console, hinweise)
+    if not ergebnisse:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def benennen(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    kuerzel: Annotated[str, typer.Option("--kuerzel", help="Dokumentkürzel laut Titulierung (Kd, Cde, Kopie, Oc, Neu, Ls, Speditionsauftrag …).")],
+    datum: Annotated[str | None, typer.Option("--datum", help="Datum im Namen (TT.MM.JJJJ; Standard heute).")] = None,
+) -> None:
+    """Dateinamen laut Benennungsschema (Titulierung) für ein Paket anzeigen."""
+    from auftragsautomat import benennung
+    from auftragsautomat.extraktion.zahlen import parse_datum
+    from auftragsautomat.models import DOKUMENTKUERZEL
+
+    settings = _lade_settings()
+    paket = _lade_paket_oder_fehler(paket_json)
+    tag = None
+    if datum:
+        tag = parse_datum(datum)
+        if tag is None:
+            raise _fehler(f"'{datum}' ist kein Datum (erwartet TT.MM.JJJJ).")
+    try:
+        name = benennung.name_fuer_paket(kuerzel, paket, settings, datum=tag)
+    except KeyError as exc:
+        raise _fehler(str(exc.args[0]) if exc.args else str(exc)) from exc
+    except ValueError as exc:
+        raise _fehler(f"{exc} – bekannte Kürzel: {', '.join(DOKUMENTKUERZEL)}") from exc
+    typer.echo(name)
+    if kuerzel in ("Kopie", "Neu Kopie"):
+        verstoesse = benennung.pruefe_auftragskopie_name(name, settings)
+        if verstoesse:
+            typer.secho(f"Achtung: verbotene Wörter im Namen der Auftragskopie: {', '.join(verstoesse)}", err=True, fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+
+@app.command("firma-merken")
+def firma_merken(
+    paket_json: Annotated[Path, typer.Argument(help="Gespeichertes Belegpaket (*.paket.json)")],
+    firma: Annotated[str, typer.Option("--firma", help="Firmen-ID aus config/firmen.yaml.")],
+) -> None:
+    """Firma für das Paket festlegen, neu zuordnen und die Wahl je Kunde + Lieferant im Firmen-Gedächtnis merken."""
+    from auftragsautomat.freigabe import zustand
+    from auftragsautomat.matching.pipeline import merke_firma_fuer, setze_firma
+
+    settings = _lade_settings()
+    _firma_pruefen(settings, firma)
+    paket = _lade_paket_oder_fehler(paket_json)
+    try:
+        neu = setze_firma(paket, firma, settings)
+    except Exception as exc:  # noqa: BLE001 - Stammdaten/Matching: Ursache klar melden
+        logger.exception("Firma %s konnte nicht gesetzt werden", firma)
+        raise _fehler(f"Firma konnte nicht gesetzt werden: {type(exc).__name__}: {exc}") from exc
+    neu.firma_merken = True
+    regel = merke_firma_fuer(neu, settings, benutzer=_benutzername())
+    ziel = zustand.speichere_paket(neu, paket_json.parent, dateiname=paket_json.name)
+    console = _console()
+    console.print(f"Firma {firma} gesetzt; Paket neu zugeordnet und geprüft ({'BLOCKIERT' if neu.blockiert else 'freigabefähig'}).")
+    if regel is None:
+        console.print(
+            "Nicht gemerkt: firmenwahl.merken ist aus oder Kunde unbekannt (siehe Log).", style="yellow"
+        )
+    else:
+        console.print(
+            f"Gemerkt: Kunde '{regel.kunde_kurz}', Lieferant '{regel.lieferant_kurz or 'alle'}' -> {regel.firma_id} "
+            f"(gelernt von {regel.gelernt_von or '-'}) in {settings.firmenwahl.gedaechtnis_datei}"
+        )
+    console.print(f"Paket aktualisiert: {ziel}")
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Überwachung, Tracking, Kontakte
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def ueberwachen(
+    tage: Annotated[int | None, typer.Option("--tage", help="Fixtermine so viele Tage voraus betrachten (Standard: ueberwachung.tage_voraus).")] = None,
+    scharf: Annotated[bool, typer.Option("--scharf", help="Häkchen/Referenzen in die Excel schreiben, Entwürfe im Postfach anlegen.")] = False,
+    nur_lesen: Annotated[bool, typer.Option("--nur-lesen", help="Keine Zugriffe auf Graph/Outlook/Excel: nur Fake-Backends (Test).")] = False,
+) -> None:
+    """Täglicher Überwachungslauf: Fixtermine prüfen, Bestätigungen aus Mails, Nachfragen als Entwürfe, Bericht schreiben."""
+    from auftragsautomat.lexware import nachbereitung
+    from auftragsautomat.ueberwachung.lauf import ueberwachen as lauf_ausfuehren
+
+    settings = _lade_settings()
+    if tage is not None:
+        if tage < 0:
+            raise _fehler("--tage muss 0 oder größer sein.")
+        settings.ueberwachung.tage_voraus = tage
+    dry_run = _effektiver_dry_run(settings, scharf)
+    try:
+        backends = nachbereitung.backends_fuer_ueberwachung(settings, scharf=not dry_run, nur_lesen=nur_lesen)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Backends für die Überwachung konnten nicht erzeugt werden")
+        raise _fehler(f"Backend '{settings.m365.backend}' nicht verfügbar: {type(exc).__name__}: {exc}") from exc
+    try:
+        bericht, pfad = lauf_ausfuehren(settings, dry_run=dry_run, backends=backends)
+    except Exception as exc:  # noqa: BLE001 - z. B. keine Firma konfiguriert
+        logger.exception("Überwachungslauf fehlgeschlagen")
+        raise _fehler(f"Überwachungslauf fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
+    console = _console()
+    console.print(_bericht_tabelle(bericht))
+    console.print(
+        f"Überwachung ({_modus_text(dry_run)}{', nur lesen' if nur_lesen else ''}) bis {bericht.zeitraum_bis:%d.%m.%Y}: "
+        f"{len(bericht.punkte)} Fixtermine, {len(bericht.entwuerfe)} Entwürfe, {len(bericht.terminaenderungen)} Terminänderungen, "
+        f"{len(bericht.kontaktaenderungen)} Kontaktänderungen, {len(bericht.fehler)} Fehler"
+    )
+    for e in bericht.entwuerfe:
+        console.print(escape(f"  Entwurf {e.typ.value}: '{e.betreff}' -> {e.speicherort or '-'}"))
+    for f in bericht.fehler:
+        console.print(f"  Fehler: {escape(f)}", style="red")
+    console.print(f"Bericht: {pfad}")
+
+
+def _bericht_tabelle(bericht) -> Table:  # noqa: ANN001 - Ueberwachungsbericht (lazy import)
+    from auftragsautomat.ueberwachung.bericht import AMPEL_REIHENFOLGE, AMPEL_TEXT
+
+    tabelle = Table(title=f"Überwachung vom {bericht.zeitpunkt:%d.%m.%Y %H:%M}")
+    for spalte in ("Ampel", "Liefertag", "Lieferant", "Kunde", "Lief. best.", "Sped. best.", "Abgeholt", "Grund", "Maßnahmen"):
+        tabelle.add_column(spalte)
+    farben = {"rot": "red", "gelb": "yellow", "gruen": "green", "grau": "dim"}
+    rang = {a: i for i, a in enumerate(AMPEL_REIHENFOLGE)}
+    for p in sorted(bericht.punkte, key=lambda x: (rang.get(x.ampel, 9), x.fixtermin.liefertag)):
+        ft = p.fixtermin
+        tabelle.add_row(
+            AMPEL_TEXT.get(p.ampel, p.ampel),
+            ft.liefertag.strftime("%d.%m.%Y"),
+            ft.lieferant_kurz,
+            ft.kunde_kurz,
+            "ja" if ft.lieferant_bestaetigt else "nein",
+            "ja" if ft.spedition_bestaetigt else "nein",
+            "ja" if ft.abgeholt else "nein",
+            p.grund,
+            "; ".join(p.aktionen),
+            style=farben.get(p.ampel),
+        )
+    return tabelle
+
+
+@app.command()
+def heute() -> None:
+    """Den letzten Überwachungsbericht anzeigen (Ampel je Fixtermin, Entwürfe, Vorschläge)."""
+    from auftragsautomat.ueberwachung.bericht import lade_letzten_bericht_mit_zusatz
+
+    settings = _lade_settings()
+    ordner = Path(settings.ueberwachung.berichte_ordner)
+    geladen = lade_letzten_bericht_mit_zusatz(ordner)
+    if geladen is None:
+        typer.echo(f"Kein Überwachungsbericht in {ordner} – zuerst 'auftragsautomat ueberwachen' ausführen.")
+        return
+    bericht, hinweise, protokoll = geladen
+    console = _console()
+    console.print(_bericht_tabelle(bericht))
+    if bericht.entwuerfe:
+        console.print("Entwürfe (nicht gesendet):")
+        for e in bericht.entwuerfe:
+            console.print(escape(f"  - {e.typ.value}: '{e.betreff}' an {', '.join(e.an) or '(kein Empfänger)'} -> {e.speicherort or '-'}"))
+    if bericht.terminaenderungen:
+        console.print("Vorschläge Terminänderung:")
+        for t in bericht.terminaenderungen:
+            console.print(
+                f"  - {t.fixtermin.lieferant_kurz} / {t.fixtermin.kunde_kurz}: {t.fixtermin.liefertag:%d.%m.%Y} -> "
+                f"{t.neues_datum:%d.%m.%Y} ({t.grund}){' – übernommen' if t.uebernommen else ''}"
+            )
+    if bericht.kontaktaenderungen:
+        console.print("Vorschläge Kontaktänderung:")
+        for k in bericht.kontaktaenderungen:
+            wer = f"{k.kontakt.firma} / {k.kontakt.name or '-'}" if k.kontakt is not None else "neuer Kontakt"
+            console.print(f"  - {wer}: {k.feld} '{k.alt or ''}' -> '{k.neu}' ({k.quelle}){' – übernommen' if k.uebernommen else ''}")
+    for f in bericht.fehler:
+        console.print(f"Fehler: {escape(f)}", style="red")
+    _zeige_hinweisliste(console, hinweise)
+    if protokoll:
+        console.print("Änderungen:")
+        for p in protokoll:
+            console.print(f"  - {escape(p)}")
+
+
+@app.command()
+def tracking(
+    referenz: Annotated[str, typer.Argument(help="Referenz der Spedition (z. B. DEMB00000) oder unsere Bestellnummer.")],
+    kundenreferenz: Annotated[bool, typer.Option("--kundenreferenz", help="REFERENZ ist unsere eigene Referenz (Your Ref), nicht die der Spedition.")] = False,
+    spedition: Annotated[str | None, typer.Option("--spedition", help="Spedition (Standard: kontakte.standard_spedition).")] = None,
+) -> None:
+    """Sendungsstatus über die Tracking-Kette (Mail, API, öffentliche Sendungsverfolgung, Portal) abfragen."""
+    from auftragsautomat.models import Sendung
+    from auftragsautomat.tracking.kette import erzeuge_kette
+
+    settings = _lade_settings()
+    referenz = referenz.strip()
+    if not referenz:
+        raise _fehler("Referenz fehlt.")
+    sendung = Sendung(
+        spedition=spedition or settings.kontakte.standard_spedition,
+        referenz=None if kundenreferenz else referenz,
+        kundenreferenz=referenz if kundenreferenz else None,
+    )
+    try:
+        kette = erzeuge_kette(settings)
+        aktuell = kette.aktualisiere(sendung)
+    except Exception as exc:  # noqa: BLE001 - Konfiguration/Netzwerk/Browser
+        logger.exception("Tracking fehlgeschlagen")
+        raise _fehler(f"Tracking fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
+    console = _console()
+    console.print(f"Sendung {aktuell.referenz or '-'} (unsere Ref. {aktuell.kundenreferenz or '-'}), Spedition {aktuell.spedition}")
+    console.print(f"  Status: {aktuell.status.value} (Quelle {aktuell.quelle}; Kette: {', '.join(kette.namen) or '-'})")
+    if aktuell.puenktlich is not None:
+        console.print(f"  Pünktlich: {'ja' if aktuell.puenktlich else 'nein'}")
+    console.print(f"  Geplante Abholung: {formatiere_datum(aktuell.geplante_abholung)}; geplante Zustellung: {formatiere_datum(aktuell.geplante_zustellung)}")
+    if aktuell.meilensteine:
+        console.print("  Meilensteine:")
+        for m in aktuell.meilensteine:
+            zeit = m.zeitpunkt.strftime("%d.%m.%Y %H:%M") if m.zeitpunkt else "-"
+            console.print(escape(f"    - {zeit} {m.code}: {m.text}{' (geplant)' if m.geplant else ''}{f' – {m.ort}' if m.ort else ''}"))
+    _zeige_hinweisliste(console, aktuell.hinweise)
+
+
+@app.command("tracking-einrichten")
+def tracking_einrichten() -> None:
+    """Portal-Login (myHillebrandGori) einmalig im eigenen Chrome-Profil einrichten (sichtbarer Browser, Enter zum Fortfahren)."""
+    from auftragsautomat.tracking.basis import lade_hillebrand_konfig
+    from auftragsautomat.tracking.hillebrand_portal import PortalQuelle
+
+    settings = _lade_settings()
+    try:
+        quelle = PortalQuelle(lade_hillebrand_konfig(settings.tracking.hillebrand_konfig), settings)
+        if not quelle.verfuegbar():
+            raise _fehler("Playwright/Chrome nicht verfügbar – 'pip install playwright' und 'playwright install chromium' bzw. Chrome installieren.")
+        typer.echo(f"Chrome-Profil: {quelle.profil()}")
+        angemeldet = quelle.einrichten()
+    except typer.Exit:
+        raise
+    except Exception as exc:  # noqa: BLE001 - Browser/Playwright-Fehler klar melden
+        logger.exception("Portal-Einrichtung fehlgeschlagen")
+        raise _fehler(f"Einrichtung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
+    if angemeldet:
+        typer.echo("Portal eingerichtet: die Anmeldung ist im Automations-Profil gespeichert.")
+    else:
+        raise _fehler("Portal nicht eingerichtet: die Seite zeigt weiterhin die Anmeldung.")
+
+
+@app.command("kontakte-pruefen")
+def kontakte_pruefen() -> None:
+    """Kontaktliste (Ansprechpartner Abwicklung) laden und zusammenfassen: Lieferanten, Speditionen mit Postfächern, Kunden."""
+    from auftragsautomat.kontakte.liste import KontakteFehler, kontaktliste_aus_settings
+    from auftragsautomat.kontakte.zuordnung import Zuordner
+
+    settings = _lade_settings()
+    backends = _backends_oder_fehler(settings, dry_run=True)
+    try:
+        liste = kontaktliste_aus_settings(settings, backends.excel)
+    except KontakteFehler as exc:
+        raise _fehler(str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Kontaktliste nicht lesbar")
+        raise _fehler(f"Kontaktliste nicht lesbar: {type(exc).__name__}: {exc}") from exc
+    zuordner = Zuordner(liste, None, settings)
+    console = _console()
+    console.print(f"Kontaktliste: {liste.quelle or '-'} – {len(liste.kontakte)} Kontakte")
+    console.print(f"Lieferanten ({len(liste.lieferanten)}):")
+    for firma, kontakte in liste.lieferanten.items():
+        orders = [k for k in kontakte if k.position and "order" in k.position.lower()]
+        console.print(f"  - {firma}: {len(kontakte)} Kontakte" + (f", Orders: {orders[0].email or '-'}" if orders else ", kein Orders-Kontakt"))
+    console.print(f"Speditionen ({len(liste.speditionen)}):")
+    for name, kontakte in liste.speditionen.items():
+        neue = zuordner.postfach_spedition(name, "neue_auftraege")
+        status = zuordner.postfach_spedition(name, "status")
+        console.print(
+            f"  - {name}: {len(kontakte)} Kontakte; Neue Aufträge: {neue.email if neue else '-'}; "
+            f"Sendungsnachfragen: {status.email if status else '-'}"
+        )
+    console.print(f"Kunden ({len(liste.kunden)}):")
+    for kunde, kontakte in liste.kunden.items():
+        console.print(f"  - {kunde}: {len(kontakte)} Kontakte; Spedition: {zuordner.spedition_fuer_kunde(kunde)}")
+    _zeige_hinweisliste(console, liste.hinweise)
+
+
+# ---------------------------------------------------------------------------
+# Ausbaustufe 2: Rabatte / Aktionen
+# ---------------------------------------------------------------------------
+
+
+def _aktionen_tabelle(aktionen, titel: str) -> Table:  # noqa: ANN001 - list[Aktion] (lazy import)
+    tabelle = Table(title=titel)
+    for spalte in ("ID", "Aktion", "Firma", "Kunde", "Lieferant", "Artikel", "Von", "Bis", "Rabatt %", "Rabatt €", "Aktionspreis", "Quelle"):
+        tabelle.add_column(spalte)
+    for a in aktionen:
+        artikel = ", ".join(a.artikelnummern) or (a.artikel_text or "")
+        tabelle.add_row(
+            a.aktion_id, a.bezeichnung or "", a.firma_id or "alle", a.kunde_kurz or "alle", a.lieferant_kurz or "alle", artikel,
+            a.von.strftime("%d.%m.%Y"), a.bis.strftime("%d.%m.%Y"),
+            formatiere_menge(a.rabatt_prozent), formatiere_betrag(a.rabatt_eur), formatiere_betrag(a.aktionspreis), a.quelle,
+        )
+    return tabelle
+
+
+@app.command("rabatte-einlesen")
+def rabatte_einlesen(
+    pdf: Annotated[Path, typer.Argument(help="Rabattlisten-PDF (Text-PDF; ohne Textebene Claude Vision)")],
+    uebernehmen: Annotated[bool, typer.Option("--uebernehmen", help="Aktionen in das Gedächtnis (rabatte.gedaechtnis_datei) übernehmen.")] = False,
+) -> None:
+    """Rabattlisten-PDF einlesen und die erkannten Aktionen anzeigen; mit --uebernehmen in config/aktionen.yaml speichern."""
+    from auftragsautomat.rabatte import RabattlisteFehler, leere_cache, lese_rabattliste, speichere_aktionen
+
+    settings = _lade_settings()
+    try:
+        liste = lese_rabattliste(pdf, settings)
+    except (FileNotFoundError, RabattlisteFehler) as exc:
+        raise _fehler(str(exc)) from exc
+    except _bekannte_fehler() as exc:
+        raise _fehler(f"{exc}") from exc
+    console = _console()
+    console.print(_aktionen_tabelle(liste.aktionen, f"Rabattliste {pdf.name} ({liste.extraktionsmethode.value}, {len(liste.aktionen)} Aktionen)"))
+    _zeige_hinweise(console, liste.hinweise)
+    if not liste.aktionen:
+        raise _fehler("Keine Aktionen erkannt – Datei prüfen (siehe Hinweise).")
+    if uebernehmen:
+        ziel = speichere_aktionen(liste.aktionen, Path(settings.rabatte.gedaechtnis_datei))
+        leere_cache()
+        console.print(f"{len(liste.aktionen)} Aktionen übernommen nach {ziel}", style="green")
+    else:
+        console.print("Nur angezeigt; mit --uebernehmen in das Gedächtnis speichern.")
+
+
+@app.command()
+def aktionen(
+    firma: Annotated[str | None, typer.Option("--firma", help="Nur Aktionen dieser Firma (ID) oder für alle Firmen.")] = None,
+    datum: Annotated[str | None, typer.Option("--datum", help="Stichtag TT.MM.JJJJ (Standard heute).")] = None,
+    alle: Annotated[bool, typer.Option("--alle", help="Auch abgelaufene/künftige Aktionen anzeigen.")] = False,
+) -> None:
+    """Gültige Aktionen (Aktionszeiträume-Excel + Gedächtnis aus Rabattlisten) anzeigen."""
+    from datetime import date
+
+    from auftragsautomat.extraktion.zahlen import parse_datum
+    from auftragsautomat.rabatte import alle_aktionen
+
+    settings = _lade_settings()
+    _firma_pruefen(settings, firma)
+    tag = date.today()
+    if datum:
+        geparst = parse_datum(datum)
+        if geparst is None:
+            raise _fehler(f"'{datum}' ist kein Datum (erwartet TT.MM.JJJJ).")
+        tag = geparst
+    liste = alle_aktionen(settings, cache=False)
+    kurz = settings.firma(firma).kurz if firma else None
+    gefiltert = []
+    for a in liste:
+        if firma and a.firma_id not in (None, firma, kurz):
+            continue
+        if not alle and not a.gilt_am(tag):
+            continue
+        gefiltert.append(a)
+    gefiltert.sort(key=lambda a: (a.von, a.bis, a.aktion_id))
+    titel = f"Aktionen {'(alle)' if alle else f'gültig am {tag:%d.%m.%Y}'}" + (f" für {firma}" if firma else "") + f": {len(gefiltert)} von {len(liste)}"
+    _console().print(_aktionen_tabelle(gefiltert, titel))
+    if not liste:
+        typer.echo("Keine Aktionsquellen: rabatte.aktionen_datei nicht konfiguriert und kein Gedächtnis (rabatte.gedaechtnis_datei).")
 
 
 def main() -> None:  # pragma: no cover - Einstiegspunkt

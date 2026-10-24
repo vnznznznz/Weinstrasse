@@ -8,6 +8,11 @@ dann ``None`` statt einer Exception. Geld und Mengen werden ausschließlich als
 * :func:`parse_datum`    – "15.09.2026", "15.9.26", "2026-09-15", "15. September 2026" -> ``date``
 * :func:`parse_jahrgang` – vierstelliger Jahrgang (aus ``matching.volumen`` übernommen)
 * :func:`parse_menge`    – "60", "60 Fl", "12 x 6", "2 Kt à 6" -> :class:`Menge`
+* :func:`ist_gebinde_einheit` – "Kt", "Kolli", "KOA", "VE", "Karton" -> True (Mengen in Verpackungseinheiten)
+* :func:`parse_ve_inhalt` – "VE 6", "6er Karton", "Kt à 6", "6 x 0,75" -> Flaschen je Verpackungseinheit
+* :func:`parse_rabatt`   – "Rabatt 10 %", "-10%", "Aktion -10 %", "10 % Nachlass" -> :class:`Rabatt`
+* :func:`parse_prozent`  – "10", "10 %", "-10,5 %" -> ``Decimal`` (für Rabatt-Spalten)
+* :func:`glatt`          – ``Decimal("570.0")`` -> ``Decimal("570")`` (ganzzahlige Mengen ohne Nachkommastellen)
 """
 
 from __future__ import annotations
@@ -23,13 +28,20 @@ from auftragsautomat.matching.volumen import parse_jahrgang
 __all__ = [
     "DATUM_MUSTER",
     "EINHEIT_MUSTER",
+    "GEBINDE_EINHEITEN",
     "Menge",
+    "Rabatt",
     "finde_datum",
+    "glatt",
+    "ist_gebinde_einheit",
     "normalisiere_einheit",
     "parse_datum",
     "parse_dezimal",
     "parse_jahrgang",
     "parse_menge",
+    "parse_prozent",
+    "parse_rabatt",
+    "parse_ve_inhalt",
 ]
 
 logger = logging.getLogger(__name__)
@@ -218,6 +230,7 @@ EINHEIT_MUSTER = (
     r"(?:Flaschen|Flasche|Fla?\.?|Fl|Bottles|Bottle|Btls?\.?|Bt\.?"
     r"|Stück|Stueck|Stck\.?|Stk\.?|St\.?|Pcs|Pc"
     r"|Kartons|Karton|Kart\.?|Krt\.?|Kt\.?|Ktn\.?|Kisten|Kiste|Ki\.?|Cases|Case|Ctn"
+    r"|Kolli|KOA|VPE|VE|Gebinde|Trays?"
     r"|Paletten|Palette|Pal\.?|Paket|Pak\.?|Einheiten|Einheit|Stk"
     r"|er)"
 )
@@ -229,10 +242,15 @@ _EINHEIT_NORMAL: dict[str, str] = {
     "stk": "Stk", "st": "Stk", "stck": "Stk", "stück": "Stk", "stueck": "Stk", "pcs": "Stk", "pc": "Stk",
     "kt": "Kt", "ktn": "Kt", "karton": "Kt", "kartons": "Kt", "kart": "Kt", "krt": "Kt",
     "kiste": "Kt", "kisten": "Kt", "ki": "Kt", "case": "Kt", "cases": "Kt", "ctn": "Kt",
+    "kolli": "Kolli", "vpe": "VE", "ve": "VE", "gebinde": "VE", "tray": "Tray", "trays": "Tray",
     "pal": "Pal", "palette": "Pal", "paletten": "Pal",
     "pak": "Pak", "paket": "Pak",
     "einheit": "Stk", "einheiten": "Stk",
 }  # fmt: skip
+
+#: Normalisierte Einheiten, die eine Verpackungseinheit (Karton/Kolli/VE) bezeichnen, keine Flaschen.
+#: "KOA" ist die Kolli-Einheit der Lagerbestellungen (Kellerei-Layout) und bleibt unverändert erhalten.
+GEBINDE_EINHEITEN: frozenset[str] = frozenset({"Kt", "Kolli", "VE", "Tray", "KOA", "Pak"})
 
 _MENGE_ZAHL = r"\d{1,6}(?:[.,]\d{1,3})?"
 _MENGE_GEBINDE = re.compile(
@@ -325,3 +343,154 @@ def parse_menge(text: str | Decimal | int | None) -> Menge | None:
 
     logger.debug("Keine Menge in %r", text)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Verpackungseinheiten (LEH-Bestellungen: Menge in Kolli/VE x Inhalt = Flaschen)
+# ---------------------------------------------------------------------------
+
+_VE_INHALT_MUSTER: tuple[re.Pattern[str], ...] = (
+    # "VE 6", "VE: 6", "VPE 12", "Kolli 6"
+    re.compile(r"\b(?:VE|VPE|Kolli|KOA)\s*:?\s*(?P<n>\d{1,3})(?![\d,.])", re.I),
+    # "6 Fl/VE", "6 Fl. je Karton", "6/Kt", "12 Stk pro Kolli"
+    re.compile(
+        r"(?<![\d,.])(?P<n>\d{1,3})\s*(?:Fl\.?|Flaschen|Stk\.?|St\.?|Btl\.?)?\s*(?:/|je|pro|per)\s*"
+        r"(?:VE|VPE|Kt\.?|Karton|Kolli|KOA|Case|Ctn|Krt\.?|Kiste)\b",
+        re.I,
+    ),
+    # "Karton à 6", "Kt a 6", "Kolli x 6", "VE mit 6"
+    re.compile(
+        r"\b(?:Karton|Kt\.?|Kolli|KOA|Case|Ctn|VE|VPE|Krt\.?|Kiste)\s*(?:à|á|a|x|×|mit|zu|je)\s*(?P<n>\d{1,3})(?![\d,.])",
+        re.I,
+    ),
+    # "6er Karton", "6er VE", "12er Kolli", "6er Tray"
+    re.compile(r"(?<![\d,.])(?P<n>\d{1,3})\s*er\s*-?\s*(?:VE|VPE|Karton|Kt\.?|Kolli|KOA|Krt\.?|Case|Ctn|Tray|Kiste)\b", re.I),
+    # "6 x 0,75", "6x0,75l", "12 × 0,375 l": Flaschenzahl vor dem Volumen
+    re.compile(r"(?<![\d,.])(?P<n>\d{1,3})\s*[x×]\s*(?:0[.,]\d{1,3}|1[.,]5|3[.,]0)\s*(?:l|lt|ltr)?\b", re.I),
+)
+
+_ZAHL_1_3 = re.compile(r"^\s*\d{1,3}\s*$")
+
+
+def ist_gebinde_einheit(einheit: str | None) -> bool:
+    """True für Einheiten, die Kartons/Kolli/VE bezeichnen (die Menge ist dann nicht in Flaschen).
+
+    >>> ist_gebinde_einheit("Kt"), ist_gebinde_einheit("KOA"), ist_gebinde_einheit("Fl")
+    (True, True, False)
+    """
+    if not einheit:
+        return False
+    norm = normalisiere_einheit(einheit)
+    if norm is None:
+        return False
+    return norm in GEBINDE_EINHEITEN or norm.upper() in GEBINDE_EINHEITEN
+
+
+def parse_ve_inhalt(text: str | None) -> Decimal | None:
+    """Flaschen je Verpackungseinheit aus einem Text ("... 0,75l G VE 6", "6er Karton", "Kt à 6", "6 x 0,75").
+
+    Nur ausdrückliche Angaben werden gelesen; eine nackte Zahl ohne VE-Kennung ergibt ``None``.
+
+    >>> parse_ve_inhalt("Villa Armellina Gloria 0,75l G VE 6")
+    Decimal('6')
+    >>> parse_ve_inhalt("Gavi di Gavi 2023 0,75 l") is None
+    True
+    """
+    if not text:
+        return None
+    for muster in _VE_INHALT_MUSTER:
+        treffer = muster.search(text)
+        if not treffer:
+            continue
+        wert = parse_dezimal(treffer.group("n"))
+        if wert is not None and 0 < wert <= 200:
+            return glatt(wert)
+    return None
+
+
+def glatt(wert: Decimal | None) -> Decimal | None:
+    """Ganzzahlige Mengen ohne Nachkommastellen (``570.0`` -> ``570``), sonst unverändert.
+
+    >>> glatt(Decimal("570.0"))
+    Decimal('570')
+    >>> glatt(Decimal("2.5"))
+    Decimal('2.5')
+    """
+    if wert is None:
+        return None
+    if wert.is_finite() and wert == wert.to_integral_value():
+        return Decimal(int(wert))
+    return wert
+
+
+# ---------------------------------------------------------------------------
+# Rabatte (Positionsrabatt laut Dokument: "Rabatt 10 %", "-10%", "Aktion -10 %")
+# ---------------------------------------------------------------------------
+
+_RABATT_SCHLUESSEL = (
+    r"(?:Aktions?-?\s?rabatt|Aktions?-?\s?nachlass|Sonder-?\s?rabatt|Preis-?\s?nachlass|Mengen-?\s?rabatt"
+    r"|Rabatt|Nachlass|Aktion|Promo(?:tion)?|Discount|Disc\.?|Rab\.)"
+)
+_PROZENTZAHL = r"\d{1,2}(?:[.,]\d{1,2})?"
+RABATT_MUSTER = re.compile(
+    # "Rabatt 10 %", "Aktion -10 %", "Aktionsrabatt: 10%"
+    rf"(?:(?P<s1>{_RABATT_SCHLUESSEL})\s*:?\s*(?P<vz1>[-−–]\s*)?(?P<w1>{_PROZENTZAHL})\s*%"
+    # "-10%", "-10 % Rabatt"
+    rf"|(?P<vz2>[-−–])\s*(?P<w2>{_PROZENTZAHL})\s*%(?:\s*(?P<s2>{_RABATT_SCHLUESSEL}))?"
+    # "10 % Rabatt", "10% Nachlass"
+    rf"|(?P<w3>{_PROZENTZAHL})\s*%\s*(?P<s3>{_RABATT_SCHLUESSEL}))(?![\w%])",
+    re.I,
+)
+_PROZENT_SPALTE = re.compile(rf"^\s*(?P<vz>[-−–]\s*)?(?P<w>{_PROZENTZAHL})\s*%?\s*$")
+
+
+@dataclass(frozen=True)
+class Rabatt:
+    """Ergebnis von :func:`parse_rabatt`: Prozentsatz (positiv) und der Fundtext."""
+
+    prozent: Decimal
+    rohtext: str
+    start: int = 0
+    ende: int = 0
+
+
+def parse_rabatt(text: str | None) -> Rabatt | None:
+    """Liest einen Positionsrabatt in Prozent aus einem Text.
+
+    Erkannt werden Schlüsselwort + Prozent ("Rabatt 10 %", "Aktion -10 %", "Aktionsrabatt 10%",
+    "10 % Nachlass") und ein Prozentwert mit Minuszeichen ("-10%"). Ein nacktes "19 %" (MwSt)
+    ist KEIN Rabatt. Der Prozentsatz wird immer positiv geliefert.
+
+    >>> parse_rabatt("Gavi di Gavi 2023 Aktion -10 %").prozent
+    Decimal('10')
+    >>> parse_rabatt("Gloria 0,75 l 19 %") is None
+    True
+    """
+    if not text:
+        return None
+    treffer = RABATT_MUSTER.search(text)
+    if not treffer:
+        return None
+    wert_text = treffer.group("w1") or treffer.group("w2") or treffer.group("w3")
+    wert = parse_dezimal(wert_text)
+    if wert is None or wert <= 0 or wert > 99:
+        return None
+    return Rabatt(prozent=glatt(abs(wert)) or abs(wert), rohtext=treffer.group(0).strip(), start=treffer.start(), ende=treffer.end())
+
+
+def parse_prozent(text: str | Decimal | int | None) -> Decimal | None:
+    """Prozentwert einer Rabatt-Spalte ("10", "10 %", "-10,5 %", "0") -> positiver Decimal; 0/leer -> ``None``."""
+    if text is None:
+        return None
+    if isinstance(text, bool):
+        return None
+    if isinstance(text, Decimal | int):
+        wert = abs(Decimal(text))
+        return glatt(wert) if 0 < wert <= 100 else None
+    treffer = _PROZENT_SPALTE.match(str(text))
+    if not treffer:
+        return None
+    wert = parse_dezimal(treffer.group("w"))
+    if wert is None or wert <= 0 or wert > 100:
+        return None
+    return glatt(wert)

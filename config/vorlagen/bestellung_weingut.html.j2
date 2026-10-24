@@ -1,0 +1,18 @@
+{# Bestellung an das Weingut (englisch). Kontext: anrede, bestellnummer, kundenbestellnummer, kunde,
+   lieferant, gesamtmenge, positionen, liefertag, shipment, spedition, anhang_name, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>please find attached our new order{% if bestellnummer %} <b>{{ bestellnummer }}</b>{% endif %} for <b>{{ kunde }}</b>{% if kundenbestellnummer %} (customer order no. {{ kundenbestellnummer }}){% endif %}: {{ gesamtmenge | menge_de }} bottles in {{ positionen | length }} item{% if positionen | length != 1 %}s{% endif %}.
+{% if liefertag %}
+The goods are due at the customer on <b>{{ liefertag | datum_de }}</b> (fixed delivery date){% if spedition %}; transport will be arranged by {{ spedition }}{% endif %}.
+{% elif shipment %}
+Shipment: {{ shipment }}{% if spedition %} via {{ spedition }}{% endif %}.
+{% elif spedition %}
+Transport will be arranged by {{ spedition }}.
+{% endif %}
+</p>
+<p>Kindly confirm receipt of the order and let us know the loading date.</p>
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

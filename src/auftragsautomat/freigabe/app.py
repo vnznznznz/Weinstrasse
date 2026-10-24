@@ -17,6 +17,14 @@ Aufbau:
   prüfen", "Freigeben & Buchen" (gesperrt wenn blockiert), "Alias speichern" und die Checkbox
   "Lieferschein erstellen".
 
+Ausbaustufe 2 (Logik in :mod:`auftragsautomat.freigabe.seiten_stufe2`): Seitennavigation in der
+Seitenleiste ("Freigabe" | "Heute" | "Dossiers" | "Rabatte" | "Einstellungen"), "Auftrag hochladen"
+(Datei landet im Eingang und wird sofort geprüft), Firmenwahl bei ``FIRMA_UNKLAR`` mit Häkchen
+"für diesen Kunden und Lieferanten merken", Info ``FIRMA_GELERNT``, Spalte "Rabatt %" in der
+Positionstabelle (manuell -> Quelle "manuell"; RABATT_VORSCHLAG gelb, RABATT_UNSICHER/RABATT_ABWEICHUNG
+rot), nach dem Buchen die erzeugten Dateinamen, Ablage-Ergebnisse und die Nachbereitung (Fixtermin,
+Entwürfe, Dossier).
+
 Der Zustand liegt in ``st.session_state`` (``paket``) und wird nach jeder Änderung über
 :mod:`auftragsautomat.freigabe.zustand` gespeichert. Alle Aktionen sind in Funktionen zerlegt
 (:func:`uebernehme_korrekturen`, :func:`freigeben_und_buchen`, :func:`speichere_aliase` …), damit
@@ -46,6 +54,7 @@ import streamlit as st  # noqa: E402
 from auftragsautomat.config import Settings, lade_settings, projekt_stamm  # noqa: E402
 from auftragsautomat.extraktion.erkennung import extrahiere  # noqa: E402
 from auftragsautomat.extraktion.zahlen import parse_dezimal  # noqa: E402
+from auftragsautomat.freigabe import seiten_stufe2 as stufe2  # noqa: E402
 from auftragsautomat.freigabe import zustand  # noqa: E402
 from auftragsautomat.lexware.buchen import buche  # noqa: E402
 from auftragsautomat.matching import aliase as alias_modul  # noqa: E402
@@ -91,7 +100,7 @@ SS_PAKET_PFAD = "paket_pfad"
 SS_MELDUNGEN = "meldungen"
 SS_ERGEBNIS = "buchungs_ergebnis"
 SS_ZUSAMMENFASSUNG = "zusammenfassung"
-# Widget-Schlüssel, die bei einem neuen Paket zurückgesetzt werden (Präfixe)
+# Widget-Schlüssel, die bei einem neuen Paket zurückgesetzt werden (Präfixe; "firma" deckt auch "firmenwahl_" ab)
 _WIDGET_PRAEFIXE = ("kopf_", "bf_", "pos_", "lieferschein", "firma")
 
 # Werte der Auswahllisten (stabil, unabhängig von der Anzeige)
@@ -241,6 +250,12 @@ def _korrigiere_position(
     if menge is not None and menge != position.menge:
         logger.info("Position %s: Menge %s -> %s (Anwender)", laufnr, position.menge, menge)
         position.menge = menge
+    if "rabatt" in werte and not position.uebersprungen:
+        rabatt = _als_decimal(werte.get("rabatt"), laufnr)
+        try:
+            stufe2.setze_rabatt_manuell(position, rabatt)
+        except ValueError as exc:
+            raise KorrekturFehler(str(exc)) from exc
     return position
 
 
@@ -255,9 +270,11 @@ def uebernehme_korrekturen(
     ``werte`` (alle Schlüssel optional): ``kunde``/``lieferant`` (Nummer oder "" = keiner),
     ``belegnummer``, ``bestellnummer``, ``lieferadresse`` (Text), ``datum``, ``liefertag`` (date |
     None), ``belegfelder`` (dict spedition/weingut/shipment/kunde), ``positionen`` ({laufnr:
-    {"zuordnung": Artikelnummer | OPTION_*, "artikelnummer": str, "menge": Zahl}}), ``lieferschein``
-    (bool). Nicht anwendbare Korrekturen lösen :class:`KorrekturFehler` aus (das Paket bleibt dann
-    unverändert, weil auf einer Kopie gearbeitet wird). Die Freigabe wird zurückgesetzt.
+    {"zuordnung": Artikelnummer | OPTION_*, "artikelnummer": str, "menge": Zahl, "rabatt": Prozent}}),
+    ``lieferschein`` (bool). Ein geänderter Rabatt wird mit Quelle "manuell" übernommen (0 = kein
+    Rabatt; Aktionen schlagen dann nichts mehr vor). Nicht anwendbare Korrekturen lösen
+    :class:`KorrekturFehler` aus (das Paket bleibt dann unverändert, weil auf einer Kopie gearbeitet
+    wird). Die Freigabe wird zurückgesetzt.
     """
     neu = paket.model_copy(deep=True)
     roh = neu.roh
@@ -637,12 +654,32 @@ def _firma_wechseln(settings: Settings, paket: Belegpaket, firma_id: str) -> Non
     meldung("success", f"Firma auf {firma_id} gesetzt; Paket neu zugeordnet und geprüft.")
 
 
+def ui_kontext(settings: Settings) -> stufe2.UiKontext:
+    """Rückrufe der App für die Seiten der Ausbaustufe 2."""
+    return stufe2.UiKontext(
+        melde=meldung,
+        setze_paket=setze_paket,
+        speichere=lambda p: speichere_zustand(p, settings),
+        benutzer=benutzername,
+        dry_run=lambda: bool(st.session_state.get("dry_run", settings.dry_run)),
+    )
+
+
+def aktuelle_seite() -> str:
+    """Gewählte Seite der Seitenleiste (Standard "Freigabe")."""
+    seite = st.session_state.get(stufe2.SS_SEITE)
+    return seite if seite in stufe2.SEITEN else stufe2.SEITEN[0]
+
+
 def zeige_seitenleiste(settings: Settings) -> bool:
     """Seitenleiste zeichnen; True, wenn eine Aktion das Paket geändert hat (dann ``st.rerun``)."""
     geaendert = False
+    kontext = ui_kontext(settings)
     with st.sidebar:
         st.header("Auftrags-Automat")
         st.caption(f"Projektstamm: {projekt_stamm()}")
+        st.radio("Seite", stufe2.SEITEN, key=stufe2.SS_SEITE, horizontal=True)
+        nur_freigabe = aktuelle_seite() == stufe2.SEITEN[0]
 
         st.subheader("Modus")
         dry_run = st.toggle("Dry Run (nur simulieren)", value=settings.dry_run, key="dry_run")
@@ -653,6 +690,11 @@ def zeige_seitenleiste(settings: Settings) -> bool:
             st.checkbox("Ich habe den Dry Run geprüft", key="scharf_bestaetigt")
             if settings.dry_run:
                 st.caption("Hinweis: settings.dry_run ist aktiv – die Buchung läuft trotzdem als Dry Run.")
+        if not nur_freigabe:
+            pfad = st.session_state.get(SS_PAKET_PFAD)
+            if pfad:
+                st.caption(f"Aktuelles Paket: {Path(pfad).name}")
+            return False
 
         st.subheader("Eingang")
         eingang = Path(settings.eingang_ordner)
@@ -665,6 +707,9 @@ def zeige_seitenleiste(settings: Settings) -> bool:
             st.info(f"Keine Dateien in {eingang}.")
         if st.button("Einlesen & prüfen", key="einlesen", type="primary", width="stretch"):
             _einlesen(settings, auswahl)
+            geaendert = True
+
+        if not geaendert and stufe2.zeige_upload(settings, kontext):
             geaendert = True
 
         st.subheader("Gespeicherte Pakete")
@@ -722,6 +767,8 @@ def zeige_kopf(paket: Belegpaket, settings: Settings, stammdaten: Stammdaten | N
     )
     if paket.firma_id and stammdaten is None:
         st.warning(f"Stammdaten der Firma {paket.firma_id} sind nicht geladen – Zuordnungen können nicht geändert werden.")
+    if stufe2.zeige_firmenwahl(paket, settings, ui_kontext(settings)):
+        st.rerun()
 
     links, rechts = st.columns(2)
     with links:
@@ -817,14 +864,38 @@ def _menge_widget(p: PositionsZuordnung) -> None:
         )
 
 
+def _rabatt_widget(p: PositionsZuordnung) -> None:
+    """Spalte "Rabatt %": editierbar (Quelle als Tooltip), Hinweise RABATT_* farbig darunter."""
+    schluessel = f"pos_{p.roh.laufnr}_rabatt"
+    wert = float(p.rabatt_prozent) if p.rabatt_prozent is not None else 0.0
+    st.number_input(
+        "Rabatt %",
+        min_value=0.0,
+        max_value=100.0,
+        value=wert,
+        step=0.5,
+        format="%.2f",
+        key=schluessel,
+        label_visibility="collapsed",
+        help=stufe2.rabatt_tooltip(p),
+        disabled=p.uebersprungen,
+    )
+    farbe = stufe2.rabatt_farbe(p)
+    if farbe:
+        for h in stufe2.rabatt_hinweise(p):
+            st.markdown(f"<small style='color:{farbe}'>[{h.code.value}] {html.escape(h.text)}</small>", unsafe_allow_html=True)
+    elif p.rabatt_quelle:
+        st.markdown(f"<small style='color:#6b7280'>{html.escape(stufe2.rabatt_tooltip(p).splitlines()[0])}</small>", unsafe_allow_html=True)
+
+
 def zeige_positionen(paket: Belegpaket, stammdaten: Stammdaten | None) -> None:
     st.subheader(f"Positionen ({len(paket.positionen)})")
     if not paket.positionen:
         st.warning("Keine Positionen erkannt.")
         return
-    breiten = [3.2, 3.2, 1.1, 0.9, 0.9, 1.0, 1.0, 1.3]
+    breiten = [3.0, 3.0, 1.0, 0.8, 0.8, 1.1, 0.9, 0.9, 1.2]
     kopf = st.columns(breiten)
-    for spalte, titel in zip(kopf, ("Dokument", "Zuordnung (Lexware)", "Menge", "EK", "VK", "Preis Dok.", "Abweichung", "Status"), strict=True):
+    for spalte, titel in zip(kopf, ("Dokument", "Zuordnung (Lexware)", "Menge", "EK", "VK", "Rabatt %", "Preis Dok.", "Abweichung", "Status"), strict=True):
         spalte.markdown(f"**{titel}**")
     for p in paket.positionen:
         laufnr = p.roh.laufnr
@@ -846,13 +917,18 @@ def zeige_positionen(paket: Belegpaket, stammdaten: Stammdaten | None) -> None:
         with zeile[2]:
             _menge_widget(p)
         zeile[3].markdown(formatiere_betrag(p.ek_preis) or "–")
-        zeile[4].markdown(formatiere_betrag(p.vk_preis) or "–")
-        zeile[5].markdown(formatiere_betrag(p.preis_dokument) or "–")
-        zeile[6].markdown(_abweichung_html(p), unsafe_allow_html=True)
-        zeile[7].markdown(_status_html(p), unsafe_allow_html=True)
+        vk_text = formatiere_betrag(p.vk_preis) or "–"
+        if p.rabatt_prozent and p.vk_preis_rabattiert is not None and not p.uebersprungen:
+            vk_text += f"  \n<small>→ {html.escape(formatiere_betrag(p.vk_preis_rabattiert))}</small>"
+        zeile[4].markdown(vk_text, unsafe_allow_html=True)
+        with zeile[5]:
+            _rabatt_widget(p)
+        zeile[6].markdown(formatiere_betrag(p.preis_dokument) or "–")
+        zeile[7].markdown(_abweichung_html(p), unsafe_allow_html=True)
+        zeile[8].markdown(_status_html(p), unsafe_allow_html=True)
         for h in p.hinweise:
-            if h.schweregrad == Schweregrad.FEHLER:
-                zeile[7].markdown(f"<small style='color:{_ROT}'>{html.escape(h.text)}</small>", unsafe_allow_html=True)
+            if h.schweregrad == Schweregrad.FEHLER and h.code not in stufe2.RABATT_CODES:
+                zeile[8].markdown(f"<small style='color:{_ROT}'>{html.escape(h.text)}</small>", unsafe_allow_html=True)
 
 
 def zeige_summen(paket: Belegpaket) -> None:
@@ -925,6 +1001,8 @@ def lese_korrekturen(paket: Belegpaket) -> dict[str, Any]:
             pw["artikelnummer"] = zustand_[f"pos_{laufnr}_artikelnummer"]
         if f"pos_{laufnr}_menge" in zustand_:
             pw["menge"] = zustand_[f"pos_{laufnr}_menge"]
+        if f"pos_{laufnr}_rabatt" in zustand_:
+            pw["rabatt"] = zustand_[f"pos_{laufnr}_rabatt"]
         if pw:
             positionen[laufnr] = pw
     if positionen:
@@ -1033,7 +1111,7 @@ def zeige_aktionen(paket: Belegpaket, settings: Settings, stammdaten: Stammdaten
     return False
 
 
-def zeige_ergebnis() -> None:
+def zeige_ergebnis(settings: Settings | None = None, paket: Belegpaket | None = None) -> None:
     text = st.session_state.get(SS_ZUSAMMENFASSUNG)
     ergebnis: BuchungsErgebnis | None = st.session_state.get(SS_ERGEBNIS)
     if not text or ergebnis is None:
@@ -1050,7 +1128,36 @@ def zeige_ergebnis() -> None:
         )
     for pfad in pfade:
         st.markdown(f"- {pfad}")
+    stufe2.zeige_dateien_und_ablage(ergebnis)
     st.code(text, language=None)
+    if settings is not None and paket is not None:
+        try:
+            stufe2.zeige_nachbereitung(paket, settings)
+        except Exception as exc:  # noqa: BLE001 - Anzeige der Nachbereitung darf das Ergebnis nicht verdecken
+            logger.exception("Nachbereitung konnte nicht angezeigt werden")
+            st.error(f"Nachbereitung konnte nicht angezeigt werden: {type(exc).__name__}: {exc}")
+
+
+def zeige_seite(settings: Settings, seite: str) -> None:
+    """Seiten der Ausbaustufe 2 ("Heute", "Dossiers", "Rabatte", "Einstellungen"); Logik in ``seiten_stufe2``."""
+    kontext = ui_kontext(settings)
+    try:
+        if seite == "Heute":
+            geaendert = stufe2.zeige_seite_heute(settings, kontext)
+        elif seite == "Dossiers":
+            stufe2.zeige_seite_dossiers(settings, kontext)
+            geaendert = False
+        elif seite == "Rabatte":
+            geaendert = stufe2.zeige_seite_rabatte(settings, kontext)
+        else:
+            stufe2.zeige_seite_einstellungen(settings, kontext)
+            geaendert = False
+    except Exception as exc:  # noqa: BLE001 - Darstellungsfehler dürfen die App nicht beenden
+        logger.exception("Seite %s konnte nicht dargestellt werden", seite)
+        st.error(f"Seite „{seite}“ konnte nicht dargestellt werden: {type(exc).__name__}: {exc}")
+        return
+    if geaendert:
+        st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -1075,10 +1182,15 @@ def main() -> None:
         st.rerun()
     zeige_meldungen()
 
+    seite = aktuelle_seite()
+    if seite != stufe2.SEITEN[0]:
+        zeige_seite(settings, seite)
+        return
+
     paket: Belegpaket | None = st.session_state.get(SS_PAKET)
     if paket is None:
-        st.info("Bitte links eine Eingangsdatei einlesen oder ein gespeichertes Paket laden.")
-        zeige_ergebnis()
+        st.info("Bitte links eine Eingangsdatei einlesen, einen Auftrag hochladen oder ein gespeichertes Paket laden.")
+        zeige_ergebnis(settings)
         return
 
     try:
@@ -1094,7 +1206,7 @@ def main() -> None:
     if geaendert:
         st.rerun()
     zeige_hinweise(paket)
-    zeige_ergebnis()
+    zeige_ergebnis(settings, paket)
 
 
 if __name__ == "__main__":

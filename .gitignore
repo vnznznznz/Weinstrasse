@@ -16,3 +16,6 @@ logs/*
 !archiv/.gitkeep
 !logs/.gitkeep
 !daten/*/.gitkeep
+# Testausgaben, falls ein Test doch einmal in die Fixtures schreibt
+tests/fixtures/logs/
+tests/fixtures/excel/__pycache__/

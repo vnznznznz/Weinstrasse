@@ -2,21 +2,35 @@
 
 Format (siehe ``tests/fixtures/stammdaten/<firma>/*.csv``):
 
-* Trennzeichen ``;`` (konfigurierbar), Textkennzeichen ``"``, Kodierung cp1252
-  (Lexware "ANSI (Windows)"). Beginnt die Datei mit einem UTF-8-BOM oder scheitert die
-  Dekodierung mit ``konfig.kodierung``, wird ``utf-8-sig`` versucht (mit Warnung im Log).
+* Trennzeichen ``;`` (konfigurierbar), Textkennzeichen ``"`` (Werte dürfen beidseitig in
+  Anführungszeichen stehen oder nicht), Kodierung cp1252 (Lexware "ANSI (Windows)").
+  **Kodierungs-Erkennung**: Beginnt die Datei mit einem UTF-8-BOM, wird sie als ``utf-8-sig``
+  gelesen (Artikel-Export). Scheitert die Dekodierung mit ``konfig.kodierung``, werden
+  nacheinander ``utf-8-sig``, ``cp1252`` und ``cp850`` versucht – jeweils mit Warnung im Log.
 * Kopfzeile mit Spaltennamen. Standard: Spaltenname = Feldname des Modells (:class:`Artikel`,
   :class:`Kunde`, :class:`Lieferant`, :class:`Beleg`). Abweichende Exportspalten werden über
   ``CsvQuellen.spalten_artikel`` usw. zugeordnet (unser Feldname -> Spaltenname im Export).
-  Der Vergleich ist unabhängig von Groß-/Kleinschreibung, Leerraum, Anführungszeichen und BOM.
+  **Tolerantes Kopfzeilen-Matching** (:func:`spaltenschluessel`): NFKC-Normalisierung,
+  Anführungszeichen und BOM entfernen, Kleinschreibung, Mehrfach-Leerzeichen zusammenfassen;
+  verglichen wird zuerst die umschriebene Form (ß -> ss, ä -> ae) und dann die Form ohne alle
+  Nicht-ASCII-Zeichen. Damit passt die Konfiguration "Straße" sowohl auf "Straße" als auch auf
+  die DOS-Umlaut-Mojibake "Straáe" des Kunden-Exports ("steuerbare Ums„tze", "F„llig zum", "õ13b").
   Unbekannte Spalten werden ignoriert, fehlende Pflichtspalten ergeben einen
   :class:`StammdatenFehler` mit Dateiname und erwarteten Spalten.
+* **Invertierte Spalten**: Ein ``!`` vor dem Spaltennamen negiert einen Wahrheitswert, z. B.
+  ``spalten_artikel: {aktiv: "!Gesperrt"}`` (Gesperrt = J -> aktiv = nein) oder
+  ``spalten_kunden: {aktiv: "!Inaktiv"}``. Leere Zellen bleiben leer (Standard: aktiv).
 * Deutsche Dezimalzahlen ("4,20", "1.234,50"), Wahrheitswerte 0/1, ja/nein, J/N, true/false,
-  wahr/falsch, leere Werte -> ``None``.
-* ``volumen_cl``/``holzkiste``/``jahrgang`` leer -> aus der Bezeichnung abgeleitet
-  (``matching.volumen``).
-* Zusätzlich zu den Modellfeldern werden die negierten Lexware-Exportfelder ``inaktiv``
-  und ``gesperrt`` verstanden (z. B. ``spalten_kunden: {inaktiv: "Inaktiv"}``).
+  wahr/falsch, leere Werte -> ``None``. Führende Tabulatoren/Leerzeichen in Werten (Lexware
+  exportiert Postleitzahlen teils als ``"\\t46244"``) werden entfernt.
+* ``volumen_cl`` leer -> aus ``einheit`` ("75 cl") oder der Bezeichnung abgeleitet;
+  ``holzkiste``/``jahrgang`` leer -> aus der Bezeichnung (``matching.volumen``). ``jahrgang``
+  aus einer Spalte (z. B. "Benutzerdefiniert 2") zählt nur, wenn er vierstellig (1900–2099) ist.
+  ``ek_preis`` 0,00 bedeutet "kein EK gepflegt" -> ``None``.
+* Zusätzlich zu den Modellfeldern werden verstanden: die negierten Lexware-Exportfelder
+  ``inaktiv``/``gesperrt`` (z. B. ``spalten_kunden: {inaktiv: "Inaktiv"}``), bei Kunden und
+  Lieferanten ``nachname``/``vorname`` (Lexware "Name"/"Vorname": Fallback, wenn "Firma" leer ist)
+  und bei Kunden ``hausnr`` (wird an ``strasse`` angehängt).
 
 Die Parser (:func:`parse_dezimal`, :func:`parse_bool`, :func:`parse_datum`,
 :func:`parse_belegart`) und die Zeilenumwandler (:func:`zeile_zu_artikel` usw.) werden
@@ -32,6 +46,7 @@ import io
 import logging
 import math
 import re
+import unicodedata
 from collections.abc import Callable, Mapping
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -58,6 +73,7 @@ __all__ = [
     "parse_datum",
     "parse_dezimal",
     "parse_int",
+    "spaltenschluessel",
     "zeile_zu_artikel",
     "zeile_zu_beleg",
     "zeile_zu_kunde",
@@ -95,11 +111,12 @@ PFLICHTFELDER: dict[str, tuple[str, ...]] = {
     "belege": ("belegart", "belegnummer"),
 }
 
-# Optionale, negierte Felder aus dem Lexware-Export ("Inaktiv (J/N)", "Gesperrt (J/N)").
+# Optionale Zusatzfelder aus dem Lexware-Export: negierte Flags ("Inaktiv (J/N)", "Gesperrt (J/N)"),
+# Personenname ("Name"/"Vorname" als Fallback für "Firma") und Hausnummer (an die Straße angehängt).
 ZUSATZFELDER: dict[str, tuple[str, ...]] = {
     "artikel": ("inaktiv", "gesperrt"),
-    "kunden": ("inaktiv",),
-    "lieferanten": ("inaktiv",),
+    "kunden": ("inaktiv", "nachname", "vorname", "hausnr"),
+    "lieferanten": ("inaktiv", "nachname", "vorname"),
     "belege": (),
 }
 
@@ -363,23 +380,48 @@ def _validiere(modell: type[T], kontext: str, **felder: object) -> T:
         raise StammdatenFehler(f"{kontext}: ungültige Werte ({fehler})") from exc
 
 
+_JAHRGANG_SPALTE = re.compile(r"^\s*((?:19|20)\d{2})\s*$")
+
+
+def _jahrgang_aus_spalte(wert: object, kontext: str) -> int | None:
+    """Jahrgang aus einer Spalte (z. B. "Benutzerdefiniert 2"): nur vierstellig 1900–2099, sonst ``None``."""
+    text = als_text(wert)
+    if text is None:
+        return None
+    treffer = _JAHRGANG_SPALTE.match(text)
+    if treffer:
+        return int(treffer.group(1))
+    logger.debug("%s: Jahrgangsspalte %r ist nicht vierstellig, wird ignoriert", kontext, text)
+    return None
+
+
 def zeile_zu_artikel(firma_id: str, zeile: Mapping[str, object]) -> Artikel:
     """Zeile mit unseren Feldnamen -> :class:`Artikel`; fehlende Volumen-/Holzkisten-/
-    Jahrgangsangaben werden aus der Bezeichnung abgeleitet."""
+    Jahrgangsangaben werden aus ``einheit`` ("75 cl") bzw. der Bezeichnung abgeleitet.
+    EK-Preis 0,00 gilt als nicht gepflegt (``None``)."""
     nummer = _pflicht(zeile, "artikelnummer", "Artikel")
     kontext = f"Artikel {nummer}"
     bezeichnung = _pflicht(zeile, "bezeichnung", kontext)
+    einheit = als_text(zeile.get("einheit"))
 
     volumen = parse_dezimal(zeile.get("volumen_cl"))
+    if volumen is None and einheit:
+        volumen = parse_volumen_cl(einheit)
+        if volumen is not None:
+            logger.debug("%s: Volumen %s cl aus der Einheit %r abgeleitet", kontext, volumen, einheit)
     if volumen is None:
         volumen = parse_volumen_cl(bezeichnung)
         if volumen is not None:
             logger.debug("%s: Volumen %s cl aus der Bezeichnung abgeleitet", kontext, volumen)
     holz_roh = zeile.get("holzkiste")
     holzkiste = ist_holzkiste(bezeichnung) if _leer(holz_roh) else parse_bool(holz_roh)
-    jahrgang = parse_int(zeile.get("jahrgang"))
+    jahrgang = _jahrgang_aus_spalte(zeile.get("jahrgang"), kontext)
     if jahrgang is None:
         jahrgang = parse_jahrgang(bezeichnung)
+    ek_preis = parse_dezimal(zeile.get("ek_preis"))
+    if ek_preis is not None and ek_preis == 0:
+        logger.debug("%s: EK-Preis 0,00 gilt als nicht gepflegt", kontext)
+        ek_preis = None
 
     return _validiere(
         Artikel,
@@ -392,18 +434,24 @@ def zeile_zu_artikel(firma_id: str, zeile: Mapping[str, object]) -> Artikel:
         volumen_cl=volumen,
         holzkiste=holzkiste,
         jahrgang=jahrgang,
-        ek_preis=parse_dezimal(zeile.get("ek_preis")),
+        ek_preis=ek_preis,
         vk_preis_1=parse_dezimal(zeile.get("vk_preis_1")),
-        einheit=als_text(zeile.get("einheit")),
+        einheit=einheit,
         matchcode=als_text(zeile.get("matchcode")),
         aktiv=_aktiv(zeile),
     )
 
 
 def _name_mit_ersatz(zeile: Mapping[str, object], kontext: str) -> tuple[str, str | None]:
-    """``name`` ist Pflicht; ist er leer, aber ``name2`` gefüllt, rückt ``name2`` nach."""
+    """``name`` (Lexware "Firma") ist Pflicht; ist er leer, rückt der Personenname
+    (``vorname`` + ``nachname``, Lexware "Vorname"/"Name") nach, danach ``name2`` (Zusatz)."""
     name = als_text(zeile.get("name"))
     name2 = als_text(zeile.get("name2"))
+    if name is None:
+        person = " ".join(t for t in (als_text(zeile.get("vorname")), als_text(zeile.get("nachname"))) if t)
+        if person:
+            logger.debug("%s: 'name' (Firma) leer, verwende Personenname (%s)", kontext, person)
+            return person, name2
     if name is None and name2 is not None:
         logger.info("%s: 'name' leer, verwende 'name2' (%s)", kontext, name2)
         return name2, None
@@ -412,8 +460,16 @@ def _name_mit_ersatz(zeile: Mapping[str, object], kontext: str) -> tuple[str, st
     return name, name2
 
 
+def _strasse_mit_hausnr(zeile: Mapping[str, object]) -> str | None:
+    strasse = als_text(zeile.get("strasse"))
+    hausnr = als_text(zeile.get("hausnr"))
+    if strasse and hausnr and not strasse.endswith(hausnr):
+        return f"{strasse} {hausnr}"
+    return strasse or hausnr
+
+
 def zeile_zu_kunde(firma_id: str, zeile: Mapping[str, object]) -> Kunde:
-    """Zeile mit unseren Feldnamen -> :class:`Kunde`."""
+    """Zeile mit unseren Feldnamen -> :class:`Kunde` (Straße + HausNr, PLZ bereinigt, E-Mail, Bemerkung, USt-ID)."""
     nummer = _pflicht(zeile, "kundennummer", "Kunde")
     kontext = f"Kunde {nummer}"
     name, name2 = _name_mit_ersatz(zeile, kontext)
@@ -424,13 +480,16 @@ def zeile_zu_kunde(firma_id: str, zeile: Mapping[str, object]) -> Kunde:
         kundennummer=nummer,
         name=name,
         name2=name2,
-        strasse=als_text(zeile.get("strasse")),
+        strasse=_strasse_mit_hausnr(zeile),
         plz=als_text(zeile.get("plz")),
         ort=als_text(zeile.get("ort")),
         land=als_text(zeile.get("land")),
         preisgruppe=parse_int(zeile.get("preisgruppe")),
         matchcode=als_text(zeile.get("matchcode")),
         aktiv=_aktiv(zeile),
+        email=als_text(zeile.get("email")),
+        bemerkung=als_text(zeile.get("bemerkung")),
+        ust_id=als_text(zeile.get("ust_id")),
     )
 
 
@@ -447,8 +506,11 @@ def zeile_zu_lieferant(firma_id: str, zeile: Mapping[str, object]) -> Lieferant:
         name=name,
         name2=name2,
         ort=als_text(zeile.get("ort")),
+        land=als_text(zeile.get("land")),
         matchcode=als_text(zeile.get("matchcode")),
         aktiv=_aktiv(zeile),
+        email=als_text(zeile.get("email")),
+        bemerkung=als_text(zeile.get("bemerkung")),
     )
 
 
@@ -526,9 +588,43 @@ def baue_modelle(
 # ---------------------------------------------------------------------------
 
 
-def _normalisiere_spaltenname(name: object) -> str:
+_UMSCHRIFT = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "ae", "Ö": "oe", "Ü": "ue"})
+NEGATIONS_PRAEFIX = "!"
+
+
+def _spaltenname_roh(name: object) -> str:
     text = str(name or "").replace("﻿", "").strip().strip('"').strip("'").strip()
-    return re.sub(r"\s+", " ", text).lower()
+    text = unicodedata.normalize("NFKC", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def spaltenschluessel(name: object) -> tuple[str, str]:
+    """Zwei Vergleichsschlüssel für einen Spaltennamen (tolerantes Kopfzeilen-Matching).
+
+    1. umschrieben: Umlaute/ß als ae/oe/ue/ss, Kleinschreibung ("Straße" -> "strasse"),
+    2. ASCII: alle Nicht-ASCII-Zeichen entfernt ("Straße" -> "strae", "Straáe" -> "strae",
+       "steuerbare Ums„tze" -> "steuerbare umstze", "õ13b" -> "13b").
+
+    Zwei Namen passen, wenn einer der beiden Schlüssel übereinstimmt.
+    """
+    roh = _spaltenname_roh(name)
+    umschrieben = roh.translate(_UMSCHRIFT).lower()
+    ascii_form = "".join(c for c in roh if ord(c) < 128)
+    ascii_form = re.sub(r"\s+", " ", ascii_form).strip().lower()
+    return umschrieben, ascii_form
+
+
+def _normalisiere_spaltenname(name: object) -> str:
+    """Umschriebener Schlüssel (für Meldungen und einfache Vergleiche)."""
+    return spaltenschluessel(name)[0]
+
+
+def _spalten_index(kopf: list[tuple[str, str]], gesucht: tuple[str, str]) -> list[int]:
+    """Alle Kopfpositionen, die zum gesuchten Schlüsselpaar passen (umschrieben vor ASCII)."""
+    treffer = [i for i, k in enumerate(kopf) if k[0] and k[0] == gesucht[0]]
+    if not treffer and gesucht[1]:
+        treffer = [i for i, k in enumerate(kopf) if k[1] and k[1] == gesucht[1]]
+    return treffer
 
 
 def _trennzeichen(wert: str) -> str:
@@ -539,10 +635,42 @@ def _trennzeichen(wert: str) -> str:
     return wert
 
 
+_KODIERUNG_KANDIDATEN = ("utf-8-sig", "cp1252", "cp850")
+
+
+def _kodierung_norm(kodierung: str) -> str:
+    return kodierung.lower().replace("-", "").replace("_", "")
+
+
+# Lexware schreibt die Feldnamen des Kunden-Exports in der DOS-Codepage, die Datenzeilen in cp1252.
+# TODO-PRUEFEN: Am echten Kunden-Export prüfen, ob die Kopfzeile tatsächlich cp850 ist (Mojibake "Straáe",
+# "Ums„tze", "õ13b" beim Lesen als cp1252) und ob "Länderkürzel" (ü = 0x81) darin vorkommt; ggf. die
+# Reihenfolge der Rückfall-Kodierungen anpassen.
+_DOS_KODIERUNG = "cp850"
+
+
+def _kopfzeile_getrennt(daten: bytes) -> tuple[bytes, bytes, bytes] | None:
+    """(Kopfzeile, Zeilenende, Datenzeilen) oder ``None``, wenn es nur eine Zeile gibt."""
+    index = daten.find(b"\n")
+    if index < 0:
+        return None
+    kopf = daten[:index]
+    ende = b"\n"
+    if kopf.endswith(b"\r"):
+        kopf, ende = kopf[:-1], b"\r\n"
+    return kopf, ende, daten[index + 1 :]
+
+
 def _lies_text(pfad: Path, kodierung: str) -> str:
+    """Dekodiert die Datei: BOM -> utf-8-sig; sonst ``kodierung``.
+
+    Scheitert das, wird zuerst der Lexware-Sonderfall geprüft (Kopfzeile in cp850, Datenzeilen in
+    ``kodierung``), danach werden utf-8-sig, cp1252 und cp850 für die ganze Datei versucht –
+    jeweils mit Warnung im Log.
+    """
     daten = pfad.read_bytes()
     if daten.startswith(codecs.BOM_UTF8):
-        if kodierung.lower().replace("-", "").replace("_", "") not in {"utf8", "utf8sig"}:
+        if _kodierung_norm(kodierung) not in {"utf8", "utf8sig"}:
             logger.warning(
                 "%s beginnt mit einem UTF-8-BOM; lese als utf-8-sig statt %s", pfad.name, kodierung
             )
@@ -552,23 +680,52 @@ def _lies_text(pfad: Path, kodierung: str) -> str:
     except LookupError as exc:
         raise StammdatenFehler(f"Unbekannte Kodierung '{kodierung}' für {pfad}") from exc
     except UnicodeDecodeError as exc:
-        logger.warning(
-            "%s lässt sich nicht als %s lesen (%s); versuche utf-8-sig", pfad.name, kodierung, exc
-        )
+        fehler = str(exc)
+    geteilt = _kopfzeile_getrennt(daten)
+    if geteilt is not None:
+        kopf, ende, rest = geteilt
         try:
-            return daten.decode("utf-8-sig")
-        except UnicodeDecodeError as exc2:
-            raise StammdatenFehler(
-                f"{pfad}: weder als {kodierung} noch als utf-8-sig lesbar ({exc2})"
-            ) from exc2
+            rest_text = rest.decode(kodierung)
+        except UnicodeDecodeError:
+            rest_text = None
+        if rest_text is not None:
+            try:
+                kopf_text = kopf.decode(_DOS_KODIERUNG)
+            except UnicodeDecodeError:
+                kopf_text = kopf.decode(kodierung, errors="replace")
+            logger.warning(
+                "%s: Kopfzeile nicht als %s lesbar (%s); Kopfzeile als %s, Datenzeilen als %s gelesen",
+                pfad.name,
+                kodierung,
+                fehler,
+                _DOS_KODIERUNG,
+                kodierung,
+            )
+            return kopf_text + ende.decode("ascii") + rest_text
+    versucht = [kodierung]
+    for kandidat in _KODIERUNG_KANDIDATEN:
+        if _kodierung_norm(kandidat) == _kodierung_norm(kodierung):
+            continue
+        try:
+            text = daten.decode(kandidat)
+        except UnicodeDecodeError:
+            versucht.append(kandidat)
+            continue
+        logger.warning(
+            "%s lässt sich nicht als %s lesen (%s); lese als %s", pfad.name, kodierung, fehler, kandidat
+        )
+        return text
+    raise StammdatenFehler(f"{pfad}: mit keiner Kodierung lesbar (versucht: {', '.join(versucht)}; {fehler})")
 
 
 def lies_csv_zeilen(pfad: Path, konfig: CsvQuellen, tabelle: str) -> list[tuple[int, dict[str, str | None]]]:
     """Liest eine Export-Datei und liefert (Zeilennummer, {unser Feldname: Text | None}).
 
     Spaltenzuordnung über ``konfig.spalten_<tabelle>`` (unser Feldname -> Exportspalte),
-    Standard ist der Feldname selbst. Unbekannte Spalten werden ignoriert, fehlende
-    Pflichtspalten lösen :class:`StammdatenFehler` aus.
+    Standard ist der Feldname selbst; ein ``!`` vor der Exportspalte negiert einen
+    Wahrheitswert (``aktiv: "!Gesperrt"`` -> "J" wird "0", "N" wird "1", leer bleibt leer).
+    Kopfzeilen werden tolerant verglichen (:func:`spaltenschluessel`). Unbekannte Spalten werden
+    ignoriert, fehlende Pflichtspalten lösen :class:`StammdatenFehler` aus.
     """
     if tabelle not in MODELLE:
         raise StammdatenFehler(f"Unbekannte Stammdatentabelle '{tabelle}'")
@@ -587,28 +744,34 @@ def lies_csv_zeilen(pfad: Path, konfig: CsvQuellen, tabelle: str) -> list[tuple[
         raise StammdatenFehler(f"{pfad}: Datei ist leer (keine Kopfzeile)")
 
     kopf_roh = alle_zeilen[start]
-    kopf = [_normalisiere_spaltenname(s) for s in kopf_roh]
+    kopf = [spaltenschluessel(s) for s in kopf_roh]
     zuordnung: dict[str, str] = getattr(konfig, f"spalten_{tabelle}", {}) or {}
     felder = feldnamen(tabelle)
 
     index: dict[str, int] = {}
+    negiert: set[str] = set()
     fehlend: list[str] = []
     for feld in felder:
-        spalte = zuordnung.get(feld, feld)
-        norm = _normalisiere_spaltenname(spalte)
-        if kopf.count(norm) > 1:
+        spalte = str(zuordnung.get(feld, feld)).strip()
+        if spalte.startswith(NEGATIONS_PRAEFIX):
+            spalte = spalte[len(NEGATIONS_PRAEFIX) :].strip()
+            negiert.add(feld)
+        treffer = _spalten_index(kopf, spaltenschluessel(spalte))
+        if len(treffer) > 1:
             logger.warning("%s: Spalte '%s' kommt mehrfach vor; die erste wird verwendet", pfad.name, spalte)
-        if norm in kopf:
-            index[feld] = kopf.index(norm)
+        if treffer:
+            index[feld] = treffer[0]
+            if kopf_roh[treffer[0]].strip().strip('"') != spalte:
+                logger.debug("%s: Spalte %r tolerant auf %r zugeordnet", pfad.name, spalte, kopf_roh[treffer[0]])
         elif feld in PFLICHTFELDER[tabelle]:
             fehlend.append(f"{feld} (erwartete Spalte '{spalte}')")
     if fehlend:
-        erwartet = ", ".join(zuordnung.get(f, f) for f in PFLICHTFELDER[tabelle])
+        erwartet = ", ".join(str(zuordnung.get(f, f)).lstrip(NEGATIONS_PRAEFIX) for f in PFLICHTFELDER[tabelle])
         raise StammdatenFehler(
             f"{pfad}: Pflichtspalten fehlen: {', '.join(fehlend)}. "
             f"Erwartete Pflichtspalten: {erwartet}. Gefundene Spalten: {', '.join(kopf_roh)}"
         )
-    unbekannt = [kopf_roh[i] for i, s in enumerate(kopf) if i not in index.values()]
+    unbekannt = [kopf_roh[i] for i in range(len(kopf)) if i not in index.values()]
     if unbekannt:
         logger.debug("%s: ignoriere Spalten %s", pfad.name, ", ".join(repr(s) for s in unbekannt))
     nicht_gefunden = [f for f in felder if f not in index and f not in ZUSATZFELDER.get(tabelle, ())]
@@ -625,7 +788,10 @@ def lies_csv_zeilen(pfad: Path, konfig: CsvQuellen, tabelle: str) -> list[tuple[
         werte: dict[str, str | None] = {}
         for feld, i in index.items():
             roh = zeile[i] if i < len(zeile) else ""
-            werte[feld] = roh.strip() or None
+            wert = roh.strip().strip('"').strip() or None
+            if wert is not None and feld in negiert:
+                wert = "0" if parse_bool(wert, standard=False) else "1"
+            werte[feld] = wert
         ergebnis.append((nr, werte))
     if zu_lang:
         logger.warning("%s: %d Zeilen haben mehr Felder als die Kopfzeile; überzählige Felder ignoriert", pfad.name, zu_lang)

@@ -1,0 +1,6 @@
+Kundennummer;Debitorenkonto;Anrede;Name;Matchcode;Vorname;Firma;Zusatz;Ansprechpartner;Stra·e;HausNr;Postleitzahl;Ort;Land;Telefon;Telefax;EMAIL;Web;Liefer. Anrede;Liefer. Firma;Liefer. Stra·e;Liefer. HausNr;Liefer. Postleitzahl;Liefer. Ort;Preisgruppe;Rabatt;EG ID;steuerbare UmsÑtze;Zahlungsbedingung;FÑllig zum;Bemerkung;Inaktiv;Abfrage nach ı13b UStG;LÑnderkÅrzel
+2100;2100;Firma;;HANDEL;;Beispiel Handels AG;Zentrale Einkauf Wein;;Handelsstraﬂe;1;5020;Salzburg;÷sterreich;0000 000000;;einkauf@example.org;;;;;;;;1;0,00;ATU00000000;J;;;Fixtermin, Spedition Beispiel;N;N;AT
+2200;2200;Firma;;KELLEREI;;Musterkellerei Nord GmbH;;;Kellerweg;1;12345;Musterstadt;Deutschland;0000 000000;;dispo@example.org;;;;;;;;1;0,00;DE000000000;J;;;Lagerbestellungen in Kolli, Spedition Beispiel;N;N;DE
+2300;2300;Firma;;REGION;;Beispiel Region Rhein-Ruhr eG;Lager Nord;;Lagerstraﬂe;5;"	46244";Bottrop;Deutschland;0000 000000;;wareneingang@example.org;;;;;;;;1;0,00;DE000000001;J;;;;N;N;DE
+2400;2400;Frau;Beispiel;BEISPIEL;Anna;;;;Gartenweg;3;"	40210";D¸sseldorf;Deutschland;0000 000000;;anna.beispiel@example.org;;;;;;;;2;0,00;;J;;;Privatkunde;N;N;DE
+2500;2500;Firma;;ALTKUNDE;;Ehemaliger Markt GmbH;;;Alte Straﬂe;9;"	47051";Duisburg;Deutschland;0000 000000;;;;;;;;;;1;0,00;;J;;;;J;N;DE

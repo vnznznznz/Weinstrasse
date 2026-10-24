@@ -1,0 +1,10 @@
+From: myHillebrandGori <noreply.beispiel@hillebrandgori.com>
+To: logistik@example.org
+Date: Tue, 27 Oct 2026 14:30:00 +0100
+Subject: Shipment DEMB00000 has arrived
+Message-ID: <zustellung@fixture.example.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Shipment DEMB00000 has arrived at Beispielstadt on 2026-10-27.

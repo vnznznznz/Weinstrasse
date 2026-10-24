@@ -1,0 +1,16 @@
+From: Anna Esempio <ordini@cantine-abc.example.org>
+To: logistik@example.org
+Date: Thu, 22 Oct 2026 14:40:00 +0200
+Subject: Conferma d'ordine n. 4711
+Message-ID: <lieferant-bestaetigung-it@fixture.example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Gentile Signora Beispiel,</p>
+<p>confermiamo la ricezione del vostro ordine n. 4711 per il cliente Weinhandlung Beispiel.
+La merce sar&agrave; pronta per il ritiro il 10.11.2026.</p>
+<p>Cordiali saluti<br>Anna Esempio<br>Orders / Logistica<br>Cantina Alpha &amp; Cantina Beta<br>
+ordini@cantine-abc.example.org</p>
+</body></html>

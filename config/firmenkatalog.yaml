@@ -1,10 +1,11 @@
-# Firmenkatalog: über welche Firma wird ein Auftrag abgewickelt?
+# Firmenkatalog: über welche Firma (Lexware-Mandant) wird ein Auftrag abgewickelt?
+# Gelesen von src/auftragsautomat/matching/firmenwahl.py (Firmenkatalog.lade).
 #
 # Reihenfolge der Firmen-Ermittlung (matching/firma.py):
 #   Eingangsordner -> Firmen-Gedächtnis (gelernt, config/firmen_gedaechtnis.yaml) -> Kunden-Alias
-#   -> Katalog (diese Datei) -> Stammdaten -> Empfänger im Dokument.
+#   -> Katalog (diese Datei) -> Lieferanten-Alias -> Stammdaten -> Empfänger im Dokument.
 #
-# Kundengruppen (Vorgabe des Anwenders):
+# Kundengruppen (Vorgabe des Anwenders; Namen fest, siehe models.Kundengruppe):
 #   fachhandel            Fachhandelskunden: Weinstrasse Agentur ODER WIK FH & SEH – entscheidet der Lieferant
 #                         (Abschnitt "lieferanten" unten: Fachhandelslieferant -> Firma).
 #   eigenstaendiger_leh   selbständige Lebensmittel-Einzelhändler (eigene Kaufleute, keine Region) -> WIK FH & SEH
@@ -15,32 +16,57 @@
 # Fragt das Tool, merkt es sich die Antwort je Kunde + Lieferant (firmen_gedaechtnis.yaml) und fragt
 # beim nächsten Auftrag dieses Kunden mit diesem Lieferanten nicht mehr.
 #
-# "muster" sind Textbausteine (Groß-/Kleinschreibung egal), die im Kundennamen/der Adresse vorkommen.
-# Bitte mit dem echten Katalog abgleichen und ergänzen (docs/WAS_ICH_BRAUCHE.md, Abschnitt J).
+# Format je Gruppe:
+#   firmen:        Firmen-IDs aus config/firmen.yaml (eine oder mehrere). Fehlt die Angabe, gelten alle
+#                  Firmen, die diese Gruppe in firmen.yaml unter "kundengruppen" nennen. Unbekannte IDs
+#                  werden mit Warnung übergangen.
+#   entscheidung:  eindeutig  – genau eine Firma (Standard bei einer Firma)
+#                  lieferant  – welche der Firmen: laut Abschnitt "lieferanten" (Fachhandel)
+#                  fragen     – Anwender wählt in der Freigabe, Antwort wird gemerkt (Standard bei
+#                               mehreren Firmen)
+#   muster:        Textbausteine, die im Kundennamen oder in der Kundenadresse vorkommen. Groß-/Klein-
+#                  schreibung, Umlaute und Satzzeichen sind egal; ein Muster muss als ganzes Wort bzw.
+#                  ganze Wortfolge vorkommen ("Markt" trifft nicht "Weinmarkt"). Passen mehrere Gruppen,
+#                  gewinnt das längste Muster, bei Gleichstand die Reihenfolge in dieser Datei.
+#   kundennummern: optional, Kundennummern laut Dokument, die direkt dieser Gruppe zugeordnet werden.
+#   beschreibung:  optional, nur für Menschen.
+#
+# TODO-PRUEFEN: Die Muster unten sind Startwerte aus der Beschreibung des Anwenders. Bitte mit dem
+# echten Katalog (Regionen, Ketten, Großkunden, Fachhandelslieferanten) abgleichen und ergänzen
+# (docs/WAS_ICH_BRAUCHE.md, Abschnitt J). Jede Antwort in der Freigabe wird ohnehin gemerkt.
 
 kundengruppen:
   fachhandel:
+    beschreibung: "Fachhandel (Weinhandlungen, Vinotheken, Getränkehandel)"
     firmen: [weinstrasse_agentur, wik_fh_seh]
     entscheidung: lieferant          # welche der beiden Firmen: laut Abschnitt "lieferanten"
     muster: ["Weinhandlung", "Weinhandel", "Vinothek", "Weinkontor", "Weindepot", "Weinladen", "Getränke"]
   eigenstaendiger_leh:
+    beschreibung: "Selbständige Lebensmittel-Einzelhändler (eigene Kaufleute)"
     firmen: [wik_fh_seh]
+    entscheidung: eindeutig
     muster: ["e.K.", "e. K.", "oHG", "Kaufmann", "Frischemarkt", "Markt GmbH"]
   region:
+    beschreibung: "Einkaufsregionen des LEH"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen             # Tool fragt in der Freigabe und merkt sich die Antwort
     muster: ["Rhein-Ruhr", "Rhein Ruhr", "Minden-Hannover", "Minden", "Nord", "Südwest", "Nordbayern", "Hessenring", "Südbayern", "Zentrallager", "Region"]
   kette:
+    beschreibung: "Große Supermarktketten"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen
     muster: ["Spar", "Zentrale", "Großhandel", "Grosshandel", "Zentraleinkauf"]
   grosskunde:
+    beschreibung: "Großkunden"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen
     muster: []
+    kundennummern: []
 
 # Fachhandelslieferanten: welcher Lieferant (Weingut) läuft im Fachhandel über welche Firma.
-# Schlüssel = Lieferantenname/Alias wie in config/aliase/lieferanten.yaml.
+# Schlüssel = Lieferantenname/Alias wie in config/aliase/lieferanten.yaml (Vergleich normalisiert, der
+# Name darf als Wortfolge im Lieferantentext des Dokuments stehen). Wert = Firmen-ID aus firmen.yaml.
+# Fehlt ein Lieferant hier, fragt das Tool beim ersten Fachhandelsauftrag mit ihm und merkt sich die Antwort.
 lieferanten: {}
 #  "Beispiel Weingut": weinstrasse_agentur
 #  "Beispiel Cantina": wik_fh_seh

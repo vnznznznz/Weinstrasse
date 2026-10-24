@@ -1,0 +1,42 @@
+# Anrede und Grußformeln für E-Mail-Entwürfe (kommunikation/anrede.py).
+#
+# Geschlecht, Name und Sprache eines Kontakts kommen aus der Kontaktliste
+# (kontakte/zuordnung.py: person_aus_name, Zuordner.sprache_fuer); diese Datei legt nur die
+# Formulierung fest. Platzhalter in den Anredezeilen: {name} (voller Name), {vorname},
+# {nachname}, {firma}. Alle Beispiele sind synthetisch.
+#
+# Hausstil: deutsche Anrede mit Ausrufezeichen ("Hallo Frau Beispiel! Bitte finden Sie anbei …"),
+# englische Anrede mit Komma ("Dear Ms Example, please find attached …").
+
+anrede:
+  de:
+    frau: "Hallo Frau {nachname}!"
+    herr: "Hallo Herr {nachname}!"
+    name: "Hallo {name}!"               # Geschlecht unbekannt, Name bekannt
+    du: "Hallo {vorname}!"              # nur für Adressen in der Du-Liste
+    neutral: "Guten Tag!"               # Postfach, Abteilung oder kein Kontakt
+  en:
+    frau: "Dear Ms {nachname},"
+    herr: "Dear Mr {nachname},"
+    name: "Hello {name},"
+    du: "Hello {vorname},"
+    neutral: "Hello,"
+
+# Grußformel je Sprache (steht vor der Signatur).
+grussformel:
+  de: "Freundliche Grüße"
+  en: "Thank you and best regards"
+
+# Abweichende Grußformel je Firma (optional; Firmen-IDs aus config/firmen.yaml).
+firmen:
+  weinstrasse_agentur:
+    grussformel:
+      de: "Freundliche Grüße"
+      en: "Thank you and best regards"
+
+# E-Mail-Adressen (Kleinschreibung), die geduzt werden. Bewusst leer; bei Bedarf ergänzen.
+du: []
+
+# Feste Anrede und Sprache je E-Mail-Adresse (überschreibt Kontaktliste und Heuristik), z. B.
+#   "einkauf@example.org": { anrede: "Hallo Herr Beispiel!", sprache: de }
+regeln: {}

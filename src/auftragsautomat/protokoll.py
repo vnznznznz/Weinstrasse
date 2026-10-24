@@ -25,7 +25,7 @@ from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from auftragsautomat.config import Settings
+from auftragsautomat.config import Firma, Settings
 from auftragsautomat.models import (
     Belegergebnis,
     Belegpaket,
@@ -77,6 +77,12 @@ PROTOKOLL_SPALTEN: tuple[str, ...] = (
     "uebersprungen",
     "warnungen",
     "erfolgreich",
+    # Erweiterung Lexware-Prozess (Angebot -> AB, Rabatte, PDF-Dateien, Revised Order); angehängt,
+    # damit die bisherigen Spalten unverändert bleiben.
+    "Angebot-Nr",
+    "Rabatte",
+    "Dateien",
+    "Revision",
 )
 
 _MAX_BEZEICHNUNG = 44
@@ -168,7 +174,8 @@ def _freier_pfad(ziel: Path) -> Path:
 
 
 def _teile(ergebnis: BuchungsErgebnis) -> list[tuple[str, Belegergebnis | None]]:
-    """Alle Teilbelege mit Namen; weitere Einkauf-Bestellungen (mehrere Weingüter) nach der ersten."""
+    """Alle Teilbelege mit Namen; weitere Einkauf-Bestellungen (mehrere Weingüter) nach der ersten,
+    das Angebot (Weg Angebot -> AB) vor der Verkauf-AB, sofern vorhanden."""
     einkauf_name = "Einkauf-Bestellung"
     if ergebnis.einkauf is not None and ergebnis.einkauf_weitere and ergebnis.einkauf.partner:
         einkauf_name = f"Einkauf-Bestellung ({ergebnis.einkauf.partner})"
@@ -177,9 +184,71 @@ def _teile(ergebnis: BuchungsErgebnis) -> list[tuple[str, Belegergebnis | None]]
         (f"Einkauf-Bestellung ({teil.partner or f'weiteres Weingut {nr}'})", teil)
         for nr, teil in enumerate(ergebnis.einkauf_weitere, start=2)
     )
+    if ergebnis.angebot is not None:
+        teile.append(("Angebot", ergebnis.angebot))
     teile.append(("Verkauf-AB", ergebnis.verkauf))
     teile.append(("Lieferschein", ergebnis.lieferschein))
     return teile
+
+
+def _rabatte_text(paket: Belegpaket) -> str:
+    """Positionsrabatte: "Pos. 1 (1643): 10 % (aktion:herbst); Pos. 2 (957): 5 %" oder leer."""
+    teile: list[str] = []
+    for p in paket.aktive_positionen():
+        if not p.rabatt_prozent:
+            continue
+        artikelnr = p.artikel.artikelnummer if p.artikel else "?"
+        prozent = formatiere_menge(Decimal(p.rabatt_prozent))
+        quelle = f" ({p.rabatt_quelle})" if p.rabatt_quelle else ""
+        teile.append(f"Pos. {p.roh.laufnr} ({artikelnr}): {prozent} %{quelle}")
+    return "; ".join(teile)
+
+
+def _dateien_text(ergebnis: BuchungsErgebnis) -> str:
+    """Erzeugte/geplante PDFs: "Cde=<Name>; Kopie=<Name>" (nur Dateinamen, keine Pfade)."""
+    return "; ".join(f"{k}={Path(v).name}" for k, v in ergebnis.pdfs.items())
+
+
+def _revision_text(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
+    ist_revision = ergebnis.ist_revision or paket.ist_revision or paket.roh.ist_revision
+    if not ist_revision:
+        return "nein"
+    ersetzt = (paket.revision_von or paket.roh.revision_von or "").strip()
+    return f"ja (ersetzt {ersetzt})" if ersetzt else "ja"
+
+
+def _nachbemerkung_text(ergebnis: BuchungsErgebnis) -> str:
+    texte = [t.nachbemerkung for t in ergebnis.alle_einkaeufe() if t.nachbemerkung]
+    return " / ".join(dict.fromkeys(texte))
+
+
+def _formulare_text(firma: Firma) -> str:
+    f = firma.formulare
+    teile = [
+        f"Einkauf EN={f.einkauf_en or '-'}" + (f" (x{f.speditionsauftrag_kopien})" if f.einkauf_en else ""),
+        f"Angebot EN={f.angebot_en or '-'}" + (f" (x{f.speditionsauftrag_kopien})" if f.angebot_en else ""),
+        f"AB={f.verkauf_ab or 'Standard'}",
+        f"Lieferschein={f.lieferschein or 'Standard'}" + ("" if firma.lieferschein_erlaubt else " (nicht vorgesehen)"),
+    ]
+    return "; ".join(teile)
+
+
+def _verkaufsweg_text(ergebnis: BuchungsErgebnis, firma: Firma | None) -> str:
+    if firma is not None:
+        from auftragsautomat.lexware.basis import weg_beschreibung
+
+        text = f"{firma.verkauf_weg} ({weg_beschreibung(firma.verkauf_weg)})"
+        if firma.verkauf_weg != "direkt_ab":
+            text += (
+                f"; in der AB Lieferdatum {'leeren' if firma.lieferdatum_in_ab_loeschen else 'behalten'}, "
+                f"AB-Text {'leeren' if firma.ab_text_loeschen else 'behalten'}"
+            )
+        return text
+    if ergebnis.angebot is None:
+        return "Auftragsbestätigung direkt (ohne Angebot)"
+    if ergebnis.angebot.methode == "keine":
+        return "Angebot nicht möglich (openTRANS) – Auftragsbestätigung direkt"
+    return "Angebot -> Auftragsbestätigung"
 
 
 def _summe(werte: list[Decimal | None]) -> Decimal | None:
@@ -200,6 +269,8 @@ def _belegnummer_text(teil: Belegergebnis | None) -> str:
         return ""
     if teil.belegnummer:
         return teil.belegnummer
+    if teil.erfolgreich and teil.methode == "keine":
+        return "(entfällt)"  # z. B. Angebot per openTRANS nicht möglich, AB direkt
     if teil.erfolgreich:
         return "(simuliert)" if teil.dry_run else "(noch nicht vergeben)"
     return "FEHLER"
@@ -274,6 +345,10 @@ def protokoll_zeile(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> dict[str, 
         "uebersprungen": str(len(paket.positionen) - len(aktive)),
         "warnungen": WARNUNGEN_TRENNZEICHEN.join(w.replace("|", "/") for w in warnungen),
         "erfolgreich": _ja_nein(ergebnis.erfolgreich),
+        "Angebot-Nr": _belegnummer_text(ergebnis.angebot),
+        "Rabatte": _rabatte_text(paket),
+        "Dateien": _dateien_text(ergebnis),
+        "Revision": _revision_text(paket, ergebnis),
     }
 
 
@@ -354,8 +429,12 @@ def _teil_zeilen(name: str, teil: Belegergebnis | None, paket: Belegpaket) -> li
     return zeilen
 
 
-def zusammenfassung(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
-    """Mehrzeiliger Bericht einer Buchung (für CLI, Freigabe-UI und die Bericht-Datei)."""
+def zusammenfassung(paket: Belegpaket, ergebnis: BuchungsErgebnis, *, firma: Firma | None = None) -> str:
+    """Mehrzeiliger Bericht einer Buchung (für CLI, Freigabe-UI und die Bericht-Datei).
+
+    Mit ``firma`` zeigt der Kopf zusätzlich Verkaufsweg und Formulare laut Konfiguration; ohne ``firma``
+    wird der Verkaufsweg aus dem Ergebnis abgeleitet.
+    """
     roh = paket.roh
     kunde = paket.kunde.kunde
     lieferant = paket.lieferant.lieferant
@@ -397,6 +476,14 @@ def zusammenfassung(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
             f"Shipment={bf.shipment or '-'}; Kunde={bf.kunde or '-'}",
         )
     )
+    kopf.append(("Verkaufsweg", _verkaufsweg_text(ergebnis, firma)))
+    if firma is not None:
+        kopf.append(("Formulare", _formulare_text(firma)))
+    nachbemerkung = _nachbemerkung_text(ergebnis)
+    kopf.append(("Nachbemerkung", nachbemerkung or "-"))
+    revision = _revision_text(paket, ergebnis)
+    if revision != "nein":
+        kopf.append(("Revision", f"{revision} – Bestellung und AB werden neu angelegt (Kürzel Neu / Neu Kopie)"))
     kopf.append(("Freigabe", f"{_ja_nein(paket.freigegeben)}" + (f" ({paket.freigegeben_von})" if paket.freigegeben_von else "")))
     zeilen.extend(f"{name + ':':<19}{wert}" for name, wert in kopf)
 
@@ -423,6 +510,10 @@ def zusammenfassung(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
             f"  !! {len(abweichungen)} Position(en) mit Preisabweichung zum Dokument – gebucht wird IMMER der "
             "Lexware-VK (Preisgruppe 1), nie der Dokumentpreis"
         )
+    rabatte = _rabatte_text(paket)
+    zeilen.append(
+        f"  Rabatte je Position (nur im Verkauf, VK bleibt Preisgruppe 1): {rabatte}" if rabatte else "  Rabatte je Position: keine"
+    )
 
     zeilen += ["", "Summen", "------"]
     brutto_ek = _summe([t.brutto for t in ergebnis.alle_einkaeufe()])
@@ -445,6 +536,13 @@ def zusammenfassung(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
     zeilen += ["", "Belege", "------"]
     for name, teil in _teile(ergebnis):
         zeilen.extend(_teil_zeilen(name, teil, paket))
+
+    zeilen += ["", "Dateien (PDF laut Titulierung)", "------------------------------"]
+    if ergebnis.pdfs:
+        geplant = " (Dry Run: geplant, nicht erzeugt)" if ergebnis.dry_run else ""
+        zeilen.extend(f"  {kuerzel + ':':<20} {pfad}{geplant}" for kuerzel, pfad in ergebnis.pdfs.items())
+    else:
+        zeilen.append("  keine")
 
     zeilen += ["", "Prüfhinweise", "------------"]
     hinweise = paket.alle_hinweise
@@ -509,12 +607,14 @@ def _csv_anhaengen(pfad: Path, zeile: dict[str, str]) -> None:
         schreiber.writerow(zeile)
 
 
-def schreibe_protokoll(paket: Belegpaket, ergebnis: BuchungsErgebnis, log_ordner: Path) -> Path:
+def schreibe_protokoll(
+    paket: Belegpaket, ergebnis: BuchungsErgebnis, log_ordner: Path, *, firma: Firma | None = None
+) -> Path:
     """Protokollzeile anhängen und Bericht schreiben; liefert den Pfad der protokoll.csv.
 
     Der Bericht landet unter ``<log_ordner>/berichte/<quelldatei-stamm>_<JJJJMMTT-HHMMSS>.txt``
     (bei Namenskollision mit Suffix). Schlägt nur der Bericht fehl, wird das geloggt; die
-    CSV-Zeile ist dann trotzdem geschrieben.
+    CSV-Zeile ist dann trotzdem geschrieben. ``firma`` ergänzt den Bericht um Verkaufsweg und Formulare.
     """
     log_ordner = Path(log_ordner)
     log_ordner.mkdir(parents=True, exist_ok=True)
@@ -535,7 +635,7 @@ def schreibe_protokoll(paket: Belegpaket, ergebnis: BuchungsErgebnis, log_ordner
         berichte.mkdir(parents=True, exist_ok=True)
         stamm = _sicherer_dateiteil(Path(ergebnis.quelldatei).stem)
         bericht = _freier_pfad(berichte / f"{stamm}_{ergebnis.zeitpunkt:%Y%m%d-%H%M%S}.txt")
-        bericht.write_text(zusammenfassung(paket, ergebnis), encoding="utf-8")
+        bericht.write_text(zusammenfassung(paket, ergebnis, firma=firma), encoding="utf-8")
         logger.info("Bericht geschrieben: %s", bericht)
     except OSError as exc:
         logger.error("Bericht konnte nicht geschrieben werden (%s): %s", berichte, exc)

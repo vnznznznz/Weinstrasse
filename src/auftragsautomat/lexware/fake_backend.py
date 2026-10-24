@@ -2,10 +2,13 @@
 
 Simuliert Hauptfenster, Firmenwechsel, den dreiseitigen Auftragsassistenten (Kunde/Lieferant ->
 Positionen -> Summen), Felder mit AutoSuggest-Verhalten (Werte nur bei Einzeltastendruck), die
-Summenberechnung aus getippten Mengen und Stammpreisen, verzögertes "Weiter", Dialoge nach dem
-Speichern und zufällig auftauchende Dialoge, Auftragslisten und "Auftrag weiterführen".
-Alle Aktionen landen in ``aktionen`` (z. B. ``"klicke:WEITER"``, ``"tippe:MENGE:1"``), damit
-Tests die Reihenfolge prüfen können.
+Summenberechnung aus getippten Mengen, Stammpreisen und Positionsrabatten, verzögertes "Weiter",
+Dialoge nach dem Speichern und zufällig auftauchende Dialoge, Auftragslisten, "Auftrag weiterführen"
+(Angebot -> AB -> Lieferschein), "Auftrag wandeln", Standardtexte (AB-Text), die Nachbemerkung auf der
+Seite Summen sowie die PDF-Ausgabe (Druckdialog mit Formular/Drucker, Dateinamen-Dialog des
+PDF-Druckers, PDF-Export). Alle Aktionen landen in ``aktionen`` (z. B. ``"klicke:WEITER"``,
+``"tippe:MENGE:1"``), damit Tests die Reihenfolge prüfen können; erzeugte PDFs stehen in ``gedruckt``
+bzw. ``exportiert``, ein Druck auf einen Nicht-PDF-Drucker in ``papier`` (darf nie vorkommen).
 """
 
 from __future__ import annotations
@@ -41,10 +44,11 @@ _NAECHSTE_STUFE = {"Angebot": "Auftragsbestätigung", "Auftragsbestätigung": "L
 _PRAEFIX = {"Bestellung": "BE", "Bestellanfrage": "BA", "Auftragsbestätigung": "AB", "Lieferschein": "LS", "Rechnung": "RE", "Angebot": "AN"}
 _KOPF_FELDER = {
     "KUNDENNUMMER", "LIEFERANTENNUMMER", "BELEGDATUM", "LIEFERDATUM", "BESTELLNUMMER", "AUFTRAGSBESCHREIBUNG",
-    "LIEFERADRESSE", "FREIFELD_SPEDITION", "FREIFELD_WEINGUT", "FREIFELD_SHIPMENT", "FREIFELD_KUNDE",
+    "LIEFERADRESSE", "FREIFELD_SPEDITION", "FREIFELD_WEINGUT", "FREIFELD_SHIPMENT", "FREIFELD_KUNDE", "AB_TEXT",
 }
-_POSITIONS_FELDER = {"ARTIKELNUMMER", "ARTIKEL_BEZEICHNUNG", "MENGE", "PREIS"}
-_SUMMEN_FELDER = {"SUMME_NETTO", "SUMME_BRUTTO", "SUMME_STEUER", "LIEFERART", "ZAHLUNGSBEDINGUNG"}
+_POSITIONS_FELDER = {"ARTIKELNUMMER", "ARTIKEL_BEZEICHNUNG", "MENGE", "PREIS", "RABATT"}
+_SUMMEN_FELDER = {"SUMME_NETTO", "SUMME_BRUTTO", "SUMME_STEUER", "LIEFERART", "ZAHLUNGSBEDINGUNG", "NACHBEMERKUNG"}
+_DIALOG_WIRKUNGEN_EIGEN = {"drucken", "dateidialog", "export", "wandeln"}
 
 
 @dataclass
@@ -60,8 +64,10 @@ class FakeDialog:
     titel: str
     text: str
     buttons: tuple[str, ...] = ("DIALOG_JA", "DIALOG_NEIN")
-    wirkung: str | None = None  # "verwerfen", "firmenwahl"
+    wirkung: str | None = None  # "verwerfen", "firmenwahl", "drucken", "dateidialog", "export", "wandeln"
     auswahl: str | None = None
+    felder: dict[str, str] = field(default_factory=dict)  # Eingabe-/Auswahlfelder des Dialogs
+    kontext: Any = None  # z. B. der Beleg, der gedruckt wird
 
 
 @dataclass
@@ -71,9 +77,29 @@ class FakeBeleg:
     partnernummer: str
     datum: date
     netto: Decimal
-    positionen: list[tuple[str, Decimal, Decimal]] = field(default_factory=list)  # (artikelnummer, menge, preis)
+    positionen: list[tuple[str, Decimal, Decimal]] = field(default_factory=list)  # (artikelnummer, menge, preis effektiv)
     status: str = ""
     felder: dict[str, str] = field(default_factory=dict)
+    rabatte: list[tuple[str, Decimal]] = field(default_factory=list)  # (artikelnummer, Rabatt %)
+
+
+@dataclass
+class _Position:
+    nr: str
+    bez: str
+    menge: Decimal
+    preis: Decimal  # Listenpreis (EK bzw. VK)
+    rabatt: Decimal = Decimal(0)  # Positionsrabatt in %
+
+    @property
+    def preis_effektiv(self) -> Decimal:
+        if not self.rabatt:
+            return self.preis
+        return (self.preis * (Decimal(100) - self.rabatt) / Decimal(100)).quantize(Decimal("0.0001"))
+
+    @property
+    def zeile(self) -> Decimal:
+        return (self.menge * self.preis_effektiv).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 @dataclass
@@ -83,7 +109,7 @@ class _Assistent:
     schritt: str
     felder: dict[str, str] = field(default_factory=dict)
     eingabe: dict[str, str] = field(default_factory=dict)
-    positionen: list[tuple[str, str, Decimal, Decimal]] = field(default_factory=list)  # (nr, bez, menge, preis)
+    positionen: list[_Position] = field(default_factory=list)
     ziel_schritt: str | None = None
     verzoegerung: int = 0
     weiter_ignoriert: int = 0
@@ -108,6 +134,9 @@ class FakeLexwareBackend:
     * ``nachfrage_verwerfen``: "Abbrechen" fragt "Änderungen verwerfen?".
     * ``menge_nur_einzeln``: Mengenfeld übernimmt Werte nur bei ``einzeln_tippen=True``.
     * ``felder_fehlend``: Controls, die (wie am echten System möglich) nicht existieren.
+    * ``standardtexte``: Auftragsart -> vorbelegter AB-Text (Feld AB_TEXT), wie Lexware-Standardtexte.
+    * ``drucker``: verfügbare Drucker im Druckdialog (erster = Standarddrucker, kein PDF!).
+    * ``formulare``: verfügbare Formulare (None = jedes Formular ist wählbar).
     """
 
     def __init__(
@@ -132,6 +161,9 @@ class FakeLexwareBackend:
         mwst_satz: Decimal = Decimal("19"),
         heute: Callable[[], date] | None = None,
         max_abfragen: int = 5,
+        standardtexte: dict[str, str] | None = None,
+        drucker: list[str] | None = None,
+        formulare: list[str] | None = None,
     ) -> None:
         self.controls = controls or LexwareControls()
         self.firmenname = firmenname
@@ -154,9 +186,15 @@ class FakeLexwareBackend:
         self.mwst_satz = Decimal(mwst_satz)
         self._heute = heute or date.today
         self.max_abfragen = max_abfragen
+        self.standardtexte: dict[str, str] = dict(standardtexte or {})
+        self.drucker: list[str] = list(drucker or ["Standarddrucker (Papier)", "Microsoft Print to PDF"])
+        self.formulare: list[str] | None = list(formulare) if formulare is not None else None
         self.aktionen: list[str] = []
         self.screenshots: list[Path] = []
         self.gespeicherte_belege: list[FakeBeleg] = []
+        self.gedruckt: list[dict[str, Any]] = []  # PDF-Ausgaben über den Druckdialog
+        self.exportiert: list[dict[str, Any]] = []  # PDF-Ausgaben über den Export
+        self.papier: list[dict[str, Any]] = []  # Drucke auf einen Nicht-PDF-Drucker (darf nie vorkommen)
         self.assistent: _Assistent | None = None
         self.markierter_beleg: FakeBeleg | None = None
         self.aktive_liste: str | None = None
@@ -175,6 +213,13 @@ class FakeLexwareBackend:
     def hauptfenster_titel(self) -> str:
         # TODO-LEXWARE: angenommenes Titelformat; belegt ist nur, dass die Firma im Titel steht.
         return f"Lexware premium 2026 - {self.firmenname} - Warenwirtschaft"
+
+    def beleg(self, belegnummer: str) -> FakeBeleg | None:
+        """Gespeicherter Beleg nach Nummer (für Tests)."""
+        for b in self.belege:
+            if b.belegnummer == belegnummer:
+                return b
+        return None
 
     def _assistent_aus(self, fenster: Fenster) -> _Assistent:
         a = fenster.roh
@@ -204,7 +249,8 @@ class FakeLexwareBackend:
         for d in self.dialoge_bei_schritt.pop(neu, []):
             self.dialoge.append(d)
         if neu == "Summen":
-            a.netto = sum((m * p for _, _, m, p in a.positionen), Decimal(0)).quantize(Decimal("0.01"))
+            # Lexware rundet je Position (Menge x rabattierter Preis), dann Summe
+            a.netto = sum((p.zeile for p in a.positionen), Decimal(0)).quantize(Decimal("0.01"))
             a.brutto = (a.netto * (Decimal(1) + self.mwst_satz / Decimal(100))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     def _neue_belegnummer(self, auftragsart: str) -> str:
@@ -212,23 +258,37 @@ class FakeLexwareBackend:
         self._zaehler[auftragsart] = n
         return f"{_PRAEFIX.get(auftragsart, 'XX')}-{self._heute().year}-{n:04d}"
 
+    def _setze_auftragsart(self, a: _Assistent, auftragsart: str) -> None:
+        a.felder["AUFTRAGSART"] = auftragsart
+        a.titel = re.sub(r" - .*$", f" - {auftragsart}", a.titel)
+        # Standardtext je Auftragsart (wie Verwaltung -> Texte -> Standardtexte): AB-Text vorbelegen
+        text = self.standardtexte.get(auftragsart)
+        if text is not None:
+            a.felder["AB_TEXT"] = text
+
     def _oeffne_assistent(self, art: str, auftragsart: str, *, quelle: FakeBeleg | None = None) -> None:
         if self.assistent is not None and not self.assistent.geschlossen:
             raise ControlNichtGefunden("Es ist bereits ein Assistent geöffnet")
         titel = f"{'Einkaufsauftrag' if art == 'einkauf' else 'Verkaufsauftrag'} neu anlegen - {auftragsart}"
         a = _Assistent(art=art, titel=titel, schritt="Lieferant" if art == "einkauf" else "Kunde")
-        a.felder["AUFTRAGSART"] = auftragsart
         a.felder["BELEGDATUM"] = self._heute().strftime("%d.%m.%Y")
         a.eingabe["POSITIONSART"] = "Stammartikel"
         a.eingabe["SUCHKRITERIUM"] = "Alle (AutoSuggest)"
         if quelle is not None:
             a.quelle = quelle
-            a.felder["KUNDENNUMMER"] = quelle.partnernummer
+            partner_feld = "LIEFERANTENNUMMER" if art == "einkauf" else "KUNDENNUMMER"
+            a.felder[partner_feld] = quelle.partnernummer
             a.felder["PARTNER_NAME"] = self.partner.get(quelle.partnernummer, "")
-            a.felder.update(quelle.felder)
+            a.felder.update(quelle.felder)  # Lieferdatum, Bestellnummer, Freifelder, AB-Text bleiben erhalten [V]
+            rabatte = dict(quelle.rabatte)
             for nr, menge, preis in quelle.positionen:
                 bez = self.artikel[nr].bezeichnung if nr in self.artikel else f"Artikel {nr}"
-                a.positionen.append((nr, bez, menge, preis))
+                rabatt = rabatte.get(nr, Decimal(0))
+                listenpreis = preis
+                if rabatt:
+                    listenpreis = (preis * Decimal(100) / (Decimal(100) - rabatt)).quantize(Decimal("0.01"))
+                a.positionen.append(_Position(nr, bez, menge, listenpreis, rabatt))
+        self._setze_auftragsart(a, auftragsart)
         self.assistent = a
         self._aktion(f"assistent:{titel}")
 
@@ -254,6 +314,20 @@ class FakeLexwareBackend:
     def aktive_firma(self) -> str:
         return self.finde_hauptfenster().titel
 
+    def _markierten_beleg(self, funktion: str) -> FakeBeleg:
+        if self.markierter_beleg is None:
+            raise ControlNichtGefunden(f"{funktion}: kein Auftrag markiert")
+        return self.markierter_beleg
+
+    def _weiterfuehren(self) -> None:
+        beleg = self._markierten_beleg("Weiterführen")
+        if "W" in beleg.status.split():
+            raise ControlNichtGefunden(f"Auftrag {beleg.belegnummer} ist bereits weitergeführt")
+        naechste = _NAECHSTE_STUFE.get(beleg.auftragsart)
+        if naechste is None:
+            raise ControlNichtGefunden(f"Auftragsart {beleg.auftragsart} kann nicht weitergeführt werden")
+        self._oeffne_assistent("verkauf", naechste, quelle=beleg)
+
     def oeffne_menue(self, pfad: list[str] | tuple[str, ...]) -> None:
         pfad = tuple(pfad)
         self._aktion("menue:" + " -> ".join(pfad))
@@ -263,19 +337,47 @@ class FakeLexwareBackend:
                 FakeDialog("Firma wechseln", "Bitte wählen Sie die Firma:", buttons=("DIALOG_OK", "DIALOG_ABBRECHEN"), wirkung="firmenwahl")
             )
         elif pfad == tuple(c.MENUE_AUFTRAG_WEITERFUEHREN):
-            if self.markierter_beleg is None:
-                raise ControlNichtGefunden("Weiterführen: kein Auftrag markiert")
-            beleg = self.markierter_beleg
-            if "W" in beleg.status.split():
-                raise ControlNichtGefunden(f"Auftrag {beleg.belegnummer} ist bereits weitergeführt")
-            naechste = _NAECHSTE_STUFE.get(beleg.auftragsart)
-            if naechste is None:
-                raise ControlNichtGefunden(f"Auftragsart {beleg.auftragsart} kann nicht weitergeführt werden")
-            self._oeffne_assistent("verkauf", naechste, quelle=beleg)
+            self._weiterfuehren()
+        elif pfad == tuple(c.MENUE_AUFTRAG_WANDELN):
+            beleg = self._markierten_beleg("Wandeln")
+            self.dialoge.append(
+                FakeDialog(
+                    "Auftrag wandeln",
+                    f"Auftrag {beleg.belegnummer} in eine andere Auftragsart wandeln:",
+                    buttons=("DIALOG_OK", "DIALOG_ABBRECHEN"),
+                    wirkung="wandeln",
+                    felder={"WANDELN_ZIELART": ""},
+                    kontext=beleg,
+                )
+            )
         elif pfad == tuple(c.MENUE_AUFTRAGSLISTE_VERKAUF):
             self.aktive_liste = "verkauf"
         elif pfad == tuple(c.MENUE_AUFTRAGSLISTE_EINKAUF):
             self.aktive_liste = "einkauf"
+        elif pfad == tuple(c.MENUE_BELEG_DRUCKEN):
+            beleg = self._markierten_beleg("Drucken")
+            self.dialoge.append(
+                FakeDialog(
+                    "Drucken",
+                    f"Beleg {beleg.belegnummer} ({beleg.auftragsart}) drucken",
+                    buttons=("DRUCK_STARTEN", "DIALOG_ABBRECHEN"),
+                    wirkung="drucken",
+                    felder={"DRUCK_FORMULAR": "Standard", "DRUCK_DRUCKER": self.drucker[0]},
+                    kontext=beleg,
+                )
+            )
+        elif pfad == tuple(c.MENUE_BELEG_EXPORT_PDF):
+            beleg = self._markierten_beleg("PDF-Export")
+            self.dialoge.append(
+                FakeDialog(
+                    "PDF-Export",
+                    f"Beleg {beleg.belegnummer} als PDF exportieren",
+                    buttons=("EXPORT_OK", "DIALOG_ABBRECHEN"),
+                    wirkung="export",
+                    felder={"EXPORT_FORMULAR": "Standard", "EXPORT_DATEINAME": ""},
+                    kontext=beleg,
+                )
+            )
         else:
             raise ControlNichtGefunden(f"Menüpfad {' -> '.join(pfad)} unbekannt (Fake)")
 
@@ -331,6 +433,11 @@ class FakeLexwareBackend:
         if isinstance(roh, FakeDialog):
             self._klick_dialog(roh, control)
             return
+        if roh == "haupt":
+            if control == "WEITERFUEHREN_BUTTON":
+                self._weiterfuehren()
+                return
+            raise ControlNichtGefunden(f"Button {control} im Hauptfenster unbekannt (Fake)")
         a = self._assistent_aus(dialog)
         if control == "WEITER":
             self._weiter(a)
@@ -358,6 +465,9 @@ class FakeLexwareBackend:
         elif control == "POSITION_VERWERFEN":
             for k in _POSITIONS_FELDER:
                 a.eingabe.pop(k, None)
+        elif control == "REGISTER_NACHBEMERKUNG":
+            if a.schritt != "Summen":
+                raise ControlNichtGefunden("Register 'Nachbemerkung' nur auf Seite 'Summen'")
         else:
             raise ControlNichtGefunden(f"Button {control} im Assistenten unbekannt (Fake)")
 
@@ -369,11 +479,64 @@ class FakeLexwareBackend:
         self.dialoge.remove(d)
         if d.wirkung == "verwerfen" and control == "DIALOG_JA" and self.assistent is not None:
             self.assistent.geschlossen = True
-        if d.wirkung == "firmenwahl" and control == "DIALOG_OK" and d.auswahl:
+        elif d.wirkung == "firmenwahl" and control == "DIALOG_OK" and d.auswahl:
             self.firmenname = d.auswahl
             if self.assistent is not None:
                 self.assistent.geschlossen = True  # [V] alle Fenster der alten Firma werden geschlossen
             self._aktion(f"firma:{d.auswahl}")
+        elif d.wirkung == "wandeln" and control == "DIALOG_OK":
+            self._wandeln(d)
+        elif d.wirkung == "drucken" and control == "DRUCK_STARTEN":
+            self._druck_starten(d)
+        elif d.wirkung == "dateidialog" and control == "DATEIDIALOG_SPEICHERN":
+            self._pdf_schreiben(d, d.felder.get("DATEIDIALOG_NAME", ""), self.gedruckt)
+        elif d.wirkung == "export" and control == "EXPORT_OK":
+            self._pdf_schreiben(d, d.felder.get("EXPORT_DATEINAME", ""), self.exportiert)
+
+    def _wandeln(self, d: FakeDialog) -> None:
+        zielart = d.felder.get("WANDELN_ZIELART", "")
+        beleg: FakeBeleg = d.kontext
+        if zielart in _AUFTRAGSARTEN["verkauf"]:
+            art = "verkauf"
+        elif zielart in _AUFTRAGSARTEN["einkauf"]:
+            art = "einkauf"
+        else:
+            raise ControlNichtGefunden(f"Auftrag wandeln: Zielauftragsart {zielart!r} unbekannt")
+        self._aktion(f"gewandelt:{beleg.belegnummer}:{zielart}")
+        self._oeffne_assistent(art, zielart, quelle=beleg)
+
+    def _druck_starten(self, d: FakeDialog) -> None:
+        beleg: FakeBeleg = d.kontext
+        formular = d.felder.get("DRUCK_FORMULAR", "")
+        drucker = d.felder.get("DRUCK_DRUCKER", "")
+        if "pdf" in drucker.casefold():
+            self.dialoge.append(
+                FakeDialog(
+                    "Druckausgabe speichern unter",
+                    "Dateiname für die PDF-Ausgabe wählen",
+                    buttons=("DATEIDIALOG_SPEICHERN", "DIALOG_ABBRECHEN"),
+                    wirkung="dateidialog",
+                    felder={"DATEIDIALOG_NAME": ""},
+                    kontext={"beleg": beleg, "formular": formular, "drucker": drucker},
+                )
+            )
+            return
+        # Papierdruck: darf nie vorkommen – wird protokolliert, damit Tests es erkennen
+        self.papier.append({"beleg": beleg.belegnummer, "formular": formular, "drucker": drucker})
+        beleg.status = (beleg.status + " D").strip()
+        self._aktion(f"papier:{beleg.belegnummer}:{drucker}")
+
+    def _pdf_schreiben(self, d: FakeDialog, pfad_text: str, ziel_liste: list[dict[str, Any]]) -> None:
+        if not pfad_text.strip():
+            raise ControlNichtGefunden("Dateiname ist leer")
+        kontext = d.kontext if isinstance(d.kontext, dict) else {"beleg": d.kontext, "formular": d.felder.get("EXPORT_FORMULAR", "")}
+        beleg: FakeBeleg = kontext["beleg"]
+        pfad = Path(pfad_text)
+        pfad.parent.mkdir(parents=True, exist_ok=True)
+        pfad.write_bytes(f"%PDF-1.4 Fake {beleg.belegnummer} {kontext.get('formular', '')}\n".encode())
+        beleg.status = (beleg.status + " D").strip()
+        ziel_liste.append({"beleg": beleg.belegnummer, "formular": kontext.get("formular", ""), "drucker": kontext.get("drucker"), "pfad": pfad})
+        self._aktion(f"pdf:{beleg.belegnummer}:{pfad.name}")
 
     def _weiter(self, a: _Assistent) -> None:
         if a.schritt == "Summen":
@@ -402,9 +565,12 @@ class FakeLexwareBackend:
         bez = a.eingabe.get("ARTIKEL_BEZEICHNUNG", "")
         menge = parse_betrag(a.eingabe.get("MENGE", ""))
         preis = parse_betrag(a.eingabe.get("PREIS", ""))
+        rabatt = parse_betrag(a.eingabe.get("RABATT", "")) or Decimal(0)
         if not nr or not bez or menge is None or menge <= 0 or preis is None:
             raise ControlNichtGefunden(f"Position unvollständig (Artikel {nr!r}, Menge {a.eingabe.get('MENGE')!r})")
-        a.positionen.append((nr, bez, menge, preis))
+        if rabatt < 0 or rabatt > 100:
+            raise ControlNichtGefunden(f"Rabatt {rabatt} % ungültig")
+        a.positionen.append(_Position(nr, bez, menge, preis, rabatt))
         for k in _POSITIONS_FELDER:
             a.eingabe.pop(k, None)
 
@@ -421,8 +587,9 @@ class FakeLexwareBackend:
             partnernummer=partner,
             datum=self._heute(),
             netto=a.netto,
-            positionen=[(nr, m, p) for nr, _, m, p in a.positionen],
+            positionen=[(p.nr, p.menge, p.preis_effektiv) for p in a.positionen],
             felder={k: v for k, v in a.felder.items() if k not in {"AUFTRAGSART", "PARTNER_NAME"}},
+            rabatte=[(p.nr, p.rabatt) for p in a.positionen if p.rabatt],
         )
         self.belege.append(beleg)
         self.gespeicherte_belege.append(beleg)
@@ -432,14 +599,29 @@ class FakeLexwareBackend:
         self._aktion(f"gespeichert:{beleg.belegnummer}")
         self.dialoge.extend(FakeDialog(d.titel, d.text, d.buttons, d.wirkung) for d in self.dialoge_nach_speichern)
 
+    def _dialogfeld_setzen(self, d: FakeDialog, control: str, text: str) -> None:
+        if d not in self.dialoge:
+            raise FensterNichtGefunden(f"Dialog {d.titel!r} ist nicht mehr offen")
+        if control not in d.felder:
+            raise ControlNichtGefunden(f"Dialog {d.titel!r} hat kein Feld {control} (vorhanden: {sorted(d.felder)})")
+        if control == "DRUCK_DRUCKER" and text not in self.drucker:
+            raise ControlNichtGefunden(f"Drucker {text!r} nicht vorhanden (Fake: {self.drucker})")
+        if control in {"DRUCK_FORMULAR", "EXPORT_FORMULAR"} and self.formulare is not None and text not in self.formulare:
+            raise ControlNichtGefunden(f"Formular {text!r} nicht vorhanden (Fake: {self.formulare})")
+        d.felder[control] = text
+
     def setze_text(self, dialog: Fenster, control: str, text: str, *, einzeln_tippen: bool = False) -> None:
-        if einzeln_tippen:
+        if einzeln_tippen and text:
             for zeichen in text:
                 self._aktion(f"tippe:{control}:{zeichen}")
         else:
             self._aktion(f"setze:{control}:{text}")
         if control in self.felder_fehlend:
             raise ControlNichtGefunden(f"Control {control} existiert nicht (Fake: felder_fehlend)")
+        roh = dialog.roh
+        if isinstance(roh, FakeDialog):
+            self._dialogfeld_setzen(roh, control, text)
+            return
         a = self._assistent_aus(dialog)
         if control in _KOPF_FELDER:
             if a.schritt != a.kopfschritt:
@@ -468,7 +650,17 @@ class FakeLexwareBackend:
                 else:
                     logger.debug("Fake: Menge %r per set_text ignoriert (nur Tastendruck)", text)
                 return
+            if control == "RABATT":
+                if a.art == "einkauf":
+                    raise ControlNichtGefunden("Positionsrabatt gibt es im Einkaufsassistenten nicht (Fake)")
+                a.eingabe["RABATT"] = text
+                return
             raise ControlNichtGefunden(f"Feld {control} ist nicht editierbar")
+        if control == "NACHBEMERKUNG":
+            if a.schritt != "Summen":
+                raise ControlNichtGefunden(f"Nachbemerkung nur auf Seite 'Summen' (aktiv: {a.schritt})")
+            a.felder["NACHBEMERKUNG"] = text
+            return
         raise ControlNichtGefunden(f"Feld {control} unbekannt (Fake)")
 
     def lese_text(self, dialog: Fenster, control: str) -> str:
@@ -477,6 +669,10 @@ class FakeLexwareBackend:
             return roh.text if isinstance(roh, FakeDialog) else ""
         if control in self.felder_fehlend:
             raise ControlNichtGefunden(f"Control {control} existiert nicht (Fake: felder_fehlend)")
+        if isinstance(roh, FakeDialog):
+            if control in roh.felder:
+                return roh.felder[control]
+            raise ControlNichtGefunden(f"Dialog {roh.titel!r} hat kein Feld {control}")
         a = self._assistent_lesen(dialog)
         if control in {"AUFTRAGSART", "PARTNER_NAME"} or control in _KOPF_FELDER:
             return a.felder.get(control, "")
@@ -502,14 +698,17 @@ class FakeLexwareBackend:
         self._aktion(f"waehle:{control}:{wert}")
         if control in self.felder_fehlend:
             raise ControlNichtGefunden(f"Control {control} existiert nicht (Fake: felder_fehlend)")
+        roh = dialog.roh
+        if isinstance(roh, FakeDialog):
+            self._dialogfeld_setzen(roh, control, wert)
+            return
         a = self._assistent_aus(dialog)
         if control == "AUFTRAGSART":
             if a.schritt != a.kopfschritt:
                 raise ControlNichtGefunden("Auftragsart nur auf Seite 1 wählbar")
             if wert not in _AUFTRAGSARTEN[a.art]:
                 raise ControlNichtGefunden(f"Auftragsart {wert!r} im {a.art} nicht verfügbar")
-            a.felder["AUFTRAGSART"] = wert
-            a.titel = re.sub(r" - .*$", f" - {wert}", a.titel)
+            self._setze_auftragsart(a, wert)
             return
         if control in {"POSITIONSART", "SUCHKRITERIUM"}:
             if a.schritt != "Positionen":
@@ -542,8 +741,14 @@ class FakeLexwareBackend:
             if a.schritt == a.kopfschritt:
                 raise ControlNichtGefunden("Positionsliste erst ab Seite 'Positionen'")
             return [
-                {c.SPALTE_ARTIKELNUMMER: nr, c.SPALTE_BEZEICHNUNG: bez, c.SPALTE_MENGE: formatiere_menge(m), c.SPALTE_PREIS: formatiere_betrag(p)}
-                for nr, bez, m, p in a.positionen
+                {
+                    c.SPALTE_ARTIKELNUMMER: p.nr,
+                    c.SPALTE_BEZEICHNUNG: p.bez,
+                    c.SPALTE_MENGE: formatiere_menge(p.menge),
+                    c.SPALTE_PREIS: formatiere_betrag(p.preis),
+                    c.SPALTE_RABATT: formatiere_menge(p.rabatt) if p.rabatt else "",
+                }
+                for p in a.positionen
             ]
         if control in {"AUFTRAGSLISTE_VERKAUF", "AUFTRAGSLISTE_EINKAUF"}:
             if dialog.roh != "haupt":
@@ -564,8 +769,9 @@ class FakeLexwareBackend:
             roh.auswahl = suchtext
             return
         if control in {"AUFTRAGSLISTE_VERKAUF", "AUFTRAGSLISTE_EINKAUF"}:
+            arten = _AUFTRAGSARTEN["einkauf" if control == "AUFTRAGSLISTE_EINKAUF" else "verkauf"]
             for b in self.belege:
-                if b.belegnummer == suchtext:
+                if b.belegnummer == suchtext and b.auftragsart in arten:
                     self.markierter_beleg = b
                     return
             raise ControlNichtGefunden(f"Beleg {suchtext!r} nicht in der Liste")

@@ -1,16 +1,23 @@
-"""Dry-Run-Schreiber: simuliert Einkauf-Bestellung, Verkauf-AB und Lieferschein ohne Lexware.
+"""Dry-Run-Schreiber: simuliert Einkauf-Bestellung, Angebot, Verkauf-AB, Lieferschein und PDF-Ausgabe ohne Lexware.
 
 :class:`DryRunSchreiber` erfüllt ``lexware.basis.LexwareSchreiber`` und wird verwendet, wenn
 kein Lexware erreichbar ist (Linux, Tests, CLI ohne ``--scharf``, ``settings.dry_run``):
 
 * Einkauf-Bestellung: nur Simulation. Netto = ``paket.summe_netto_ek`` (EK aus dem Stamm),
   Brutto mit ``firma.opentrans.mwst_satz``; die Positionen stehen als Zeilen
-  ``"Artikel 1643 x 60 @ 4,20"`` in den Warnungen, ebenso die Belegfelder.
+  ``"Artikel 1643 x 60 @ 4,20"`` in den Warnungen, ebenso die Belegfelder und die Nachbemerkung
+  (Kundenbestellnummer, wenn ``Firma.bestellnummer_in_nachbemerkung``).
+* Angebot: nur Simulation (VK Preisgruppe 1, Positionsrabatte in %, Lieferdatum).
+* Angebot -> AB ("Weiterführen" / "Auftrag wandeln"): erzeugt die openTRANS-XML wie die direkte
+  Verkauf-AB und protokolliert, welche Felder in der AB geleert würden (Lieferdatum, AB-Text).
 * Verkauf-AB: erzeugt die openTRANS-XML tatsächlich über
   :class:`~auftragsautomat.lexware.opentrans.OpenTransSchreiber` (immer ``dry_run=True``, also in
   ``settings.xml_ausgabe_ordner``), sofern Kunde und Positionen vollständig sind; sonst
   ``Belegergebnis(erfolgreich=False)`` mit allen Gründen.
 * Lieferschein: nur Simulation ("Auftrag weiterführen" gibt es nur in der Lexware-Oberfläche).
+* PDF-Ausgabe: erzeugt keine PDF, liefert den geplanten Pfad
+  ``settings.lexware.pdf_ausgabe_ordner / dateiname`` und schreibt dort eine Textvorschau
+  ``<stamm>.txt`` (Formular, Belegart, Positionen, Nachbemerkung).
 
 Der Schreiber simuliert IMMER, auch wenn ``dry_run=False`` übergeben wird; jedes Ergebnis trägt
 ``dry_run=True`` und ``belegnummer=None``.
@@ -24,30 +31,59 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from auftragsautomat.config import Firma, Settings
+from auftragsautomat.lexware.basis import (
+    ANGEBOTSWEGE,
+    Verkaufsweg,
+    nachbemerkung_einkauf,
+    pdf_zielpfad,
+    weg_beschreibung,
+)
 from auftragsautomat.lexware.opentrans import OpenTransSchreiber
 from auftragsautomat.models import Belegart, Belegergebnis, Belegpaket
 from auftragsautomat.protokoll import formatiere_betrag, formatiere_datum, formatiere_menge
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["DryRunSchreiber", "positionszeilen"]
+__all__ = ["DryRunSchreiber", "positionszeilen", "rabattzeilen"]
 
 _SCHARF_IGNORIERT = "DryRunSchreiber: scharfer Lauf angefordert, es wird trotzdem nur simuliert (dry_run=True)"
+VORSCHAU_ENDUNG = ".txt"
+
+
+def _prozent(wert: Decimal) -> str:
+    return formatiere_menge(Decimal(wert))
 
 
 def positionszeilen(paket: Belegpaket, preis: str) -> list[str]:
-    """Positionszeilen für Warnungen/Berichte: "Artikel 1643 x 60 @ 4,20" (``preis`` = "ek" | "vk")."""
+    """Positionszeilen für Warnungen/Berichte: "Artikel 1643 x 60 @ 4,20" (``preis`` = "ek" | "vk").
+
+    Verkaufspositionen mit Positionsrabatt: "Artikel 1643 x 60 @ 6,90 - 10 % = 6,21".
+    """
     zeilen: list[str] = []
     for p in paket.aktive_positionen():
         artikelnr = p.artikel.artikelnummer if p.artikel else "?"
         wert = p.ek_preis if preis == "ek" else p.vk_preis
         preis_text = formatiere_betrag(wert) if wert is not None else "?"
-        zeilen.append(f"Artikel {artikelnr} x {formatiere_menge(p.menge)} @ {preis_text}")
+        zeile = f"Artikel {artikelnr} x {formatiere_menge(p.menge)} @ {preis_text}"
+        if preis == "vk" and p.rabatt_prozent and p.vk_preis_rabattiert is not None:
+            zeile += f" - {_prozent(p.rabatt_prozent)} % = {formatiere_betrag(p.vk_preis_rabattiert)}"
+        zeilen.append(zeile)
+    return zeilen
+
+
+def rabattzeilen(paket: Belegpaket) -> list[str]:
+    """Rabatte je Position: "Pos. 1 (1643): 10 % (aktion:herbst)"; leer, wenn keine Position rabattiert ist."""
+    zeilen: list[str] = []
+    for p in paket.aktive_positionen():
+        if not p.rabatt_prozent:
+            continue
+        artikelnr = p.artikel.artikelnummer if p.artikel else "?"
+        zeilen.append(f"Pos. {p.roh.laufnr} ({artikelnr}): {_prozent(p.rabatt_prozent)} % ({p.rabatt_quelle or 'ohne Quelle'})")
     return zeilen
 
 
 class DryRunSchreiber:
-    """Simuliert alle drei Belege (implementiert ``lexware.basis.LexwareSchreiber``)."""
+    """Simuliert alle Belege und die PDF-Ausgabe (implementiert ``lexware.basis.LexwareSchreiber``)."""
 
     def __init__(self, settings: Settings, firma: Firma, *, opentrans: OpenTransSchreiber | None = None) -> None:
         self.settings = settings
@@ -122,7 +158,7 @@ class DryRunSchreiber:
     # ----------------------------------------------------- Einkauf-Bestellung
 
     def schreibe_einkauf_bestellung(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
-        """Simuliert die Einkauf-Bestellung (Lieferant = Weingut, Preise = EK, Customer = Endkunde)."""
+        """Simuliert die Einkauf-Bestellung (Lieferant = Weingut, Preise = EK, Customer = Endkunde, Nachbemerkung)."""
         logger.info("Dry Run Einkauf-Bestellung: Firma %s, Quelldatei %s", self.firma.id, paket.roh.quelldatei.name)
         netto = paket.summe_netto_ek
         probleme: list[str] = []
@@ -141,6 +177,13 @@ class DryRunSchreiber:
         assert lieferant is not None
 
         kunde = paket.kunde.kunde
+        nachbemerkung = nachbemerkung_einkauf(paket, self.firma)
+        if nachbemerkung:
+            nachbemerkung_zeile = f"Nachbemerkung: {nachbemerkung} (Kundenbestellnummer)"
+        elif self.firma.bestellnummer_in_nachbemerkung:
+            nachbemerkung_zeile = "Nachbemerkung: leer (Dokument nennt keine Kundenbestellnummer)"
+        else:
+            nachbemerkung_zeile = "Nachbemerkung: keine (bestellnummer_in_nachbemerkung=False)"
         warnungen = [
             f"Dry Run: Einkauf-Bestellung an Lieferant {lieferant.lieferantennummer} {lieferant.name} "
             "nur simuliert, nichts in Lexware gespeichert",
@@ -150,6 +193,7 @@ class DryRunSchreiber:
             *positionszeilen(paket, "ek"),
             f"Summe netto EK: {formatiere_betrag(netto)}",
             *self._belegfelder_zeilen(paket),
+            nachbemerkung_zeile,
         ]
         logger.info("Dry Run Einkauf-Bestellung simuliert: %d Positionen, netto %s", len(paket.aktive_positionen()), formatiere_betrag(netto))
         return Belegergebnis(
@@ -161,7 +205,76 @@ class DryRunSchreiber:
             dry_run=True,
             methode="dry_run",
             warnungen=warnungen,
+            nachbemerkung=nachbemerkung,
         )
+
+    # ----------------------------------------------------------------- Angebot
+
+    def schreibe_angebot(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
+        """Simuliert das Angebot im Verkauf (Kunde, VK Preisgruppe 1, Positionsrabatte, Lieferdatum)."""
+        logger.info("Dry Run Angebot: Firma %s, Quelldatei %s", self.firma.id, paket.roh.quelldatei.name)
+        netto = paket.summe_netto_vk
+        probleme = self.opentrans.pruefe_paket(paket)
+        if probleme:
+            return self._fehlschlag(Belegart.ANGEBOT, paket, probleme, netto)
+        kunde = paket.kunde.kunde
+        assert kunde is not None
+        rabatte = rabattzeilen(paket)
+        warnungen = [
+            f"Dry Run: Angebot für Kunde {kunde.kundennummer} {kunde.name} nur simuliert, nichts in Lexware gespeichert "
+            f"(Verkaufsweg {weg_beschreibung(self.firma.verkauf_weg)})",
+            *self._scharf_hinweis(dry_run),
+            f"Lieferdatum: {formatiere_datum(paket.roh.liefertag)}",
+            f"Bestellnummer: {paket.roh.bestellnummer or '-'}",
+            *positionszeilen(paket, "vk"),
+            ("Rabatte je Position: " + "; ".join(rabatte)) if rabatte else "Rabatte je Position: keine",
+            f"Summe netto VK: {formatiere_betrag(netto)}",
+            *self._belegfelder_zeilen(paket),
+        ]
+        logger.info("Dry Run Angebot simuliert: %d Positionen (%d mit Rabatt), netto %s", len(paket.aktive_positionen()), len(rabatte), formatiere_betrag(netto))
+        return Belegergebnis(
+            belegart=Belegart.ANGEBOT,
+            belegnummer=None,
+            netto=netto,
+            brutto=self._brutto(netto),
+            erfolgreich=True,
+            dry_run=True,
+            methode="dry_run",
+            warnungen=warnungen,
+        )
+
+    def angebot_zu_ab(
+        self,
+        angebot: Belegergebnis,
+        paket: Belegpaket,
+        *,
+        weg: Verkaufsweg = "angebot_weiterfuehren",
+        dry_run: bool = True,
+    ) -> Belegergebnis:
+        """Simuliert "Weiterführen" bzw. "Auftrag wandeln" vom Angebot zur AB; die AB entsteht wie bei
+        :meth:`schreibe_verkauf_ab` als openTRANS-XML im Ausgabeordner."""
+        logger.info("Dry Run Angebot -> AB per %s: Firma %s", weg, self.firma.id)
+        if weg not in ANGEBOTSWEGE:
+            return self._fehlschlag(
+                Belegart.AUFTRAGSBESTAETIGUNG,
+                paket,
+                [f"Unbekannter Verkaufsweg '{weg}' (erlaubt: {', '.join(ANGEBOTSWEGE)})"],
+                paket.summe_netto_vk,
+            )
+        ergebnis = self.schreibe_verkauf_ab(paket, dry_run=dry_run)
+        hinweise = [
+            f"Dry Run: {weg_beschreibung(weg)} simuliert"
+            + ("" if angebot.erfolgreich else " (Angebot war nicht erfolgreich)"),
+            f"Lieferdatum in der AB geleert: {'ja' if self.firma.lieferdatum_in_ab_loeschen else 'nein'}; "
+            f"AB-Text geleert: {'ja' if self.firma.ab_text_loeschen else 'nein'}",
+        ]
+        if self.firma.lieferdatum_in_ab_loeschen and paket.roh.liefertag is not None:
+            hinweise.append(
+                "Hinweis: die openTRANS-XML enthält DELIVERY_DATE; in der AB wird das Lieferdatum laut Firma geleert "
+                "(Fixtermin steht in der Fixterminüberwachung)"
+            )
+        ergebnis.warnungen[0:0] = hinweise
+        return ergebnis
 
     # ------------------------------------------------------------- Verkauf-AB
 
@@ -208,6 +321,9 @@ class DryRunSchreiber:
         if ergebnis.erfolgreich:
             ergebnis.warnungen.append("Dry Run: Verkauf-AB simuliert; Positionen mit VK Preisgruppe 1:")
             ergebnis.warnungen.extend(positionszeilen(paket, "vk"))
+            rabatte = rabattzeilen(paket)
+            if rabatte:
+                ergebnis.warnungen.append("Rabatte je Position: " + "; ".join(rabatte))
             ergebnis.warnungen.extend(self._belegfelder_zeilen(paket))
         return ergebnis
 
@@ -224,6 +340,8 @@ class DryRunSchreiber:
             probleme.append("AB-Belegnummer fehlt (Lieferschein nur aus einer vorhandenen AB)")
         if not paket.lieferschein_erstellen:
             probleme.append("Lieferschein ist für dieses Paket nicht angefordert (lieferschein_erstellen=False)")
+        if not self.firma.lieferschein_erlaubt:
+            probleme.append(f"Lieferschein für {self.firma.name} nicht vorgesehen (lieferschein_erlaubt=False)")
         probleme.extend(self._pruefe_gemeinsam(paket, "vk"))
         if probleme:
             return self._fehlschlag(Belegart.LIEFERSCHEIN, paket, probleme, netto)
@@ -244,3 +362,40 @@ class DryRunSchreiber:
             methode="dry_run",
             warnungen=warnungen,
         )
+
+    # ------------------------------------------------------------ PDF-Ausgabe
+
+    def pdf_ausgeben(
+        self, beleg: Belegergebnis, *, formular: str | None, dateiname: str, dry_run: bool = True
+    ) -> Path | None:
+        """Erzeugt keine PDF: liefert den geplanten Pfad und schreibt dort eine Textvorschau ``<stamm>.txt``."""
+        ziel = pdf_zielpfad(self.settings, dateiname)
+        modus = self.settings.lexware.pdf_ausgabe
+        vorschau = ziel.with_suffix(VORSCHAU_ENDUNG)
+        zeilen = [
+            "Dry-Run-Vorschau der PDF-Ausgabe (keine PDF erzeugt, nichts in Lexware gespeichert)",
+            f"Geplante Datei: {ziel}",
+            f"Belegart: {beleg.belegart.value}; Belegnummer: {beleg.belegnummer or '(Dry Run, keine Nummer)'}",
+            f"Formular: {formular or 'Lexware-Standardformular'}; Ausgabe scharf per: {modus}"
+            + (" (keine PDF im scharfen Betrieb, nur Protokoll)" if modus == "keine" else ""),
+            f"Netto: {formatiere_betrag(beleg.netto) or '-'}; Brutto: {formatiere_betrag(beleg.brutto) or '-'}",
+            f"Nachbemerkung: {beleg.nachbemerkung or '-'}",
+            "",
+            "Hinweise des Belegs:",
+            *(f"  - {w}" for w in beleg.warnungen if not w.startswith("Ablauf: ")),
+            "",
+            f"Erzeugt am {formatiere_datum(datetime.now(), mit_zeit=True)} von DryRunSchreiber",
+        ]
+        try:
+            vorschau.parent.mkdir(parents=True, exist_ok=True)
+            vorschau.write_text("\n".join(zeilen) + "\n", encoding="utf-8")
+            beleg.warnungen.append(f"Dry Run: PDF {ziel.name} (Formular {formular or 'Standard'}) nur geplant; Vorschau: {vorschau}")
+            logger.info("Dry Run PDF-Vorschau geschrieben: %s", vorschau)
+        except OSError as exc:
+            logger.warning("Dry-Run-Vorschau %s konnte nicht geschrieben werden: %s", vorschau, exc)
+            beleg.warnungen.append(f"Dry Run: PDF {ziel.name} (Formular {formular or 'Standard'}) nur geplant; Vorschau nicht schreibbar ({exc})")
+        if not dry_run:
+            beleg.warnungen.append(_SCHARF_IGNORIERT)
+        if beleg.pdf is None:
+            beleg.pdf = ziel
+        return ziel

@@ -1,0 +1,26 @@
+From: dispo.beispiel@hillebrandgori.com
+To: logistik@example.org
+Date: Fri, 18 Dec 2026 16:40:00 +0100
+Subject: =?utf-8?q?Auftragsbest=C3=A4tigung=3B?= Your Ref: WS-2026-0043; Our
+ Ref: DEMB00001
+Message-ID: <bestaetigung_html@fixture.example.org>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1700400562560512666=="
+
+--===============1700400562560512666==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+
+
+--===============1700400562560512666==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Guten Tag Herr Beispiel,</p><p>laut Transporeon soll am <b>05.=
+01.</b> angeliefert werden.</p><p>Mit freundlichen Gr&uuml;&szlig;en<br>Dispo=
+ Beispiel</p></body></html>
+
+--===============1700400562560512666==--

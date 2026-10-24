@@ -1,0 +1,44 @@
+{
+  "pageNumber": 1,
+  "pageSize": 100,
+  "totalCount": 3,
+  "items": [
+    {
+      "code": "shprdy",
+      "category": "shipment",
+      "date": 1792497600,
+      "lastUpdate": 1792497600,
+      "text": "Shipment DEMB00000 is ready for transport",
+      "template": "Shipment {{shipment}} is ready for transport",
+      "templateVariables": {
+        "shipment": "DEMB00000"
+      }
+    },
+    {
+      "code": "shpsupdepcnf",
+      "category": "shipment",
+      "date": 1792656000,
+      "lastUpdate": 1792659600,
+      "text": "Shipment DEMB00000 has departed from Treviso on 2026-10-22",
+      "template": "Shipment {{shipment}} has departed from {{shipFromLocation}} on {{shipFromDate}}",
+      "templateVariables": {
+        "shipment": "DEMB00000",
+        "shipFromLocation": "Treviso",
+        "shipFromDate": "2026-10-22"
+      }
+    },
+    {
+      "code": "shpcusarrpln",
+      "category": "planning",
+      "date": 1793095200,
+      "lastUpdate": 1792659600,
+      "text": "Shipment DEMB00000 is planned to arrive at Beispielstadt on 2026-10-27",
+      "template": "Shipment {{shipment}} is planned to arrive at {{shipToLocation}} on {{shipToDate}}",
+      "templateVariables": {
+        "shipment": "DEMB00000",
+        "shipToLocation": "Beispielstadt",
+        "shipToDate": "2026-10-27"
+      }
+    }
+  ]
+}

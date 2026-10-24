@@ -9,6 +9,61 @@
 # eingang_unterordner: Liegt ein PDF in eingang/<unterordner>/, ist die Firma damit
 # vorgegeben. Liegt es direkt in eingang/, wird die Firma über die Kunden-/Lieferanten-
 # Aliase bzw. den Stamm ermittelt und in der Freigabe-Ansicht angezeigt.
+#
+# Spaltenzuordnung der ECHTEN Lexware-Exporte (Datei -> Export -> ASCII, "Feldnamen in den
+# ersten Datensatz"), für alle vier Firmen gleich (YAML-Anker, unten per "<<:" eingebunden):
+#   * Schreibweise: unser Feldname: "Spaltenüberschrift im Export".
+#   * Ein "!" vor der Spalte negiert einen Wahrheitswert: aktiv: "!Gesperrt" bedeutet
+#     Gesperrt = J -> inaktiv; aktiv: "!Inaktiv" entsprechend.
+#   * Die Kopfzeile wird tolerant verglichen (Groß-/Kleinschreibung, Leerzeichen, Umlaute,
+#     DOS-Mojibake wie "Straáe"/"Ums„tze" im Kunden-Export) – siehe stammdaten/csv_quelle.py.
+#   * Kodierung: Artikel-Export ist UTF-8 mit BOM (wird am BOM erkannt), Kunden- und
+#     Lieferanten-Export cp1252 (Lieferanten mit Anführungszeichen um jedes Feld).
+#   * Artikel: "Einheit" ("75 cl") liefert das Volumen, "Benutzerdefiniert 2" den Jahrgang
+#     (nur wenn vierstellig), "EK Preis Lf.1" = 0,00 gilt als nicht gepflegt.
+#   * Kunden/Lieferanten: "Firma" ist der Name; ist sie leer, wird "Vorname Name" genommen.
+x_lexware_export: &lexware_export
+  kodierung: "cp1252"
+  spalten_artikel:
+    artikelnummer: "Artikelnummer"
+    bezeichnung: "Bezeichnung"
+    warengruppe: "Warengruppe"            # = Lieferantenname / Weingut
+    einheit: "Einheit"                    # "75 cl" -> volumen_cl, wenn keine eigene Spalte
+    matchcode: "Matchcode"
+    vk_preis_1: "Preis 1"                 # VK Preisgruppe 1
+    ek_preis: "EK Preis Lf.1"             # 0,00 = kein EK gepflegt -> leer
+    lieferantennummer: "Lieferantennummer 1"
+    jahrgang: "Benutzerdefiniert 2"       # nur vierstellige Werte zählen
+    aktiv: "!Gesperrt"                    # Gesperrt = J -> Artikel inaktiv
+  spalten_kunden:
+    kundennummer: "Kundennummer"
+    name: "Firma"
+    nachname: "Name"                      # Fallback, wenn "Firma" leer ist (Privatkunde)
+    vorname: "Vorname"
+    name2: "Zusatz"
+    strasse: "Straße"
+    hausnr: "HausNr"                      # wird an die Straße angehängt
+    plz: "Postleitzahl"                   # führende Tabs/Leerzeichen ("\t46244") werden entfernt
+    ort: "Ort"
+    land: "Land"
+    preisgruppe: "Preisgruppe"
+    matchcode: "Matchcode"                # Kurzname (= Fixterminüberwachung)
+    email: "EMAIL"
+    bemerkung: "Bemerkung"                # enthält oft Dispo-Hinweise
+    ust_id: "EG ID"
+    aktiv: "!Inaktiv"
+  spalten_lieferanten:
+    lieferantennummer: "Lieferantennummer"
+    name: "Firma"
+    nachname: "Name"
+    vorname: "Vorname"
+    name2: "Zusatz"
+    ort: "Ort"
+    land: "Land"
+    matchcode: "Matchcode"
+    email: "EMAIL"
+    bemerkung: "Bemerkung"
+    aktiv: "!Inaktiv"
 
 firmen:
   weinstrasse_agentur:
@@ -34,6 +89,7 @@ firmen:
         kunden: "daten/weinstrasse_agentur/kunden.csv"
         lieferanten: "daten/weinstrasse_agentur/lieferanten.csv"
         belege: "daten/weinstrasse_agentur/belege.csv"
+        <<: *lexware_export            # Spaltenzuordnung + Kodierung der echten Lexware-Exporte (siehe oben)
     opentrans:
       import_ordner: null              # z. B. "C:/Lexware/Shopimport/weinstrasse_agentur"
       lizenziert: null                 # noch zu prüfen
@@ -63,6 +119,7 @@ firmen:
         kunden: "daten/wik_fh_seh/kunden.csv"
         lieferanten: "daten/wik_fh_seh/lieferanten.csv"
         belege: "daten/wik_fh_seh/belege.csv"
+        <<: *lexware_export            # Spaltenzuordnung + Kodierung der echten Lexware-Exporte (siehe oben)
     opentrans:
       import_ordner: null
       lizenziert: null
@@ -92,6 +149,7 @@ firmen:
         kunden: "daten/wik_leh/kunden.csv"
         lieferanten: "daten/wik_leh/lieferanten.csv"
         belege: "daten/wik_leh/belege.csv"
+        <<: *lexware_export            # Spaltenzuordnung + Kodierung der echten Lexware-Exporte (siehe oben)
     opentrans:
       import_ordner: null
       lizenziert: null
@@ -121,6 +179,7 @@ firmen:
         kunden: "daten/woe_leh/kunden.csv"
         lieferanten: "daten/woe_leh/lieferanten.csv"
         belege: "daten/woe_leh/belege.csv"
+        <<: *lexware_export            # Spaltenzuordnung + Kodierung der echten Lexware-Exporte (siehe oben)
     opentrans:
       import_ordner: null
       lizenziert: null

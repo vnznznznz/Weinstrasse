@@ -12,8 +12,11 @@ und ``FIRMA_UNKLAR`` als WARNUNG (Ordner widerspricht Alias bzw. mehrdeutige Kan
 
 Regeln (docs/ARCHITEKTUR.md, Geschäftsregeln 1, 5, 6, 8, 9):
 
-* Firma: ``firma_id`` leer oder unbekannt -> ``FIRMA_UNKLAR`` (FEHLER); Kunde/Lieferant/Artikel
-  aus einer anderen Firma -> ``FIRMA_UNKLAR`` (FEHLER).
+* Firma: ``firma_id`` leer oder unbekannt -> ``FIRMA_UNKLAR`` (FEHLER) mit ``details["kandidaten"]``
+  (", "-getrennt, aus den Warnungen der Firmen-Ermittlung) und ``details["kundengruppe"]`` (laut
+  Firmenkatalog, wenn bekannt), damit die Freigabe-UI die Firmenwahl anbieten kann;
+  Kunde/Lieferant/Artikel aus einer anderen Firma -> ``FIRMA_UNKLAR`` (FEHLER). Die Info
+  ``FIRMA_GELERNT`` (Firma aus dem Firmen-Gedächtnis) stammt aus der Ermittlung und bleibt erhalten.
 * Kunde fehlt -> ``KEIN_KUNDE`` (FEHLER); bei Kandidaten zusätzlich ``KUNDE_UNSICHER`` (WARNUNG).
 * Lieferant fehlt und Einkauf erforderlich -> ``KEIN_LIEFERANT`` (FEHLER), bei Kandidaten
   zusätzlich ``LIEFERANT_UNSICHER`` (WARNUNG). Ohne Einkauf (Weinstrasse Agentur) entfällt beides.
@@ -36,6 +39,10 @@ Regeln (docs/ARCHITEKTUR.md, Geschäftsregeln 1, 5, 6, 8, 9):
   Leerraum/Trennzeichen, führende Nullen) und Partner gleich (oder im Beleg leer) -> ``DUBLETTE`` (FEHLER).
 * Belegfelder (Spedition, Weingut, Shipment, Kunde): leere Felder werden **vor** der Prüfung
   vorbelegt (:func:`belegfelder_vorbelegen`); danach je fehlendem Feld ``BELEGFELD_FEHLT`` (FEHLER).
+* Rabatt laut Dokument (``roh.rabatt_prozent``, z. B. "Aktion -10 %") ungleich dem zugeordneten
+  Positionsrabatt (``rabatt_prozent``, leer = 0) -> ``RABATT_ABWEICHUNG`` (WARNUNG, rot; Geschäftsregel
+  16). Die Hinweise ``RABATT_VORSCHLAG``/``RABATT_UNSICHER`` stammen aus ``rabatte.anwenden`` und
+  bleiben erhalten.
 """
 
 from __future__ import annotations
@@ -95,6 +102,7 @@ PRUEF_CODES: frozenset[Pruefcode] = frozenset(
         Pruefcode.DUBLETTE,
         Pruefcode.BELEGFELD_FEHLT,
         Pruefcode.FIRMA_UNKLAR,
+        Pruefcode.RABATT_ABWEICHUNG,
     }
 )
 
@@ -426,17 +434,35 @@ def _pruefe_weitere_lieferanten(paket: Belegpaket, stammdaten: Stammdaten | None
 # ---------------------------------------------------------------------------
 
 
+def _firma_kandidaten(paket: Belegpaket) -> tuple[str, str]:
+    """Kandidaten und Kundengruppe aus den Warnungen der Firmen-Ermittlung (``FIRMA_UNKLAR``, WARNUNG)
+    und ``paket.kundengruppe``: (", "-getrennte Firmen-IDs in Reihenfolge, Kundengruppe oder "")."""
+    kandidaten: list[str] = []
+    kundengruppe = paket.kundengruppe.value if paket.kundengruppe else ""
+    for hinweis in paket.hinweise:
+        if hinweis.code != Pruefcode.FIRMA_UNKLAR or hinweis.schweregrad != Schweregrad.WARNUNG:
+            continue
+        for firma_id in hinweis.details.get("kandidaten", "").split(","):
+            firma_id = firma_id.strip()
+            if firma_id and firma_id not in kandidaten:
+                kandidaten.append(firma_id)
+        kundengruppe = kundengruppe or hinweis.details.get("kundengruppe", "")
+    return ", ".join(kandidaten), kundengruppe
+
+
 def _pruefe_firma(paket: Belegpaket, settings: Settings) -> list[Pruefhinweis]:
     hinweise: list[Pruefhinweis] = []
     if not paket.firma_id:
-        kandidaten = next(
-            (h.details.get("kandidaten", "") for h in paket.hinweise if h.code == Pruefcode.FIRMA_UNKLAR),
-            "",
-        )
+        kandidaten, kundengruppe = _firma_kandidaten(paket)
         text = "Firma (Lexware-Mandant) nicht ermittelbar; ohne eindeutige Firma keine Buchung"
+        if kundengruppe:
+            text += f" – Kundengruppe {kundengruppe}: bitte Firma wählen"
         if kandidaten:
             text += f" (Kandidaten: {kandidaten})"
-        hinweise.append(_hinweis(Pruefcode.FIRMA_UNKLAR, Schweregrad.FEHLER, text, kandidaten=kandidaten))
+        details = {"kandidaten": kandidaten}
+        if kundengruppe:
+            details["kundengruppe"] = kundengruppe
+        hinweise.append(_hinweis(Pruefcode.FIRMA_UNKLAR, Schweregrad.FEHLER, text, **details))
         return hinweise
     if paket.firma_id not in settings.firmen:
         hinweise.append(
@@ -613,6 +639,25 @@ def _pruefe_position(
                 abweichung_prozent=_prozent(abweichung, vk),
             )
         )
+
+    rabatt_dokument = position.roh.rabatt_prozent
+    if rabatt_dokument is not None:
+        zugeordnet = position.rabatt_prozent if position.rabatt_prozent is not None else Decimal(0)
+        if zugeordnet != rabatt_dokument:
+            quelle = position.rabatt_quelle or ("kein Rabatt" if zugeordnet == 0 else "ohne Quelle")
+            hinweise.append(
+                _hinweis(
+                    Pruefcode.RABATT_ABWEICHUNG,
+                    Schweregrad.WARNUNG,
+                    f"Position {laufnr} '{bezeichnung}': Rabatt laut Dokument {_menge(rabatt_dokument)} % "
+                    f"({position.roh.rabatt_text or 'ohne Text'}) weicht vom zugeordneten Positionsrabatt "
+                    f"{_menge(zugeordnet)} % ({quelle}) ab – bitte Aktion/Rabatt prüfen",
+                    laufnr=laufnr,
+                    rabatt_dokument=_menge(rabatt_dokument),
+                    rabatt_zugeordnet=_menge(zugeordnet),
+                    rabatt_quelle=position.rabatt_quelle or "",
+                )
+            )
     return hinweise
 
 

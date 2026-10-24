@@ -292,6 +292,57 @@ def test_schreibe_protokoll_legt_ordner_an(settings: Settings):
     assert any((ordner / "berichte").iterdir())
 
 
+def test_protokoll_neue_spalten_angebot_rabatte_dateien_revision(settings: Settings):
+    """Erweiterung Lexware-Prozess: Spalten "Angebot-Nr", "Rabatte", "Dateien", "Revision" am Ende."""
+    assert PROTOKOLL_SPALTEN[-4:] == ("Angebot-Nr", "Rabatte", "Dateien", "Revision")
+    paket = _paket()
+    paket.positionen[0].rabatt_prozent = Decimal("10")
+    paket.positionen[0].rabatt_quelle = "aktion:herbst"
+    paket.ist_revision = True
+    paket.revision_von = "B-4700"
+    ergebnis = _ergebnis(paket, dry_run=False)
+    ergebnis.ist_revision = True
+    ergebnis.angebot = Belegergebnis(belegart=Belegart.ANGEBOT, belegnummer="AN-2026-0007", netto=Decimal("579.60"),
+                                     erfolgreich=True, dry_run=False, methode="ui_automation")
+    ergebnis.einkauf.nachbemerkung = "B-4712"
+    ergebnis.pdfs = {"Cde": Path("logs/pdf/Cide – WIK – B-4712 – Neu – 18.10.2026.pdf"),
+                     "Kopie": Path("logs/pdf/Cide – WIK – B-4712 – Neu Kopie – 18.10.2026.pdf")}
+    zeile = protokoll_zeile(paket, ergebnis)
+    assert list(zeile) == list(PROTOKOLL_SPALTEN)
+    assert zeile["Angebot-Nr"] == "AN-2026-0007"
+    assert zeile["Rabatte"] == "Pos. 1 (1643): 10 % (aktion:herbst)"
+    assert zeile["Dateien"] == "Cde=Cide – WIK – B-4712 – Neu – 18.10.2026.pdf; Kopie=Cide – WIK – B-4712 – Neu Kopie – 18.10.2026.pdf"
+    assert zeile["Revision"] == "ja (ersetzt B-4700)"
+    # bisherige Spalten unverändert
+    assert zeile["beleg_einkauf"] == "BE-2026-0001" and zeile["erfolgreich"] == "ja"
+
+    pfad = schreibe_protokoll(paket, ergebnis, settings.log_ordner, firma=settings.firma(FIRMA_ID))
+    gelesen = _zeilen(pfad)[0]
+    assert gelesen["Angebot-Nr"] == "AN-2026-0007" and gelesen["Revision"] == "ja (ersetzt B-4700)"
+    bericht = next((settings.log_ordner / "berichte").iterdir()).read_text(encoding="utf-8")
+    assert "Verkaufsweg:       angebot_weiterfuehren" in bericht
+    assert "Formulare:         Einkauf EN=WIK EN (x2); Angebot EN=-; AB=WIK AB_LS; Lieferschein=Standard" in bericht
+    assert "Nachbemerkung:     B-4712" in bericht
+    assert "Revision:          ja (ersetzt B-4700)" in bericht
+    assert "Angebot:             OK; Belegnr. AN-2026-0007" in bericht
+    assert "Cde:                 logs/pdf/Cide – WIK – B-4712 – Neu – 18.10.2026.pdf" in bericht
+    assert "Rabatte je Position (nur im Verkauf, VK bleibt Preisgruppe 1): Pos. 1 (1643): 10 % (aktion:herbst)" in bericht
+
+
+def test_protokoll_neue_spalten_leer_ohne_prozess():
+    paket = _paket()
+    zeile = protokoll_zeile(paket, _ergebnis(paket))
+    assert zeile["Angebot-Nr"] == "" and zeile["Rabatte"] == "" and zeile["Dateien"] == "" and zeile["Revision"] == "nein"
+    angebot_entfaellt = _ergebnis(paket)
+    angebot_entfaellt.angebot = Belegergebnis(belegart=Belegart.ANGEBOT, erfolgreich=True, dry_run=True, methode="keine",
+                                              warnungen=["Angebot per openTRANS nicht möglich; AB direkt"])
+    assert protokoll_zeile(paket, angebot_entfaellt)["Angebot-Nr"] == "(entfällt)"
+    text = zusammenfassung(paket, angebot_entfaellt)
+    assert "Verkaufsweg:       Angebot nicht möglich (openTRANS) – Auftragsbestätigung direkt" in text
+    assert "Nachbemerkung:     -" in text and "Dateien (PDF laut Titulierung)" in text and "  keine" in text
+    assert "Revision:" not in text
+
+
 # ---------------------------------------------------------------------------
 # Zusammenfassung
 # ---------------------------------------------------------------------------

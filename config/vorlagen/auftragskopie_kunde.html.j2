@@ -1,0 +1,12 @@
+{# Auftragskopie an den Kunden (deutsch). Die Wörter "Auftragsbestätigung", "bestätigen" und
+   "verbindlich" dürfen hier NICHT vorkommen (Haftung; Prüfung in entwuerfe.pruefe_auftragskopie).
+   Kontext: anrede, kundenbestellnummer, auftragsnummer, kunde, lieferant, liefertag, spedition,
+   gesamtmenge, positionen, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>Vielen Dank für Ihre Bestellung{% if kundenbestellnummer %} <b>{{ kundenbestellnummer }}</b>{% endif %}{% if lieferant %} ({{ lieferant }}){% endif %}. Anbei erhalten Sie zur Information eine Kopie Ihres Auftrags, so wie wir ihn erfasst haben{% if auftragsnummer %} (unsere Nr. {{ auftragsnummer }}){% endif %}.</p>
+<p>{% if liefertag %}Die Lieferung ist für den <b>{{ liefertag | datum_de }}</b> vorgesehen{% if spedition %} (Spedition {{ spedition }}){% endif %}. {% endif %}Bitte prüfen Sie die Angaben und melden Sie sich kurz, falls etwas nicht passt.</p>
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

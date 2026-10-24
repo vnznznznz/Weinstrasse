@@ -9,7 +9,12 @@ trotzdem ab, falls sie doch erscheinen:
 * "USt-IdNr. des Lieferanten prüfen?" -> "Nein"
 * "Die Anwendung kann nur einmal gestartet werden" -> Fehler (nie eine zweite Instanz)
 * "Änderungen verwerfen?"             -> "Ja" NUR im Kontext des Dry-Run-Abbruchs
+* "Datei existiert bereits, ersetzen?" -> "Nein" (PDF-Ausgabe überschreibt nie)
 * alles andere                        -> Screenshot + Fehler, NIE blind bestätigen
+
+Die PDF-Ausgabe (Druckdialog, Dateinamen-Dialog des PDF-Druckers, Export-Dialog) bedient
+``ui_automation.UiSchreiber`` selbst; ``behandle_dialoge`` wird dort erst aufgerufen, wenn diese
+Dialoge geschlossen sind (Kontext ``PDF_AUSGABE``).
 
 Die Regeln sind Daten (``BEKANNTE_DIALOGE``); Wortlaute sind großteils nicht belegt
 (``# TODO-LEXWARE``) und müssen am System aufgenommen werden.
@@ -69,6 +74,7 @@ class DialogKontext(StrEnum):
     ASSISTENT = "assistent"  # während der Erfassung
     NACH_SPEICHERN = "nach_speichern"  # Druck-/E-Mail-/USt-IdNr.-Abfragen
     DRY_RUN_ABBRUCH = "dry_run_abbruch"  # Rückfrage nach "Abbrechen"
+    PDF_AUSGABE = "pdf_ausgabe"  # nach der PDF-Ausgabe (Druckdialog/Dateidialog sind dann schon geschlossen)
 
 
 class DialogAktion(StrEnum):
@@ -111,12 +117,20 @@ BEKANNTE_DIALOGE: list[DialogRegel] = [
         beschreibung="Rückfrage nach 'Abbrechen' – nur im Dry-Run-Abbruch mit 'Ja' beantworten",
     ),
     DialogRegel(
+        name="datei_ersetzen",
+        aktion=DialogAktion.KLICKEN,
+        control="DIALOG_NEIN",
+        text_regex=r"existiert\s+bereits|already\s+exists|ersetzen\?|überschreiben\?|replace\s+it",
+        beschreibung="Datei existiert bereits -> Nein (PDF-Ausgabe überschreibt nie; freier Name wird vorher gewählt)",
+        warnung="Eine vorhandene Datei wurde nicht überschrieben (Abfrage mit 'Nein' beantwortet)",
+    ),
+    DialogRegel(
         name="druck_email",
         aktion=DialogAktion.KLICKEN,
         control="DIALOG_UEBERSPRINGEN",
         titel_regex=r"drucken|ausgabe|versand",
         text_regex=r"ausdruck|drucken|e-?mail|versenden|verschicken|frankier",
-        nur_kontext=frozenset({DialogKontext.NACH_SPEICHERN, DialogKontext.ASSISTENT}),
+        nur_kontext=frozenset({DialogKontext.NACH_SPEICHERN, DialogKontext.ASSISTENT, DialogKontext.PDF_AUSGABE}),
         beschreibung="Druck-/E-Mail-Abfrage nach dem Speichern: nichts drucken, nichts mailen",
     ),
     DialogRegel(

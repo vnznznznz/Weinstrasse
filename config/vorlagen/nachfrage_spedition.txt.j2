@@ -1,0 +1,12 @@
+{{ anrede }}
+
+Zu unserer Sendung von {{ lieferant }} an {{ kunde }}{% if referenz %} (Our Ref {{ referenz }}){% endif %}{% if kundenreferenz %}, unsere Referenz {{ kundenreferenz }},{% endif %} mit Fixtermin {{ liefertag | datum_de }}{% if verladedatum %} (Verladung {{ verladedatum | datum_de }}){% endif %} liegt uns noch keine Rückmeldung vor{% if status %} (letzter Stand bei uns: {{ status }}){% endif %}.
+
+Könnten Sie uns bitte kurz den aktuellen Status und den geplanten Abholtermin mitteilen? Vielen Dank.
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}

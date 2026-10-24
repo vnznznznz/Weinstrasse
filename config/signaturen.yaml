@@ -1,0 +1,94 @@
+# Signaturen für E-Mail-Entwürfe je Firma (kommunikation/vorlagen.py: signatur_fuer).
+#
+# Die Signatur steht am Ende jeder Vorlage ({{ signatur }}) unter der Grußformel. Graph fügt keine
+# Outlook-Signatur ein, deshalb kommt sie von hier; das COM-Backend (lokal) lässt Outlook die
+# eigene Signatur einfügen und stellt den Text davor.
+#
+# Platzhalter (Jinja2): {{ absender_name }} (settings.kommunikation.absender_name),
+# {{ absender_email }} (settings.kommunikation.absender_email), {{ firma_name }} (Name der Firma aus
+# config/firmen.yaml, hier je Firma überschreibbar), {{ team_name }}, {{ telefon }}, {{ adresse }}
+# (aus "werte" der Firma, sonst aus "platzhalter"). Alle Werte hier sind Beispielwerte ohne echte
+# Daten – vor dem scharfen Betrieb ausfüllen.
+#
+# Varianten: "persoenlich" (Name des Absenders) oder "team" ("Ihr WIK-Team"). Auswahl über
+# standard_variante, je Firma über "variante", im Code über Entwurfsfabrik(signatur_variante=…).
+# Ohne absender_name in den Einstellungen wird automatisch die Team-Signatur verwendet.
+
+standard_variante: persoenlich
+
+platzhalter:
+  telefon: "+49 000 0000000"
+  adresse: "Musterstraße 1 · 00000 Musterstadt"
+
+firmen:
+  weinstrasse_agentur:
+    firma_name: "Weinstrasse Agentur"
+    team_name: "Ihr Team der Weinstrasse Agentur"
+    werte:
+      telefon: "+49 000 0000000"
+      adresse: "Musterstraße 1 · 00000 Musterstadt"
+    html: |
+      <p>{{ absender_name }}<br>
+      <b>{{ firma_name }}</b><br>
+      {{ adresse }}<br>
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}</p>
+    text: |
+      {{ absender_name }}
+      {{ firma_name }}
+      {{ adresse }}
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}
+
+  wik_fh_seh:
+    firma_name: "Wein-Import-Kreis FH & SEH"
+    team_name: "Ihr WIK-Team"
+    html: |
+      <p>{{ absender_name }}<br>
+      <b>{{ firma_name }}</b><br>
+      {{ adresse }}<br>
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}</p>
+    text: |
+      {{ absender_name }}
+      {{ firma_name }}
+      {{ adresse }}
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}
+
+  wik_leh:
+    firma_name: "Wein-Import-Kreis LEH"
+    team_name: "Ihr WIK-Team"
+    html: |
+      <p>{{ absender_name }}<br>
+      <b>{{ firma_name }}</b><br>
+      {{ adresse }}<br>
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}</p>
+    text: |
+      {{ absender_name }}
+      {{ firma_name }}
+      {{ adresse }}
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}
+
+  woe_leh:
+    firma_name: "Wine-of-Excellence LEH"
+    team_name: "Ihr WOE-Team"
+    html: |
+      <p>{{ absender_name }}<br>
+      <b>{{ firma_name }}</b><br>
+      {{ adresse }}<br>
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}</p>
+    text: |
+      {{ absender_name }}
+      {{ firma_name }}
+      {{ adresse }}
+      Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}
+
+# Team-Signatur (Alternative für alle Firmen; team_name und firma_name kommen aus dem Firmeneintrag).
+team:
+  html: |
+    <p>{{ team_name }}<br>
+    <b>{{ firma_name }}</b><br>
+    {{ adresse }}<br>
+    Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}</p>
+  text: |
+    {{ team_name }}
+    {{ firma_name }}
+    {{ adresse }}
+    Tel. {{ telefon }}{% if absender_email %} · {{ absender_email }}{% endif %}

@@ -1,0 +1,7 @@
+Kundennummer;Debitorenkonto;Anrede;Name;Matchcode;Vorname;Firma;Zusatz;Ansprechpartner;Stra·e;HausNr;Postleitzahl;Ort;Land;Telefon;Telefax;EMAIL;Web;Liefer. Anrede;Liefer. Firma;Liefer. Stra·e;Liefer. HausNr;Liefer. Postleitzahl;Liefer. Ort;Preisgruppe;Rabatt;EG ID;steuerbare UmsÑtze;Zahlungsbedingung;FÑllig zum;Bemerkung;Inaktiv;Abfrage nach ı13b UStG;LÑnderkÅrzel
+3441;3441;Firma;Hegmann;HEGMANN;;Weinmarkt Bottrop-Kirchhellen GmbH;Inh. Hegmann;;Hauptstraﬂe;1;"	46244";Bottrop;Deutschland;0000 000000;;bestellung@example.org;;;;;;;;1;0,00;DE000000003;J;;;Shop-Bestellungen mit DAA-Zeile;N;N;DE
+1392;1392;Firma;Menrath;MENRATH;;Weinhaus Menrath;;;Marktplatz;3;"	41061";Mˆnchengladbach;Deutschland;0000 000000;;info@example.org;;;;;;;;1;0,00;DE000000004;J;;;Scan-Bestellungen;N;N;DE
+2100;2100;Firma;;VINOTHEK;;Vinothek Beispiel GmbH;;;Marktplatz;2;"	45127";Essen;Deutschland;0000 000000;;einkauf@example.org;;;;;;;;1;0,00;DE000000005;J;;;;N;N;DE
+2101;2101;Firma;;KAUFMANN;;Beispiel Frischemarkt e.K.;Selbst‰ndiger Kaufmann;;Ringstraﬂe;7;"	47051";Duisburg;Deutschland;0000 000000;;markt@example.org;;;;;;;;1;0,00;DE000000006;J;;;;N;N;DE
+2102;2102;Frau;Beispiel;BEISPIELF;Eva;;;;Rosenweg;2;"	45127";Essen;Deutschland;0000 000000;;eva.beispiel@example.org;;;;;;;;2;0,00;;J;;;Privatkundin;N;N;DE
+2103;2103;Firma;;ALTFH;;Geschlossene Vinothek;;;Weg;4;"	45127";Essen;Deutschland;0000 000000;;;;;;;;;;1;0,00;;J;;;;J;N;DE

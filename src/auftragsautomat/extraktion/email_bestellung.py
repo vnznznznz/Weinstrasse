@@ -38,6 +38,13 @@ Erkennungslogik (alles Heuristik, Unbekanntes bleibt ``None`` + ``Pruefhinweis``
   dem PDF), die Positionen aus der Mail – nur wenn die Mail keine hat, aus dem PDF.
   PDF-Anhänge ohne Textebene (Scans) und Bildanhänge werden nur gemeldet, nicht
   ausgewertet (das leistet ``extraktion.vision`` auf der Einzeldatei).
+* **Rabatte, Aktionen, Revised Order** (``docs/AUSBAUSTUFE_2.md`` Abschnitte 5 und 7):
+  Positionsrabatt im Text ("Aktion -10 %", "Rabatt 10 %", auch als Folgezeile) ->
+  ``RohPosition.rabatt_prozent``/``rabatt_text``; Aktionshinweis ("Aktion KW 45", "Promo",
+  "Aktionszeitraum 01.11.-30.11.") -> ``RohBestellung.aktionshinweis``; "Revised order",
+  "Änderung zur Bestellung", "ersetzt Bestellung Nr. 123" -> ``ist_revision``/``revision_von``
+  und ``Pruefhinweis(REVISION, WARNUNG)``. "DAA …"/Verbrauchsteuernummer zu 0,00 ->
+  ``hinweis`` "Speditionszeile" (die Erkennung teilt sich die Mail mit ``text_pdf``).
 """
 
 from __future__ import annotations
@@ -60,7 +67,18 @@ from typing import Any
 
 from auftragsautomat.config import Settings
 from auftragsautomat.extraktion import zahlen
-from auftragsautomat.extraktion.text_pdf import TextPdfExtraktor, TextPdfFehler, ist_text_pdf, lese_kopffelder
+from auftragsautomat.extraktion.text_pdf import (
+    SPEDITIONSZEILE_HINWEIS,
+    RevisionTreffer,
+    TextPdfExtraktor,
+    TextPdfFehler,
+    finde_aktionshinweis,
+    finde_revision,
+    ist_speditionszeile,
+    ist_text_pdf,
+    lese_kopffelder,
+    revisions_hinweis,
+)
 from auftragsautomat.matching import volumen
 from auftragsautomat.models import (
     Eingangstyp,
@@ -1038,9 +1056,18 @@ def _parse_positionszeile(zeile: str) -> _Kandidat | None:
                 preis_text = None
         preis = zahlen.parse_dezimal(preis_text)
 
+        # Positionsrabatt laut Dokument ("Aktion -10 %", "Rabatt 10 %") vor dem Hinweis-Trennen lesen
+        rabatt_prozent: Decimal | None = None
+        rabatt_text: str | None = None
+        rabatt = zahlen.parse_rabatt(bez)
+        if rabatt is not None:
+            rabatt_prozent, rabatt_text = rabatt.prozent, rabatt.rohtext
+            bez = _bereinige_bezeichnung(bez[: rabatt.start] + " " + bez[rabatt.ende :])
         bez, hinweis = _hinweis_trennen(bez)
         if not bez:
             continue
+        if ist_speditionszeile(bez, preis):
+            hinweis = f"{hinweis}; {SPEDITIONSZEILE_HINWEIS}" if hinweis else SPEDITIONSZEILE_HINWEIS
         jahrgang = volumen.parse_jahrgang(bez)
         volumen_cl = volumen.parse_volumen_cl(bez)
         einheit = menge_obj.einheit
@@ -1066,9 +1093,14 @@ def _parse_positionszeile(zeile: str) -> _Kandidat | None:
             hinweis=hinweis,
             durchgestrichen=False,
             rohtext=zeile.strip(),
+            rabatt_prozent=rabatt_prozent,
+            rabatt_text=rabatt_text,
         )
         return _Kandidat(index=-1, position=position, sicher=sicher)
     return None
+
+
+_RABATT_FOLGEZEILE_MAX = 40  # "Rabatt 10 %" als eigene Zeile unter der Position
 
 
 def lese_positionen(zeilen: list[str]) -> list[RohPosition]:
@@ -1110,11 +1142,19 @@ def lese_positionen(zeilen: list[str]) -> list[RohPosition]:
             letzter_index = index
             continue
         s = _BULLET.sub("", zeile.strip())
-        if positionen and letzter_index is not None and index == letzter_index + 1 and _HINWEIS_MUSTER.fullmatch(s):
+        if positionen and letzter_index is not None and index == letzter_index + 1:
             vorher = positionen[-1]
-            hinweis = f"{vorher.hinweis}; {s}" if vorher.hinweis else s
-            positionen[-1] = vorher.model_copy(update={"hinweis": hinweis})
-            letzter_index = index
+            if _HINWEIS_MUSTER.fullmatch(s):
+                hinweis = f"{vorher.hinweis}; {s}" if vorher.hinweis else s
+                positionen[-1] = vorher.model_copy(update={"hinweis": hinweis})
+                letzter_index = index
+                continue
+            rabatt = zahlen.parse_rabatt(s)
+            if rabatt is not None and len(s) <= _RABATT_FOLGEZEILE_MAX and vorher.rabatt_prozent is None:
+                positionen[-1] = vorher.model_copy(
+                    update={"rabatt_prozent": rabatt.prozent, "rabatt_text": rabatt.rohtext}
+                )
+                letzter_index = index
     for nr, position in enumerate(positionen, start=1):
         position.laufnr = nr
     return positionen
@@ -1234,6 +1274,8 @@ class EmailExtraktor:
         zeilen = [z.rstrip() for z in text.split("\n")]
         zeilen_vor_signatur = self._bis_signatur(zeilen)
         kopf = lese_kopffelder([betreff or "", *(z.strip() for z in zeilen if z.strip())])
+        revision = finde_revision([betreff, *zeilen])
+        aktionshinweis = finde_aktionshinweis([betreff, *zeilen_vor_signatur])
 
         # Lieferant / Endkunde
         lieferant_text, lieferant_quelle = self._finde_lieferant(kopf, betreff, zeilen_vor_signatur, empfaenger, absender)
@@ -1337,6 +1379,9 @@ class EmailExtraktor:
                 liefertag = roh.liefertag
                 liefertag_roh = roh.liefertag.isoformat()
             lieferadresse = lieferadresse or roh.lieferadresse
+            if revision is None and roh.ist_revision:
+                revision = RevisionTreffer(rohtext=f"PDF-Anhang {name}", revision_von=roh.revision_von)
+            aktionshinweis = aktionshinweis or roh.aktionshinweis
         datum = datum_explizit or datum_anhang or datum_mail
 
         # Laufnummern und Positionshinweise
@@ -1380,6 +1425,10 @@ class EmailExtraktor:
                         absender=absender.anzeige,
                     )
                 )
+
+        # Revised Order: Cde und AB werden neu angelegt, nie geändert
+        if revision is not None:
+            hinweise.append(revisions_hinweis(revision))
 
         # Fehlende Kopffelder
         if not lieferant_text:
@@ -1443,6 +1492,9 @@ class EmailExtraktor:
             empfaenger_firma_text=empfaenger_firma_text,
             ladeadresse=_ladeadresse_aus_text(text),
             lieferbedingung=_lieferbedingung_aus_text(betreff, text),
+            ist_revision=revision is not None,
+            revision_von=revision.revision_von if revision else None,
+            aktionshinweis=aktionshinweis,
         )
 
     def _eigene_firma_text(

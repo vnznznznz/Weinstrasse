@@ -1,0 +1,46 @@
+# Feinheiten des täglichen Überwachungslaufs (Modul ueberwachung/, docs/AUSBAUSTUFE_2.md 2.6).
+#
+# Die Hauptschwellen stehen in config/settings.yaml unter "ueberwachung":
+#   tage_voraus, mails_rueckblick_tage, nachfrage_lieferant_werktage (Frist: Bestätigung des
+#   Lieferanten spätestens so viele Werktage vor dem Fixtermin), nachfrage_spedition_werktage
+#   (Frist für die Spedition), erneut_nach_werktagen (Drossel), bestaetigungen_automatisch_setzen,
+#   termine_automatisch_anpassen, bundesland, merkdatei, berichte_ordner.
+# Hier stehen nur Ampel-Feinheiten und Texte. Fehlt die Datei, gelten die eingebauten Standardwerte.
+# Alle Beispiele sind synthetisch.
+
+# Nachfragen (Lieferant/Spedition) frühestens so viele Werktage nach dem Auftragsdatum,
+# damit niemand am Tag der Bestellung gemahnt wird. 0 = sofort. Ohne Auftragsdatum gilt: sofort.
+mindest_alter_werktage: 1
+
+# Ohne Bestätigung und weniger als so viele Werktage bis zum Fixtermin -> Ampel rot (sonst gelb).
+rot_unter_werktagen: 5
+
+# Erinnerung intern, wenn der Fixtermin heute (0) oder spätestens am nächsten Werktag (1) ist.
+erinnerung_werktage_vor_fixtermin: 1
+
+# Zuordnung von Mails zu Fixterminen: ab dieser Gesamtkonfidenz (Ereignis x Zuordnung) gilt ein
+# Treffer über Referenz/Nummer/Dossier als eindeutig -> Häkchen werden automatisch gesetzt.
+zuordnung_konfidenz_min: 0.5
+# Lieferant- und Kunden-Kurznamen im Betreff/Text als letzten Zuordnungsweg nutzen (nur Vorschlag).
+text_zuordnung: true
+
+# Begründungstexte der Ampel. Platzhalter in geschweiften Klammern:
+#   {liefertag} {verladedatum} {auftragsdatum} {frist} {werktage} {status} {quelle}
+texte:
+  zugestellt: "zugestellt laut Tracking ({quelle})"
+  tracking_problem: "Tracking meldet '{status}' ({quelle})"
+  ueberschritten_nicht_abgeholt: "Fixtermin {liefertag} überschritten, nicht abgeholt"
+  ueberschritten_nicht_zugestellt: "Fixtermin {liefertag} überschritten, laut Tracking noch nicht zugestellt ({status})"
+  vergangen_abgeholt: "abgeholt, Fixtermin {liefertag} vergangen (keine Zustellinformation)"
+  erinnerung_heute: "Fixtermin heute ({liefertag})"
+  erinnerung_morgen: "Fixtermin am nächsten Werktag ({liefertag})"
+  verladung_ohne_abholung: "Verladedatum {verladedatum} erreicht, nicht als abgeholt markiert"
+  lieferant_offen: "Bestätigung des Lieferanten fehlt (Frist {frist}, {werktage} Werktage vor Fixtermin)"
+  lieferant_ueberfaellig: "Bestätigung des Lieferanten überfällig (Frist {frist} überschritten)"
+  spedition_offen: "Bestätigung der Spedition fehlt (Frist {frist}, {werktage} Werktage vor Fixtermin)"
+  spedition_ueberfaellig: "Bestätigung der Spedition überfällig (Frist {frist} überschritten)"
+  noch_zu_frisch: "Auftrag vom {auftragsdatum}, Nachfrage frühestens nach {werktage} Werktag(en)"
+  alles_bestaetigt: "Lieferant und Spedition haben bestätigt"
+  verladung_geplant: "Verladung am {verladedatum}"
+  abgeholt: "abgeholt"
+  tracking_abgeholt: "laut Tracking {status} ({quelle}), Häkchen 'Abgeholt' fehlt"

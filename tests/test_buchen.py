@@ -39,6 +39,13 @@ from auftragsautomat.stammdaten.basis import Stammdaten
 
 FIRMA_ID = "wik_leh"
 
+
+@pytest.fixture(autouse=True)
+def _pdf_ordner_umleiten(settings: Settings, tmp_path: Path) -> None:
+    """Dry-Run-PDF-Vorschauen (DryRunSchreiber.pdf_ausgeben) nie in tests/fixtures schreiben."""
+    settings.lexware.pdf_ausgabe_ordner = tmp_path / "logs" / "pdf"
+
+
 GLORIA = Artikel(
     firma_id=FIRMA_ID, artikelnummer="1643", bezeichnung="Villa Armellina Gloria Secco Frizzante 0,75 l",
     warengruppe="Cide", lieferantennummer="72", volumen_cl=Decimal("75"),

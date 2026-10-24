@@ -342,8 +342,8 @@ def test_beispiel_pdfs(tmp_path: Path):
     ergebnis = runner.invoke(cli.app, ["beispiel-pdfs", str(ordner)])
     assert ergebnis.exit_code == 0, ergebnis.output
     erzeugt = sorted(p.name for p in ordner.glob("*.pdf"))
-    assert "kundenbestellung_kirchhellen.pdf" in erzeugt and len(erzeugt) == 4
-    assert "4 Beispiel-PDF(s) erzeugt" in ergebnis.output
+    assert "kundenbestellung_kirchhellen.pdf" in erzeugt and len(erzeugt) == 8  # 4 Stufe 1 + 4 echte Belegformate
+    assert "8 Beispiel-PDF(s) erzeugt" in ergebnis.output
 
 
 def test_beispielskript_fehlt(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):

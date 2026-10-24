@@ -1,7 +1,16 @@
 """UI-Automation für Lexware warenwirtschaft premium (pywinauto, UIA-Backend).
 
-Aufgabe: "Bestellung schreiben" (Einkauf), Fallback "Auftrag schreiben" (Verkauf-AB) und
-"Auftrag weiterführen" (Lieferschein) über den Auftragsassistenten von Lexware bedienen.
+Aufgabe: den dokumentierten Lexware-Ablauf (docs/AUSBAUSTUFE_2.md, Abschnitt 5) über den
+Auftragsassistenten bedienen:
+
+* "Bestellung schreiben" (Einkauf) mit Kundenbestellnummer in der Nachbemerkung (WIK/WOE),
+* "Angebot" (Verkauf) mit Positionsrabatt in % je Position (Aktionen),
+* "Weiterführen" bzw. "Auftrag wandeln" vom Angebot zur Auftragsbestätigung, dabei Lieferdatum und
+  AB-Text leeren (je Firma konfiguriert),
+* "Auftragsbestätigung" direkt (Weg ``direkt_ab``) und "Auftrag weiterführen" zum Lieferschein,
+* PDF-Ausgabe eines gespeicherten Belegs nach ``settings.lexware.pdf_ausgabe`` (``drucker`` =
+  Druckdialog -> Formular -> PDF-Drucker -> Dateinamen-Dialog mit Zielpfad -> Speichern; ``export`` =
+  "Exportieren als PDF" mit Zielpfad; ``keine`` = nur protokollieren). Nie Papier, nie E-Mail.
 
 Aufbau
 ------
@@ -41,6 +50,13 @@ import yaml
 
 from auftragsautomat.config import Firma, Settings, projekt_stamm
 from auftragsautomat.lexware import instanz
+from auftragsautomat.lexware.basis import (
+    ANGEBOTSWEGE,
+    Verkaufsweg,
+    nachbemerkung_einkauf,
+    pdf_zielpfad,
+    weg_beschreibung,
+)
 from auftragsautomat.lexware.dialoge import DialogFehler, DialogKontext, behandle_dialoge
 from auftragsautomat.models import (
     Belegart,
@@ -256,6 +272,33 @@ class LexwareControls:
     SPALTE_BEZEICHNUNG: str = "Bezeichnung"
     SPALTE_MENGE: str = "Menge"
     SPALTE_PREIS: str = "Einzelpreis"
+
+    # --- Verkaufsweg laut Ablaufplan: Angebot, Weiterführen, Wandeln, Rabatt, AB-Text, Nachbemerkung ---
+    AUFTRAGSART_ANGEBOT: str = "Angebot"  # [V] Auftragsart im Verkauf
+    WEITERFUEHREN_BUTTON: ControlSpec = field(default_factory=lambda: ControlSpec(title="Weiterführen", control_type="Button"))  # TODO-LEXWARE: Aktionsleiste rechts; Rückfall, wenn das Menü fehlt
+    MENUE_AUFTRAG_WANDELN: tuple[str, ...] = ("Bearbeiten", "Aufträge", "Wandeln")  # TODO-LEXWARE: Menüpfad "Auftrag wandeln" (vermutlich auch Kontextmenü)
+    WANDELN_TITEL_REGEX: str = r".*wandeln.*"  # TODO-LEXWARE: Titel des Dialogs "Auftrag wandeln"
+    WANDELN_ZIELART: ControlSpec = field(default_factory=lambda: ControlSpec(title="Auftragsart", control_type="ComboBox"))  # TODO-LEXWARE: Zielbelegart im Wandeln-Dialog
+    RABATT: ControlSpec = field(default_factory=lambda: ControlSpec(title="Rabatt %", control_type="Edit"))  # TODO-LEXWARE: Positionsrabatt auf Seite 2 (Verkauf)
+    AB_TEXT: ControlSpec = field(default_factory=lambda: ControlSpec(title="Auftragsbeschreibung", control_type="Edit"))  # TODO-LEXWARE: "AB-Text" = Auftragsbeschreibung (Standardtext) oder Einleitungstext?
+    REGISTER_NACHBEMERKUNG: ControlSpec = field(default_factory=lambda: ControlSpec(title="Nachbemerkung", control_type="TabItem"))  # TODO-LEXWARE: Register auf der Seite Summen
+    NACHBEMERKUNG: ControlSpec = field(default_factory=lambda: ControlSpec(title="Nachbemerkung", control_type="Edit"))  # TODO-LEXWARE: Textfeld (bis 2000 Zeichen) [V]
+    SPALTE_RABATT: str = "Rabatt %"  # TODO-LEXWARE: Spalte der Positionsliste
+
+    # --- PDF-Ausgabe (nie Papier, nie E-Mail) ---------------------------------------------------
+    MENUE_BELEG_DRUCKEN: tuple[str, ...] = ("Datei", "Drucken")  # TODO-LEXWARE: Drucken des markierten Belegs (Menü/Kontextmenü/Aktionsleiste)
+    DRUCKDIALOG_TITEL_REGEX: str = r".*Drucken.*"  # TODO-LEXWARE: Titel des Lexware-Druckdialogs
+    DRUCK_FORMULAR: ControlSpec = field(default_factory=lambda: ControlSpec(title="Formular", control_type="ComboBox"))  # TODO-LEXWARE: Formularauswahl ("WIK EN", "WIK AB_LS", "WS_EN", "WS_AB")
+    DRUCK_DRUCKER: ControlSpec = field(default_factory=lambda: ControlSpec(title="Drucker", control_type="ComboBox"))  # TODO-LEXWARE: Druckerauswahl (pdf_drucker)
+    DRUCK_STARTEN: ControlSpec = field(default_factory=lambda: ControlSpec(title="Drucken", control_type="Button"))  # TODO-LEXWARE: Schaltfläche, die den Druck startet
+    DATEIDIALOG_TITEL_REGEX: str = r".*(Druckausgabe speichern|Speichern unter|Save Print Output).*"  # TODO-LEXWARE: Dialog des PDF-Druckers (Microsoft Print to PDF)
+    DATEIDIALOG_NAME: ControlSpec = field(default_factory=lambda: ControlSpec(title="Dateiname:", control_type="Edit"))  # TODO-LEXWARE: Windows-Dateidialog (alternativ auto_id "1001")
+    DATEIDIALOG_SPEICHERN: ControlSpec = field(default_factory=lambda: ControlSpec(title="Speichern", control_type="Button"))  # TODO-LEXWARE: alternativ auto_id "1"
+    MENUE_BELEG_EXPORT_PDF: tuple[str, ...] = ("Datei", "Export", "PDF")  # TODO-LEXWARE: "Exportieren als PDF", falls im Belegfenster vorhanden
+    EXPORTDIALOG_TITEL_REGEX: str = r".*(Export|PDF).*"  # TODO-LEXWARE
+    EXPORT_FORMULAR: ControlSpec = field(default_factory=lambda: ControlSpec(title="Formular", control_type="ComboBox"))  # TODO-LEXWARE
+    EXPORT_DATEINAME: ControlSpec = field(default_factory=lambda: ControlSpec(title="Dateiname", control_type="Edit"))  # TODO-LEXWARE
+    EXPORT_OK: ControlSpec = field(default_factory=lambda: ControlSpec(title="OK", control_type="Button"))  # TODO-LEXWARE
 
     def spec(self, name: str) -> ControlSpec:
         """Liefert die ControlSpec zu einem Bezeichner, sonst ControlNichtGefunden."""
@@ -938,8 +981,20 @@ class UiSchreiber:
       Dry Run: Abbrechen, scharf: Speichern + Dialoge + Belegnummer aus der Einkaufsauftragsliste.
     * ``schreibe_verkauf_ab``: dasselbe mit Strg+N, Auftragsart "Auftragsbestätigung", Kundennummer,
       Bestellnummer, VK Preisgruppe 1 (nur kontrollieren), Summe gegen ``paket.summe_netto_vk``.
+    * ``schreibe_angebot``: wie die AB, Auftragsart "Angebot", je Position mit ``rabatt_prozent`` das Feld
+      "Rabatt %" (Geschäftsregel 16: nur im Verkauf).
+    * ``angebot_zu_ab``: Angebot in der Verkaufsauftragsliste markieren -> "Weiterführen" (Menü, sonst
+      Schaltfläche) bzw. "Auftrag wandeln" (Dialog, Zielbelegart) -> Auftragsart "Auftragsbestätigung" ->
+      Lieferdatum und AB-Text leeren (``Firma.lieferdatum_in_ab_loeschen`` / ``ab_text_loeschen``) ->
+      Positionen aus dem Angebot prüfen -> Summen -> Speichern. Dry Run: das Angebot wurde nicht gespeichert,
+      deshalb wird die AB im Assistenten direkt simuliert (mit geleerten Feldern) und abgebrochen.
     * ``auftrag_weiterfuehren_lieferschein``: AB in der Verkaufsauftragsliste markieren ->
       Bearbeiten -> Aufträge -> Weiterführen -> Auftragsart "Lieferschein" -> Assistent -> Dry Run/Speichern.
+    * ``pdf_ausgeben``: gespeicherten Beleg markieren -> je ``settings.lexware.pdf_ausgabe`` Druckdialog
+      (Formular, PDF-Drucker, Dateinamen-Dialog) oder PDF-Export mit Zielpfad; Dry Run liefert nur den
+      geplanten Pfad; ``keine`` protokolliert nur.
+    * Einkauf: Kundenbestellnummer in die Nachbemerkung (Seite Summen, Register "Nachbemerkung"), wenn
+      ``Firma.bestellnummer_in_nachbemerkung``.
 
     Ohne ``backend`` wird ``PywinautoBackend`` erzeugt (unter Linux: ``NichtAufWindows``).
     """
@@ -967,6 +1022,7 @@ class UiSchreiber:
         self.ablaufprotokoll: list[str] = []
         self._warnungen: list[str] = []
         self._speichern_geklickt = False
+        self._eigener_dialog_offen = False  # Druck-/Datei-/Export-/Wandeln-Dialog von uns geöffnet
 
     # ----------------------------------------------------------------- Protokoll
 
@@ -982,6 +1038,7 @@ class UiSchreiber:
         self.ablaufprotokoll = []
         self._warnungen = []
         self._speichern_geklickt = False
+        self._eigener_dialog_offen = False
 
     def _screenshots_ordner(self) -> Path:
         ordner = self.settings.lexware.screenshots_ordner or (self.settings.log_ordner / "screenshots")
@@ -1008,6 +1065,7 @@ class UiSchreiber:
         netto: Decimal | None = None,
         brutto: Decimal | None = None,
         fehler: str | None = None,
+        nachbemerkung: str | None = None,
     ) -> Belegergebnis:
         warnungen = list(self._warnungen) + [f"Ablauf: {z}" for z in self.ablaufprotokoll]
         return Belegergebnis(
@@ -1020,6 +1078,7 @@ class UiSchreiber:
             methode="ui_automation",
             fehler=fehler,
             warnungen=warnungen,
+            nachbemerkung=nachbemerkung,
         )
 
     def _fehlschlag(self, belegart: Belegart, dry_run: bool, exc: BaseException, name: str) -> Belegergebnis:
@@ -1028,11 +1087,35 @@ class UiSchreiber:
         pfad = getattr(exc, "screenshot", None) or self._screenshot(name)
         if pfad is not None:
             self._warnung(f"Screenshot: {pfad}")
+        self._eigene_dialoge_schliessen()
         if not self._speichern_geklickt and not isinstance(exc, DialogFehler):
             self._sicher_abbrechen()
         else:
             self._warnung("Lexware-Oberfläche wurde im aktuellen Zustand belassen, bitte manuell prüfen")
         return self._ergebnis(belegart, dry_run=dry_run, erfolgreich=False, fehler=text)
+
+    def _eigene_dialoge_schliessen(self) -> None:
+        """Best-effort: eigene Dialoge der PDF-Ausgabe / des Wandelns (Druck, Dateiname, Export, Wandeln)
+        mit 'Abbrechen' schließen, damit nichts gedruckt oder gewandelt wird. Fremde Dialoge bleiben
+        unberührt (sie behandelt ``dialoge.behandle_dialoge``)."""
+        if not self._eigener_dialog_offen:
+            return
+        c = self.controls
+        muster = (c.DRUCKDIALOG_TITEL_REGEX, c.DATEIDIALOG_TITEL_REGEX, c.EXPORTDIALOG_TITEL_REGEX, c.WANDELN_TITEL_REGEX)
+        try:
+            dialoge = self.backend.offene_dialoge()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Offene Dialoge nicht lesbar: %s", exc)
+            return
+        for dialog in dialoge:
+            if not any(re.search(m, dialog.titel or "", re.I) for m in muster):
+                continue
+            try:
+                self.backend.klicke(dialog, "DIALOG_ABBRECHEN")
+                self._protokoll(f"Dialog {dialog.titel!r} abgebrochen (nichts gedruckt/gewandelt)")
+            except Exception as exc:  # noqa: BLE001
+                self._warnung(f"Dialog {dialog.titel!r} konnte nicht abgebrochen werden ({exc}); bitte manuell schließen")
+        self._eigener_dialog_offen = False
 
     def _sicher_abbrechen(self) -> None:
         """Bestmöglich den offenen Assistenten verlassen, ohne zu speichern (nur vor 'Speichern')."""
@@ -1240,6 +1323,23 @@ class UiSchreiber:
 
     # ----------------------------------------------------------------- Positionen
 
+    def _setze_rabatt(self, assistent: Fenster, p: PositionsZuordnung, laufende_nr: int) -> None:
+        """Positionsrabatt in % (Feld "Rabatt %") nur setzen, wenn die Position einen Rabatt trägt.
+
+        Fehlt das Feld, bricht die Erfassung ab (ControlNichtGefunden): ohne Rabatt wäre der Preis falsch.
+        """
+        rabatt = p.rabatt_prozent
+        if not rabatt:
+            return
+        text = formatiere_menge(Decimal(rabatt))
+        # TODO-LEXWARE: Rabattfeld je Position (Prozent) – Beschriftung/automation_id und ob das Feld
+        # vor oder nach dem grünen Häkchen editierbar ist.
+        self.backend.setze_text(assistent, "RABATT", text, einzeln_tippen=True)
+        gelesen = self.backend.lese_text(assistent, "RABATT")
+        if parse_betrag(gelesen) != Decimal(rabatt):
+            raise AblaufFehler(f"Position {laufende_nr}: Rabatt {text!r} % eingegeben, Feld zeigt {gelesen!r}")
+        self._protokoll(f"Position {laufende_nr}: Positionsrabatt {text} % ({p.rabatt_quelle or 'ohne Quelle'})")
+
     def _tippe_menge(self, assistent: Fenster, menge: Decimal) -> str:
         text = formatiere_menge(menge)
         for versuch in (1, 2):
@@ -1283,6 +1383,9 @@ class UiSchreiber:
         self._protokoll(f"Position {laufende_nr}: Artikel {nummer} ({bezeichnung})")
         self._tippe_menge(assistent, p.menge)
         self._protokoll(f"Position {laufende_nr}: Menge {formatiere_menge(p.menge)} einzeln getippt und zurückgelesen")
+        if not einkauf:
+            # Geschäftsregel 16: Positionsrabatt nur im Verkauf (Angebot/AB), nie im Einkauf; VK bleibt Preisgruppe 1.
+            self._setze_rabatt(assistent, p, laufende_nr)
         warnungen: list[str] = []
         preis_gelesen = parse_betrag(self.backend.lese_text(assistent, "PREIS"))
         if preis_gelesen is None:
@@ -1426,10 +1529,233 @@ class UiSchreiber:
         self._protokoll(f"Belegnummer gelesen: {nummern[-1]}")
         return nummern[-1]
 
+    # ----------------------------------------------------------------- Felder leeren / Nachbemerkung
+
+    def _leere_feld(self, assistent: Fenster, control: str, beschreibung: str) -> None:
+        """Feldinhalt löschen (Lieferdatum, AB-Text) und prüfen, dass das Feld danach leer ist.
+
+        Fehlt das Feld, gibt es nur eine Warnung (es ist dann in Lexware nicht belegt oder anders benannt).
+        """
+        try:
+            self.backend.setze_text(assistent, control, "")
+            gelesen = self.backend.lese_text(assistent, control)
+        except ControlNichtGefunden as exc:
+            self._warnung(f"{beschreibung}: Feld {self.controls.titel(control)} nicht gefunden, nicht geleert ({exc})")
+            return
+        if gelesen.strip():
+            # TODO-LEXWARE: maskierte Datumsfelder lassen sich evtl. nur per Tastatur (Strg+A, Entf) leeren
+            self.backend.setze_text(assistent, control, "", einzeln_tippen=True)
+            gelesen = self.backend.lese_text(assistent, control)
+        if gelesen.strip():
+            raise AblaufFehler(f"{beschreibung}: Feld {self.controls.titel(control)} zeigt nach dem Leeren noch {gelesen!r}")
+        self._protokoll(f"{beschreibung} geleert")
+
+    def _setze_nachbemerkung(self, assistent: Fenster, text: str, *, dry_run: bool) -> str | None:
+        """Nachbemerkung auf der Seite Summen (Register "Nachbemerkung") setzen; liefert den gesetzten Text.
+
+        Scharf ist das Feld Pflicht (sonst würde ein unvollständiger Beleg gespeichert); im Dry Run nur Warnung.
+        """
+        try:
+            self.backend.klicke(assistent, "REGISTER_NACHBEMERKUNG")
+            self._protokoll("Register 'Nachbemerkung' geöffnet")
+        except ControlNichtGefunden as exc:
+            # TODO-LEXWARE: ob die Nachbemerkung ein eigenes Register oder direkt auf der Seite Summen sichtbar ist
+            logger.debug("Register Nachbemerkung nicht gefunden (%s); Feld wird direkt gesucht", exc)
+        gelesen = self._setze_pruefe(assistent, "NACHBEMERKUNG", text, pflicht=not dry_run)
+        return gelesen.strip() if gelesen.strip() == text.strip() else None
+
+    def _freier_pdf_pfad(self, ziel: Path) -> Path:
+        """Nie überschreiben: vorhandene Datei -> ``<stamm> (2).pdf``, ``(3)`` …"""
+        if not ziel.exists():
+            return ziel
+        for nr in range(2, 1000):
+            kandidat = ziel.with_name(f"{ziel.stem} ({nr}){ziel.suffix}")
+            if not kandidat.exists():
+                self._warnung(f"PDF {ziel.name} existiert bereits; neue Datei heißt {kandidat.name}")
+                return kandidat
+        raise AblaufFehler(f"Kein freier Dateiname für {ziel.name} gefunden")
+
+    # ----------------------------------------------------------------- Belege in der Liste markieren
+
+    def _markiere_verkaufsbeleg(self, haupt: Fenster, belegnummer: str, kunde: Any, bezeichnung: str) -> str:
+        """Verkaufsbeleg (AB oder Angebot) in der Verkaufsauftragsliste markieren; liefert die Partnernummer der Zeile.
+
+        Abbruch, wenn der Beleg fehlt, bereits weitergeführt ist (Status W) oder zu einem anderen Kunden gehört.
+        """
+        c = self.controls
+        nummer = belegnummer.strip()
+        self.backend.oeffne_menue(c.MENUE_AUFTRAGSLISTE_VERKAUF)
+        zeilen = self.backend.lese_liste(haupt, "AUFTRAGSLISTE_VERKAUF")
+        treffer = [z for z in zeilen if _spalte(z, c.SPALTE_BELEGNUMMER, "Beleg-Nr.", "Nummer") == nummer]
+        if not treffer:
+            raise AblaufFehler(f"{bezeichnung} {nummer} nicht in der Verkaufsauftragsliste gefunden")
+        zeile = treffer[-1]
+        status = _spalte(zeile, c.SPALTE_STATUS)
+        if re.search(r"\bW\b", status):
+            raise AblaufFehler(f"{bezeichnung} {nummer} ist bereits weitergeführt (Status {status!r})")
+        partner = _spalte(zeile, c.SPALTE_KUNDENNUMMER, "Kunde")
+        if kunde is not None and partner and partner != kunde.kundennummer:
+            raise AblaufFehler(f"{bezeichnung} {nummer} gehört zu Kunde {partner}, Paket zu {kunde.kundennummer}")
+        self.backend.waehle_listeneintrag(haupt, "AUFTRAGSLISTE_VERKAUF", nummer)
+        self._protokoll(f"{bezeichnung} {nummer} in der Auftragsliste markiert")
+        return partner
+
+    def _markiere_beleg_fuer_pdf(self, haupt: Fenster, beleg: Belegergebnis) -> None:
+        c = self.controls
+        einkauf = beleg.belegart == Belegart.BESTELLUNG
+        liste = "AUFTRAGSLISTE_EINKAUF" if einkauf else "AUFTRAGSLISTE_VERKAUF"
+        menue = c.MENUE_AUFTRAGSLISTE_EINKAUF if einkauf else c.MENUE_AUFTRAGSLISTE_VERKAUF
+        nummer = (beleg.belegnummer or "").strip()
+        try:
+            self.backend.oeffne_menue(menue)
+        except ControlNichtGefunden as exc:
+            self._warnung(f"Auftragsliste konnte nicht geöffnet werden ({exc}); versuche die sichtbare Liste")
+        self.backend.waehle_listeneintrag(haupt, liste, nummer)
+        self._protokoll(f"{beleg.belegart.value} {nummer} für die PDF-Ausgabe markiert")
+
+    # ----------------------------------------------------------------- Weiterführen / Wandeln
+
+    def _weiterfuehren(self, haupt: Fenster) -> None:
+        """'Weiterführen' über das Menü, sonst über die Schaltfläche der Aktionsleiste."""
+        c = self.controls
+        try:
+            self.backend.oeffne_menue(c.MENUE_AUFTRAG_WEITERFUEHREN)
+            self._protokoll("'Auftrag weiterführen' aufgerufen (Menü)")
+            return
+        except ControlNichtGefunden as exc:
+            self._warnung(f"Menü 'Weiterführen' nicht verfügbar ({exc}); Schaltfläche 'Weiterführen' wird geklickt")
+        self.backend.klicke(haupt, "WEITERFUEHREN_BUTTON")
+        self._protokoll("'Weiterführen' per Schaltfläche aufgerufen")
+
+    def _wandeln(self, haupt: Fenster, zielart: str) -> None:
+        """'Auftrag wandeln': Dialog öffnen, Zielbelegart wählen, OK."""
+        c = self.controls
+        self.backend.oeffne_menue(c.MENUE_AUFTRAG_WANDELN)
+        self._eigener_dialog_offen = True
+        dialog = self.backend.finde_dialog(c.WANDELN_TITEL_REGEX)
+        self._protokoll(f"Dialog 'Auftrag wandeln' geöffnet: {dialog.titel!r}")
+        self._waehle_und_pruefe(dialog, "WANDELN_ZIELART", zielart)
+        self.backend.klicke(dialog, "DIALOG_OK")
+        self._eigener_dialog_offen = False
+        self._protokoll(f"'Auftrag wandeln' nach {zielart!r} bestätigt")
+
+    # ----------------------------------------------------------------- Verkaufsbelege im Assistenten
+
+    def _verkaufsbeleg_neu(
+        self,
+        paket: Belegpaket,
+        *,
+        auftragsart: str,
+        belegart: Belegart,
+        dry_run: bool,
+        lieferdatum_leeren: bool = False,
+        ab_text_leeren: bool = False,
+    ) -> Belegergebnis:
+        """Verkaufsbeleg (Angebot oder AB) neu im Assistenten erfassen: Strg+N -> Auftragsart -> Kunde ->
+        Bestellnummer -> Lieferdatum (setzen oder leeren) -> AB-Text (leeren) -> Lieferadresse -> Freifelder ->
+        Positionen (VK Preisgruppe 1, Positionsrabatt) -> Summen -> Dry Run: Abbrechen / scharf: Speichern."""
+        positionen = self._pruefe_paket(paket, einkauf=False, dry_run=dry_run)
+        kunde = paket.kunde.kunde
+        assert kunde is not None
+        belegfelder = self._belegfelder(paket, dry_run)
+        haupt = self._vorbereiten()
+        assistent = self._oeffne_assistent(haupt, einkauf=False)
+        self._waehle_und_pruefe(assistent, "AUFTRAGSART", auftragsart)
+        self._setze_partner(assistent, "KUNDENNUMMER", kunde.kundennummer, kunde.name)
+        if paket.roh.bestellnummer:
+            self._setze_pruefe(assistent, "BESTELLNUMMER", paket.roh.bestellnummer)
+        if lieferdatum_leeren:
+            self._leere_feld(assistent, "LIEFERDATUM", "Lieferdatum (Fixtermin steht in der Fixterminüberwachung)")
+        else:
+            self._setze_datum(assistent, "LIEFERDATUM", paket.roh.liefertag)
+        if ab_text_leeren:
+            self._leere_feld(assistent, "AB_TEXT", "AB-Text")
+        if paket.roh.lieferadresse:
+            # TODO-LEXWARE: abweichende Lieferanschrift evtl. nur am Lieferschein wählbar
+            self._setze_pruefe(assistent, "LIEFERADRESSE", paket.roh.lieferadresse, pflicht=False)
+        self._setze_belegfelder(assistent, belegfelder)
+        self._weiter(assistent, AssistentSchritt.POSITIONEN)
+        self._erfasse_positionen(assistent, positionen, einkauf=False)
+        self._weiter(assistent, AssistentSchritt.SUMMEN)
+        netto, brutto = self._lese_summen(assistent)
+        self._pruefe_summe(netto, paket.summe_netto_vk, "erwartetem Netto-VK")
+        if dry_run:
+            self._abbrechen(assistent)
+            return self._ergebnis(belegart, dry_run=True, erfolgreich=True, netto=netto, brutto=brutto)
+        self._speichern(assistent)
+        nummer = self._lese_belegnummer(haupt, einkauf=False, auftragsart=auftragsart, partnernummer=kunde.kundennummer)
+        return self._ergebnis(belegart, dry_run=False, erfolgreich=True, belegnummer=nummer, netto=netto, brutto=brutto)
+
+    # ----------------------------------------------------------------- PDF-Ausgabe
+
+    def _pdf_per_drucker(self, formular: str | None, ziel: Path, drucker: str) -> None:
+        """Druckdialog -> Formular -> PDF-Drucker -> Drucken -> Dateinamen-Dialog mit Zielpfad -> Speichern."""
+        c = self.controls
+        self.backend.oeffne_menue(c.MENUE_BELEG_DRUCKEN)
+        self._eigener_dialog_offen = True
+        dialog = self.backend.finde_dialog(c.DRUCKDIALOG_TITEL_REGEX)
+        self._protokoll(f"Druckdialog geöffnet: {dialog.titel!r}")
+        if formular:
+            self._waehle_und_pruefe(dialog, "DRUCK_FORMULAR", formular)
+        else:
+            self._warnung("Kein Formular konfiguriert; Lexware-Standardformular wird gedruckt")
+        self._waehle_und_pruefe(dialog, "DRUCK_DRUCKER", drucker)
+        self.backend.klicke(dialog, "DRUCK_STARTEN")
+        # TODO-LEXWARE: Dialog des PDF-Druckers (Microsoft Print to PDF: "Druckausgabe speichern unter");
+        # Feld "Dateiname:" nimmt einen vollständigen Pfad an.
+        datei_dialog = self.backend.finde_dialog(c.DATEIDIALOG_TITEL_REGEX)
+        self.backend.setze_text(datei_dialog, "DATEIDIALOG_NAME", str(ziel))
+        gelesen = self.backend.lese_text(datei_dialog, "DATEIDIALOG_NAME").strip()
+        if gelesen != str(ziel):
+            raise AblaufFehler(f"Dateinamen-Dialog: {str(ziel)!r} eingegeben, Feld zeigt {gelesen!r}")
+        self.backend.klicke(datei_dialog, "DATEIDIALOG_SPEICHERN")
+        self._eigener_dialog_offen = False
+        self._protokoll(f"Dateinamen-Dialog bestätigt: {ziel.name}")
+
+    def _pdf_per_export(self, formular: str | None, ziel: Path) -> None:
+        """'Exportieren als PDF' mit Formular und Zielpfad."""
+        c = self.controls
+        self.backend.oeffne_menue(c.MENUE_BELEG_EXPORT_PDF)
+        self._eigener_dialog_offen = True
+        dialog = self.backend.finde_dialog(c.EXPORTDIALOG_TITEL_REGEX)
+        self._protokoll(f"Exportdialog geöffnet: {dialog.titel!r}")
+        if formular:
+            self._waehle_und_pruefe(dialog, "EXPORT_FORMULAR", formular)
+        self.backend.setze_text(dialog, "EXPORT_DATEINAME", str(ziel))
+        gelesen = self.backend.lese_text(dialog, "EXPORT_DATEINAME").strip()
+        if gelesen != str(ziel):
+            raise AblaufFehler(f"Exportdialog: {str(ziel)!r} eingegeben, Feld zeigt {gelesen!r}")
+        self.backend.klicke(dialog, "EXPORT_OK")
+        self._eigener_dialog_offen = False
+        self._protokoll(f"PDF-Export bestätigt: {ziel.name}")
+
+    def _pdf_erzeugen(self, beleg: Belegergebnis, formular: str | None, ziel: Path, modus: str) -> Path:
+        drucker = self.settings.lexware.pdf_drucker
+        if modus == "drucker" and "pdf" not in (drucker or "").casefold():
+            # Sicherheitsnetz "nie Papier": nur Drucker mit "PDF" im Namen
+            raise AblaufFehler(
+                f"pdf_drucker {drucker!r} trägt kein 'PDF' im Namen – nichts gedruckt (Papierdruck ist ausgeschlossen)"
+            )
+        haupt = self._vorbereiten()
+        self._markiere_beleg_fuer_pdf(haupt, beleg)
+        ziel = self._freier_pdf_pfad(ziel)
+        ziel.parent.mkdir(parents=True, exist_ok=True)
+        if modus == "drucker":
+            self._pdf_per_drucker(formular, ziel, drucker)
+        else:
+            self._pdf_per_export(formular, ziel)
+        vorhanden = self.backend.warte_bis(lambda: ziel.exists(), beschreibung=f"PDF {ziel.name} geschrieben")
+        self._behandle_dialoge(DialogKontext.PDF_AUSGABE)
+        if not vorhanden and not ziel.exists():
+            raise AblaufFehler(f"PDF {ziel} wurde nicht erzeugt (Datei fehlt nach der Wartezeit)")
+        self._protokoll(f"PDF erzeugt: {ziel}")
+        return ziel
+
     # ----------------------------------------------------------------- Öffentliche Abläufe
 
     def schreibe_einkauf_bestellung(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
-        """Bestellung im Einkauf anlegen (Lieferant = Weingut, Preise = EK aus dem Stamm, Feld Customer = Endkunde)."""
+        """Bestellung im Einkauf anlegen (Lieferant = Weingut, Preise = EK aus dem Stamm, Feld Customer = Endkunde,
+        Kundenbestellnummer in der Nachbemerkung, wenn die Firma das vorsieht)."""
         self._neuer_lauf()
         modus = "Dry Run" if dry_run else "scharf"
         logger.info("UI Einkauf-Bestellung (%s): Firma %s, Quelldatei %s", modus, self.firma.id, paket.roh.quelldatei.name)
@@ -1438,6 +1764,7 @@ class UiSchreiber:
             lieferant = paket.lieferant.lieferant
             assert lieferant is not None
             belegfelder = self._belegfelder(paket, dry_run)
+            nachbemerkung = nachbemerkung_einkauf(paket, self.firma)
             haupt = self._vorbereiten()
             assistent = self._oeffne_assistent(haupt, einkauf=True)
             self._waehle_und_pruefe(assistent, "AUFTRAGSART", self.controls.AUFTRAGSART_BESTELLUNG)
@@ -1451,55 +1778,131 @@ class UiSchreiber:
             self._weiter(assistent, AssistentSchritt.SUMMEN)
             netto, brutto = self._lese_summen(assistent)
             self._pruefe_summe(netto, paket.summe_netto_ek, "erwartetem Netto-EK")
+            gesetzt: str | None = None
+            if nachbemerkung:
+                gesetzt = self._setze_nachbemerkung(assistent, nachbemerkung, dry_run=dry_run)
             if dry_run:
                 self._abbrechen(assistent)
-                return self._ergebnis(Belegart.BESTELLUNG, dry_run=True, erfolgreich=True, netto=netto, brutto=brutto)
+                return self._ergebnis(
+                    Belegart.BESTELLUNG, dry_run=True, erfolgreich=True, netto=netto, brutto=brutto, nachbemerkung=gesetzt
+                )
             self._speichern(assistent)
             nummer = self._lese_belegnummer(
                 haupt, einkauf=True, auftragsart=self.controls.AUFTRAGSART_BESTELLUNG, partnernummer=lieferant.lieferantennummer
             )
-            return self._ergebnis(Belegart.BESTELLUNG, dry_run=False, erfolgreich=True, belegnummer=nummer, netto=netto, brutto=brutto)
+            return self._ergebnis(
+                Belegart.BESTELLUNG, dry_run=False, erfolgreich=True, belegnummer=nummer, netto=netto, brutto=brutto,
+                nachbemerkung=gesetzt,
+            )
         except Exception as exc:  # noqa: BLE001 - jeder Fehler wird als Belegergebnis gemeldet
             return self._fehlschlag(Belegart.BESTELLUNG, dry_run, exc, "einkauf_fehler")
 
     def schreibe_verkauf_ab(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
-        """Auftragsbestätigung im Verkauf anlegen (Kunde per Kundennummer, Preise = VK Preisgruppe 1 aus dem Stamm)."""
+        """Auftragsbestätigung im Verkauf direkt anlegen (Weg ``direkt_ab``; Kunde per Kundennummer, Preise = VK
+        Preisgruppe 1 aus dem Stamm, Positionsrabatte)."""
         self._neuer_lauf()
         modus = "Dry Run" if dry_run else "scharf"
         logger.info("UI Verkauf-AB (%s): Firma %s, Quelldatei %s", modus, self.firma.id, paket.roh.quelldatei.name)
         try:
-            positionen = self._pruefe_paket(paket, einkauf=False, dry_run=dry_run)
-            kunde = paket.kunde.kunde
-            assert kunde is not None
-            belegfelder = self._belegfelder(paket, dry_run)
-            haupt = self._vorbereiten()
-            assistent = self._oeffne_assistent(haupt, einkauf=False)
-            self._waehle_und_pruefe(assistent, "AUFTRAGSART", self.controls.AUFTRAGSART_AB)
-            self._setze_partner(assistent, "KUNDENNUMMER", kunde.kundennummer, kunde.name)
-            if paket.roh.bestellnummer:
-                self._setze_pruefe(assistent, "BESTELLNUMMER", paket.roh.bestellnummer)
-            self._setze_datum(assistent, "LIEFERDATUM", paket.roh.liefertag)
-            if paket.roh.lieferadresse:
-                # TODO-LEXWARE: abweichende Lieferanschrift evtl. nur am Lieferschein wählbar
-                self._setze_pruefe(assistent, "LIEFERADRESSE", paket.roh.lieferadresse, pflicht=False)
-            self._setze_belegfelder(assistent, belegfelder)
-            self._weiter(assistent, AssistentSchritt.POSITIONEN)
-            self._erfasse_positionen(assistent, positionen, einkauf=False)
-            self._weiter(assistent, AssistentSchritt.SUMMEN)
-            netto, brutto = self._lese_summen(assistent)
-            self._pruefe_summe(netto, paket.summe_netto_vk, "erwartetem Netto-VK")
-            if dry_run:
-                self._abbrechen(assistent)
-                return self._ergebnis(Belegart.AUFTRAGSBESTAETIGUNG, dry_run=True, erfolgreich=True, netto=netto, brutto=brutto)
-            self._speichern(assistent)
-            nummer = self._lese_belegnummer(
-                haupt, einkauf=False, auftragsart=self.controls.AUFTRAGSART_AB, partnernummer=kunde.kundennummer
-            )
-            return self._ergebnis(
-                Belegart.AUFTRAGSBESTAETIGUNG, dry_run=False, erfolgreich=True, belegnummer=nummer, netto=netto, brutto=brutto
+            return self._verkaufsbeleg_neu(
+                paket, auftragsart=self.controls.AUFTRAGSART_AB, belegart=Belegart.AUFTRAGSBESTAETIGUNG, dry_run=dry_run
             )
         except Exception as exc:  # noqa: BLE001
             return self._fehlschlag(Belegart.AUFTRAGSBESTAETIGUNG, dry_run, exc, "verkauf_fehler")
+
+    def schreibe_angebot(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
+        """Angebot im Verkauf anlegen (Auftragsart "Angebot", Kunde, Positionen mit VK Preisgruppe 1 und
+        Positionsrabatt in %). Dry Run bricht vor "Speichern" ab."""
+        self._neuer_lauf()
+        modus = "Dry Run" if dry_run else "scharf"
+        logger.info("UI Angebot (%s): Firma %s, Quelldatei %s", modus, self.firma.id, paket.roh.quelldatei.name)
+        try:
+            rabatte = [p for p in paket.aktive_positionen() if p.rabatt_prozent]
+            self._protokoll(
+                f"Verkaufsweg {weg_beschreibung(self.firma.verkauf_weg)}: Angebot mit {len(rabatte)} Positionsrabatt(en)"
+            )
+            return self._verkaufsbeleg_neu(
+                paket, auftragsart=self.controls.AUFTRAGSART_ANGEBOT, belegart=Belegart.ANGEBOT, dry_run=dry_run
+            )
+        except Exception as exc:  # noqa: BLE001
+            return self._fehlschlag(Belegart.ANGEBOT, dry_run, exc, "angebot_fehler")
+
+    def angebot_zu_ab(
+        self,
+        angebot: Belegergebnis,
+        paket: Belegpaket,
+        *,
+        weg: Verkaufsweg = "angebot_weiterfuehren",
+        dry_run: bool = True,
+    ) -> Belegergebnis:
+        """Angebot -> Auftragsbestätigung per "Weiterführen" oder "Auftrag wandeln"; Lieferdatum und AB-Text
+        werden laut Firma geleert. Dry Run: das Angebot ist nicht gespeichert, deshalb wird die AB im
+        Assistenten direkt simuliert (mit geleerten Feldern) und vor dem Speichern abgebrochen."""
+        self._neuer_lauf()
+        modus = "Dry Run" if dry_run else "scharf"
+        c = self.controls
+        logger.info("UI Angebot -> AB per %s (%s): Firma %s", weg, modus, self.firma.id)
+        try:
+            if weg not in ANGEBOTSWEGE:
+                raise AblaufFehler(f"Unbekannter Verkaufsweg {weg!r} (erlaubt: {', '.join(ANGEBOTSWEGE)})")
+            lieferdatum_leeren = bool(self.firma.lieferdatum_in_ab_loeschen)
+            ab_text_leeren = bool(self.firma.ab_text_loeschen)
+            if dry_run:
+                self._protokoll(
+                    f"Dry Run: '{weg_beschreibung(weg)}' setzt ein gespeichertes Angebot voraus (es wurde abgebrochen) – "
+                    "AB-Assistent wird direkt simuliert"
+                )
+                return self._verkaufsbeleg_neu(
+                    paket,
+                    auftragsart=c.AUFTRAGSART_AB,
+                    belegart=Belegart.AUFTRAGSBESTAETIGUNG,
+                    dry_run=True,
+                    lieferdatum_leeren=lieferdatum_leeren,
+                    ab_text_leeren=ab_text_leeren,
+                )
+            nummer = (angebot.belegnummer or "").strip()
+            if not angebot.erfolgreich or angebot.dry_run or not nummer:
+                raise AblaufFehler("Angebot wurde nicht gespeichert bzw. hat keine Belegnummer – Weiterführen/Wandeln nicht möglich")
+            positionen = self._pruefe_paket(paket, einkauf=False, dry_run=dry_run)
+            kunde = paket.kunde.kunde
+            assert kunde is not None
+            haupt = self._vorbereiten()
+            self._markiere_verkaufsbeleg(haupt, nummer, kunde, "Angebot")
+            if weg == "angebot_weiterfuehren":
+                self._weiterfuehren(haupt)
+            else:
+                self._wandeln(haupt, c.AUFTRAGSART_AB)
+            assistent = self.backend.finde_dialog(c.ASSISTENT_VERKAUF_TITEL_REGEX)
+            self._behandle_dialoge(DialogKontext.ASSISTENT)
+            if self._schritt(assistent) != AssistentSchritt.KOPF:
+                raise AblaufFehler(f"Assistent nach '{weg_beschreibung(weg)}' nicht auf Seite 1")
+            # TODO-LEXWARE: ob die Auftragsart nach dem Weiterführen schon auf AB steht oder zu wählen ist
+            self._waehle_und_pruefe(assistent, "AUFTRAGSART", c.AUFTRAGSART_AB)
+            if lieferdatum_leeren:
+                self._leere_feld(assistent, "LIEFERDATUM", "Lieferdatum (Fixtermin steht in der Fixterminüberwachung)")
+            if ab_text_leeren:
+                self._leere_feld(assistent, "AB_TEXT", "AB-Text")
+            self._weiter(assistent, AssistentSchritt.POSITIONEN)
+            uebernommen = self.backend.lese_liste(assistent, "POSITIONSLISTE")
+            if not uebernommen:
+                raise AblaufFehler("Keine Positionen aus dem Angebot übernommen")
+            erwartet = {p.artikel.artikelnummer for p in positionen if p.artikel is not None}
+            vorhanden = {_spalte(z, c.SPALTE_ARTIKELNUMMER, "Artikel-Nr.", "Nummer") for z in uebernommen}
+            if erwartet != vorhanden:
+                raise AblaufFehler(
+                    f"Positionen der AB ({sorted(vorhanden)}) weichen vom Angebot/Paket ({sorted(erwartet)}) ab"
+                )
+            self._protokoll(f"{len(uebernommen)} Positionen aus dem Angebot übernommen (Rabatte laut Angebot)")
+            self._weiter(assistent, AssistentSchritt.SUMMEN)
+            netto, brutto = self._lese_summen(assistent)
+            self._pruefe_summe(netto, paket.summe_netto_vk, "erwartetem Netto-VK")
+            self._speichern(assistent)
+            nummer_ab = self._lese_belegnummer(haupt, einkauf=False, auftragsart=c.AUFTRAGSART_AB, partnernummer=kunde.kundennummer)
+            return self._ergebnis(
+                Belegart.AUFTRAGSBESTAETIGUNG, dry_run=False, erfolgreich=True, belegnummer=nummer_ab, netto=netto, brutto=brutto
+            )
+        except Exception as exc:  # noqa: BLE001
+            return self._fehlschlag(Belegart.AUFTRAGSBESTAETIGUNG, dry_run, exc, "angebot_zu_ab_fehler")
 
     def auftrag_weiterfuehren_lieferschein(
         self, paket: Belegpaket, ab_belegnummer: str, *, dry_run: bool = True
@@ -1516,20 +1919,7 @@ class UiSchreiber:
                 raise AblaufFehler("Lieferschein nur nach Freigabe und mit lieferschein_erstellen=True")
             kunde = paket.kunde.kunde
             haupt = self._vorbereiten()
-            self.backend.oeffne_menue(c.MENUE_AUFTRAGSLISTE_VERKAUF)
-            zeilen = self.backend.lese_liste(haupt, "AUFTRAGSLISTE_VERKAUF")
-            treffer = [z for z in zeilen if _spalte(z, c.SPALTE_BELEGNUMMER, "Beleg-Nr.", "Nummer") == ab_belegnummer.strip()]
-            if not treffer:
-                raise AblaufFehler(f"AB {ab_belegnummer} nicht in der Verkaufsauftragsliste gefunden")
-            zeile = treffer[-1]
-            status = _spalte(zeile, c.SPALTE_STATUS)
-            if re.search(r"\bW\b", status):
-                raise AblaufFehler(f"AB {ab_belegnummer} ist bereits weitergeführt (Status {status!r})")
-            partner = _spalte(zeile, c.SPALTE_KUNDENNUMMER, "Kunde")
-            if kunde is not None and partner and partner != kunde.kundennummer:
-                raise AblaufFehler(f"AB {ab_belegnummer} gehört zu Kunde {partner}, Paket zu {kunde.kundennummer}")
-            self.backend.waehle_listeneintrag(haupt, "AUFTRAGSLISTE_VERKAUF", ab_belegnummer.strip())
-            self._protokoll(f"AB {ab_belegnummer} in der Auftragsliste markiert")
+            partner = self._markiere_verkaufsbeleg(haupt, ab_belegnummer, kunde, "AB")
             self.backend.oeffne_menue(c.MENUE_AUFTRAG_WEITERFUEHREN)
             self._protokoll("'Auftrag weiterführen' aufgerufen")
             assistent = self.backend.finde_dialog(c.ASSISTENT_VERKAUF_TITEL_REGEX)
@@ -1563,3 +1953,41 @@ class UiSchreiber:
             return self._ergebnis(Belegart.LIEFERSCHEIN, dry_run=False, erfolgreich=True, belegnummer=nummer, netto=netto, brutto=brutto)
         except Exception as exc:  # noqa: BLE001
             return self._fehlschlag(Belegart.LIEFERSCHEIN, dry_run, exc, "lieferschein_fehler")
+
+    def pdf_ausgeben(
+        self, beleg: Belegergebnis, *, formular: str | None, dateiname: str, dry_run: bool = True
+    ) -> Path | None:
+        """Gespeicherten Beleg als PDF ausgeben (siehe Klassen-Docstring). Liefert den Pfad oder ``None``;
+        Hinweise und Ablauf landen in ``beleg.warnungen``. Fehler brechen die Buchung nicht ab (der Beleg
+        ist bereits gespeichert), sondern ergeben ``None`` plus Warnung und Screenshot."""
+        self._neuer_lauf()
+        modus = str(self.settings.lexware.pdf_ausgabe)
+        ziel = pdf_zielpfad(self.settings, dateiname)
+        beschreibung = f"{beleg.belegart.value} {beleg.belegnummer or '(ohne Nummer)'}, Formular {formular or 'Standard'}"
+        logger.info("UI PDF-Ausgabe (%s, %s): %s -> %s", "Dry Run" if dry_run else "scharf", modus, beschreibung, ziel)
+        ergebnis: Path | None = None
+        try:
+            if modus == "keine":
+                self._warnung(f"PDF-Ausgabe abgeschaltet (pdf_ausgabe=keine): {ziel.name} für {beschreibung} nicht erzeugt")
+            elif modus not in ("drucker", "export"):
+                raise AblaufFehler(f"Unbekannter Modus pdf_ausgabe={modus!r} (erlaubt: keine, drucker, export)")
+            elif dry_run:
+                self._protokoll(f"Dry Run: PDF {ziel} ({beschreibung}) per '{modus}' geplant, nicht erzeugt")
+                ergebnis = ziel
+            elif not beleg.erfolgreich or beleg.dry_run or not (beleg.belegnummer or "").strip():
+                self._warnung(f"PDF {ziel.name} nicht möglich: Beleg nicht gespeichert oder ohne Belegnummer ({beschreibung})")
+            else:
+                ergebnis = self._pdf_erzeugen(beleg, formular, ziel, modus)
+        except Exception as exc:  # noqa: BLE001 - PDF-Fehler dürfen die Buchung nicht abbrechen
+            text = f"{type(exc).__name__}: {exc}"
+            logger.error("PDF-Ausgabe %s fehlgeschlagen: %s", ziel.name, text)
+            pfad = getattr(exc, "screenshot", None) or self._screenshot("pdf_fehler")
+            if pfad is not None:
+                self._warnung(f"Screenshot: {pfad}")
+            self._eigene_dialoge_schliessen()
+            self._warnung(f"PDF-Ausgabe {ziel.name} fehlgeschlagen: {text} (Beleg ist gespeichert; PDF bitte manuell erzeugen)")
+        beleg.warnungen.extend(self._warnungen)
+        beleg.warnungen.extend(f"Ablauf: {z}" for z in self.ablaufprotokoll)
+        if ergebnis is not None and beleg.pdf is None:
+            beleg.pdf = ergebnis
+        return ergebnis

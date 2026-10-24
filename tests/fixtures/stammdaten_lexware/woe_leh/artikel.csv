@@ -1,0 +1,8 @@
+﻿Artikelnummer;Bezeichnung;Kurzbezeichnung;Warengruppe;Warengr.-Kurzbez.;Einheit;Gewicht;Matchcode;Preis pro Anzahl;Preis 1;Preis 2;Preis 3;B/N;Lagerartikel;EK Preis Lf.1;EK Preis Lf.2;Lieferantennummer 1;Lieferantennummer 2;Bestellnr. Lf.1;Gesperrt;Sperrgrund;Lagerbestand;Benutzerdefiniert 1;Benutzerdefiniert 2;Benutzerdefiniert 3;Hauptbarcode
+4001;Quinta Beispiel Vinho Verde DOC halbtrocken;;Quinta Beispiel;QUIN;75 cl;1,25;VERDE;1;2,10;2,10;2,10;N;J;1,14;0,00;210;;;N;;0;;;;4099999000100
+4002;Quinta Beispiel Vinho Verde Rosé DOC;;Quinta Beispiel;QUIN;75 cl;1,25;VERDEROSE;1;2,30;2,30;2,30;N;J;1,25;0,00;210;;;N;;0;;;;4099999000117
+4003;Quinta Beispiel Alvarinho;;Quinta Beispiel;QUIN;75 cl;1,25;ALVAR;1;6,50;6,50;6,50;N;J;3,90;0,00;210;;;N;;0;;2023;;
+4004;Villa Armellina Gloria Secco Frizzante;;Cide;CIDE;75 cl;1,25;GLORIA;1;6,90;6,90;6,90;N;J;4,20;0,00;72;;;N;;0;;;;
+4005;Villa Armellina Gloria Secco Frizzante Magnum;;Cide;CIDE;150 cl;1,25;GLORIA15;1;15,90;15,90;15,90;N;J;9,80;0,00;72;;;N;;0;;;;
+4006;Colosi Nero d'Avola Sicilia DOC;;Colosi;COLO;75 cl;1,25;NERO;1;8,40;8,40;8,40;N;J;5,10;0,00;87;;;N;;0;;2022;;
+4007;Alter Artikel ohne Lieferant;;Diverse;DIVE;75 cl;1,25;ALT;1;0,00;0,00;0,00;N;J;0,00;0,00;;;;J;Lieferant gewechselt;0;;abc;;

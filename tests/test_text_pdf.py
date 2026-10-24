@@ -596,6 +596,10 @@ def test_beispiel_pdfs_erzeugen_idempotent(tmp_path: Path):
         "kundenbestellung_menrath.pdf",
         "eigene_bestellung_cide.pdf",
         "scan_preisliste.pdf",
+        "spar_sap_bestellung.pdf",
+        "lagerbestellung_edeka.pdf",
+        "shop_bestellung_fachhandel.pdf",
+        "kundenbestellung_revised.pdf",
     ]
     assert all(p.is_file() and p.stat().st_size > 0 for p in pfade)
     inhalte = [p.read_bytes() for p in pfade]

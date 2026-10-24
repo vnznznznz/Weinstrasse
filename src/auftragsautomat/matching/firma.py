@@ -7,8 +7,23 @@ Reihenfolge (docs/ARCHITEKTUR.md, Abschnitt ``matching/firma.py``):
    tiefer verschachtelt), ist das die Firma; Quelle ``"eingang_ordner"``. Relative Pfade und
    Dateien außerhalb des Eingangsordners (z. B. aus ``archiv/<firma>/``) werden anhand der
    Ordnernamen im Pfad erkannt.
+1b. **Firmen-Gedächtnis** (``config/firmen_gedaechtnis.yaml``, gelernte Antworten aus der Freigabe,
+   :mod:`auftragsautomat.matching.firmenwahl`): Regel zu Kunde + Lieferant, sonst zu Kunde
+   allgemein (Kundentext, Adresse und Alias-Namen aus dem Dokument gegen die gelernten Kurznamen)
+   -> Quelle ``"gedaechtnis"`` plus ``Pruefhinweis(FIRMA_GELERNT, INFO)`` ("gelernt am … von …").
+   Nur, wenn ``settings.firmenwahl.gedaechtnis_vor_katalog`` an ist; sonst wird das Gedächtnis
+   erst befragt, wenn der Katalog (2b) fragen müsste.
 2. **Kunden-Alias** (``kunden.yaml``) im Kundentext, in der Kundenadresse oder zuletzt im
    Rohtext -> Quelle ``"alias_kunde"``.
+2b. **Firmenkatalog** (``config/firmenkatalog.yaml``, Kundengruppen laut Anwender): Muster im
+   Kundentext/in der Adresse -> Kundengruppe und mögliche Firmen (``FirmaErgebnis.kundengruppe``).
+   Genau eine Firma (eigenständiger LEH; Fachhandel mit Lieferant laut Katalog) -> Quelle
+   ``"katalog"``. Mehrere Firmen (Region, Kette, Großkunde: WIK LEH oder WOE; Fachhandel mit
+   unbekanntem Lieferanten) und ``settings.firmenwahl.fragen_wenn_unklar`` -> **Ende der Suche**
+   mit ``FirmaErgebnis(None, None, [FIRMA_UNKLAR WARNUNG "Bitte Firma wählen (Kundengruppe …): A
+   oder B"], kandidaten=firmen, kundengruppe)``; die Stammdaten könnten den Kunden in beiden
+   Firmen führen, die Entscheidung trifft der Anwender (Geschäftsregel 17) und das Tool merkt sie
+   sich. Ist ``fragen_wenn_unklar`` aus, geht es wie bisher weiter.
 3. **Lieferanten-Alias** (``lieferanten.yaml``) im Lieferantentext, über die Produktmarken der
    Positionen oder zuletzt im Rohtext -> Quelle ``"alias_lieferant"``.
 4. **Stammdaten** – Kundensuche (:class:`~auftragsautomat.matching.partner.KundenMatcher`) in
@@ -20,10 +35,11 @@ Reihenfolge (docs/ARCHITEKTUR.md, Abschnitt ``matching/firma.py``):
    Firmen liefern.
 
 Sonst ``FirmaErgebnis(None, None)``; den blockierenden ``Pruefhinweis(FIRMA_UNKLAR, FEHLER)``
-erzeugt ``matching.pruefung``. Widersprechen sich Eingangsordner und Kunden-Alias, gewinnt der
-Ordner, das Ergebnis enthält aber einen ``Pruefhinweis(FIRMA_UNKLAR, WARNUNG)`` mit beiden Werten
-(ein Lieferanten-Alias ist keine Gegenprobe: dasselbe Weingut liefert oft an mehrere Mandanten).
-Sind Aliase oder Stammdaten mehrdeutig (mehrere Firmen), steht das als WARNUNG mit den
+erzeugt ``matching.pruefung`` (mit ``details["kandidaten"]`` und ``details["kundengruppe"]``, damit
+die Freigabe-UI die Auswahl anbieten kann). Widersprechen sich Eingangsordner und Kunden-Alias,
+gewinnt der Ordner, das Ergebnis enthält aber einen ``Pruefhinweis(FIRMA_UNKLAR, WARNUNG)`` mit
+beiden Werten (ein Lieferanten-Alias ist keine Gegenprobe: dasselbe Weingut liefert oft an mehrere
+Mandanten). Sind Aliase oder Stammdaten mehrdeutig (mehrere Firmen), steht das als WARNUNG mit den
 Kandidaten im Ergebnis.
 
 :class:`FirmaErgebnis` lässt sich wie das in der Architektur beschriebene Tupel entpacken:
@@ -39,8 +55,17 @@ from pathlib import Path
 
 from auftragsautomat.config import Settings
 from auftragsautomat.matching.aliase import AliasTabellen, enthaelt_als_wort, normalisiere_name
+from auftragsautomat.matching.firmenwahl import Firmengedaechtnis, Firmenkatalog, Klassifikation
 from auftragsautomat.matching.partner import KundenMatcher
-from auftragsautomat.models import MatchStatus, Pruefcode, Pruefhinweis, RohBestellung, Schweregrad
+from auftragsautomat.models import (
+    Firmenregel,
+    Kundengruppe,
+    MatchStatus,
+    Pruefcode,
+    Pruefhinweis,
+    RohBestellung,
+    Schweregrad,
+)
 from auftragsautomat.stammdaten import laden
 from auftragsautomat.stammdaten.basis import Stammdaten
 
@@ -49,6 +74,8 @@ __all__ = [
     "QUELLE_ALIAS_LIEFERANT",
     "QUELLE_EINGANG_ORDNER",
     "QUELLE_EMPFAENGER",
+    "QUELLE_GEDAECHTNIS",
+    "QUELLE_KATALOG",
     "QUELLE_MANUELL",
     "QUELLE_STAMMDATEN",
     "FirmaErgebnis",
@@ -56,12 +83,15 @@ __all__ = [
     "ermittle_firma",
     "firma_aus_empfaenger",
     "firma_aus_ordner",
+    "hinweis_gelernt",
 ]
 
 logger = logging.getLogger(__name__)
 
 QUELLE_EINGANG_ORDNER = "eingang_ordner"
+QUELLE_GEDAECHTNIS = "gedaechtnis"
 QUELLE_ALIAS_KUNDE = "alias_kunde"
+QUELLE_KATALOG = "katalog"
 QUELLE_ALIAS_LIEFERANT = "alias_lieferant"
 QUELLE_STAMMDATEN = "stammdaten"
 QUELLE_EMPFAENGER = "empfaenger"
@@ -76,14 +106,16 @@ class FirmaErgebnis:
     """Ergebnis der Firmen-Ermittlung.
 
     ``firma_id``/``quelle`` sind ``None``, wenn keine Firma eindeutig ist. ``hinweise`` enthält
-    Warnungen (Ordner widerspricht Alias, mehrdeutige Kandidaten), ``kandidaten`` alle Firmen,
-    die in Frage kamen (für die Auswahl in der Freigabe-UI).
+    Warnungen (Ordner widerspricht Alias, mehrdeutige Kandidaten, Katalog fragt) und die Info
+    ``FIRMA_GELERNT``, ``kandidaten`` alle Firmen, die in Frage kamen (für die Auswahl in der
+    Freigabe-UI), ``kundengruppe`` die Einstufung laut Firmenkatalog (``None`` = kein Muster).
     """
 
     firma_id: str | None
     quelle: str | None
     hinweise: list[Pruefhinweis] = field(default_factory=list)
     kandidaten: tuple[str, ...] = ()
+    kundengruppe: Kundengruppe | None = None
 
     def __iter__(self) -> Iterator[str | None]:
         """Erlaubt ``firma_id, quelle = ermittle_firma(...)`` (Tupel-Vertrag aus docs/ARCHITEKTUR.md)."""
@@ -325,6 +357,121 @@ def firma_aus_empfaenger(
 
 
 # ---------------------------------------------------------------------------
+# 1b. Gedächtnis / 2b. Katalog
+# ---------------------------------------------------------------------------
+
+
+def _kunden_texte(roh: RohBestellung, aliase: AliasTabellen) -> list[str]:
+    """Kandidatentexte für die Gedächtnis-Suche: Kundentext, Adresse, Anzeigename/Alias der Kunden-Aliase."""
+    texte: list[str] = []
+    for text in (roh.kunde_text, roh.kunde_adresse):
+        if text and text.strip():
+            texte.append(text)
+    for quelle in (roh.kunde_text, roh.kunde_adresse):
+        for treffer in aliase.kunden_treffer(quelle):
+            texte.extend(t for t in (treffer.anzeigename, treffer.alias) if t)
+    return list(dict.fromkeys(texte))
+
+
+def _lieferanten_texte(roh: RohBestellung, aliase: AliasTabellen) -> list[str]:
+    """Kandidatentexte für den Lieferanten: Lieferantentext, Alias-Namen, Produktmarken der Positionen."""
+    texte: list[str] = []
+    if roh.lieferant_text and roh.lieferant_text.strip():
+        texte.append(roh.lieferant_text)
+    for treffer in aliase.lieferanten_treffer(roh.lieferant_text):
+        texte.extend(t for t in (treffer.anzeigename, treffer.alias) if t)
+    for position in roh.positionen:
+        if position.durchgestrichen:
+            continue
+        marke = aliase.lieferant_fuer_marke(position.bezeichnung)
+        if marke is not None:
+            texte.extend(t for t in (marke.anzeigename, marke.alias) if t)
+    return list(dict.fromkeys(texte))
+
+
+def hinweis_gelernt(regel: Firmenregel) -> Pruefhinweis:
+    """``Pruefhinweis(FIRMA_GELERNT, INFO)`` zu einer Regel aus dem Firmen-Gedächtnis."""
+    gelernt_am = regel.gelernt_am.strftime("%d.%m.%Y %H:%M") if regel.gelernt_am else ""
+    return Pruefhinweis(
+        code=Pruefcode.FIRMA_GELERNT,
+        schweregrad=Schweregrad.INFO,
+        text=(
+            f"Firma {regel.firma_id} aus dem Firmen-Gedächtnis: gelernt am {gelernt_am or '-'} von "
+            f"{regel.gelernt_von or '-'} (Kunde '{regel.kunde_kurz}', Lieferant "
+            f"'{regel.lieferant_kurz or 'alle'}')"
+        ),
+        details={
+            "firma_id": regel.firma_id,
+            "gelernt_am": gelernt_am,
+            "gelernt_von": regel.gelernt_von or "",
+            "kunde": regel.kunde_kurz,
+            "lieferant": regel.lieferant_kurz or "",
+            "kundengruppe": regel.kundengruppe.value if regel.kundengruppe else "",
+            "quelle": regel.quelle,
+        },
+    )
+
+
+def _firma_aus_gedaechtnis(
+    gedaechtnis: Firmengedaechtnis, kunden_texte: list[str], lieferanten_texte: list[str], settings: Settings
+) -> Firmenregel | None:
+    if not len(gedaechtnis) or not kunden_texte:
+        return None
+    regel = gedaechtnis.finde_fuer_texte(kunden_texte, lieferanten_texte)
+    if regel is None:
+        return None
+    if regel.firma_id not in settings.firmen:
+        logger.warning(
+            "Firmen-Gedächtnis: Regel für Kunde %r verweist auf unbekannte Firma %r; ignoriert",
+            regel.kunde_kurz,
+            regel.firma_id,
+        )
+        return None
+    logger.info(
+        "Firma %s aus dem Firmen-Gedächtnis (Kunde %r, Lieferant %r, gelernt am %s von %s)",
+        regel.firma_id,
+        regel.kunde_kurz,
+        regel.lieferant_kurz or "alle",
+        regel.gelernt_am.strftime("%d.%m.%Y") if regel.gelernt_am else "-",
+        regel.gelernt_von or "-",
+    )
+    return regel
+
+
+def _klassifiziere(
+    katalog: Firmenkatalog, roh: RohBestellung, lieferanten_texte: list[str], firma_kandidaten: list[str]
+) -> Klassifikation:
+    lieferant_text = next((t for t in lieferanten_texte if t), None)
+    return katalog.klassifiziere(
+        roh.kunde_text,
+        roh.kunde_adresse,
+        roh.kundennummer_dokument,
+        lieferant_text=lieferant_text,
+        firma_kandidaten=firma_kandidaten or None,
+    )
+
+
+def _firma_aus_lieferanten_katalog(
+    katalog: Firmenkatalog, lieferanten_texte: list[str], firmen: list[str]
+) -> str | None:
+    """Fachhandel: erste Firma laut ``lieferanten``-Abschnitt, die zu den Firmen der Gruppe gehört."""
+    for text in lieferanten_texte:
+        firma = katalog.firma_fuer_lieferant(text)
+        if firma is not None and firma in firmen:
+            return firma
+    return None
+
+
+def _frage(klassifikation: Klassifikation, firmen: list[str]) -> Pruefhinweis:
+    return _warnung(
+        f"Bitte Firma wählen (Kundengruppe {klassifikation.kundengruppe.value}): {' oder '.join(firmen)}",
+        kandidaten=", ".join(firmen),
+        kundengruppe=klassifikation.kundengruppe.value,
+        grund=klassifikation.grund,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Hauptfunktion
 # ---------------------------------------------------------------------------
 
@@ -370,19 +517,31 @@ def ermittle_firma(
     *,
     stammdaten_lader: StammdatenLader | None = None,
     datei: Path | None = None,
+    katalog: Firmenkatalog | None = None,
+    gedaechtnis: Firmengedaechtnis | None = None,
 ) -> FirmaErgebnis:
     """Ermittelt die Firma (Lexware-Mandant) zu einer Rohbestellung (Reihenfolge siehe Modul-Docstring).
 
     ``stammdaten_lader`` ersetzt ``stammdaten.laden.lade_alle`` (für Tests oder bereits geladene
-    Stämme); ``datei`` überschreibt ``roh.quelldatei`` für die Ordner-Erkennung.
+    Stämme); ``datei`` überschreibt ``roh.quelldatei`` für die Ordner-Erkennung. ``katalog`` und
+    ``gedaechtnis`` ersetzen das Laden aus ``settings.firmenwahl`` (Katalog- und Gedächtnisdatei).
     """
     hinweise: list[Pruefhinweis] = []
     kandidaten: list[str] = []
     quelldatei = datei if datei is not None else roh.quelldatei
+    wahl = settings.firmenwahl
+    katalog = katalog if katalog is not None else Firmenkatalog.aus_settings(settings)
+    gedaechtnis = gedaechtnis if gedaechtnis is not None else Firmengedaechtnis.aus_settings(settings)
+    kunden_texte = _kunden_texte(roh, aliase)
+    lieferanten_texte = _lieferanten_texte(roh, aliase)
 
     # 1. Eingangsordner (Gegenprobe nur mit dem Kunden-Alias: Lieferanten liegen oft in mehreren Mandanten)
     firma_ordner = firma_aus_ordner(quelldatei, settings)
     firmen_kunde, alias_kunde = _firmen_aus_kunden_alias(roh, aliase, settings)
+    # Katalog-Einstufung (Kundengruppe) wird in jedem Fall mitgegeben; mehrdeutige Kunden-Aliase
+    # schränken die Firmen der Gruppe ein.
+    klassifikation = _klassifiziere(katalog, roh, lieferanten_texte, firmen_kunde if len(firmen_kunde) > 1 else [])
+    kundengruppe = None if klassifikation.kundengruppe is Kundengruppe.UNBEKANNT else klassifikation.kundengruppe
     if firma_ordner:
         kandidaten.append(firma_ordner)
         if firmen_kunde and firma_ordner not in firmen_kunde:
@@ -404,14 +563,74 @@ def ermittle_firma(
                     alias_quelle=QUELLE_ALIAS_KUNDE,
                 )
             )
-        return FirmaErgebnis(firma_ordner, QUELLE_EINGANG_ORDNER, hinweise, tuple(kandidaten))
+        return FirmaErgebnis(firma_ordner, QUELLE_EINGANG_ORDNER, hinweise, tuple(kandidaten), kundengruppe)
+
+    # 1b. Firmen-Gedächtnis (gelernte Antwort schlägt Alias und Katalog)
+    if wahl.gedaechtnis_vor_katalog:
+        regel = _firma_aus_gedaechtnis(gedaechtnis, kunden_texte, lieferanten_texte, settings)
+        if regel is not None:
+            hinweise.append(hinweis_gelernt(regel))
+            if regel.firma_id not in kandidaten:
+                kandidaten.append(regel.firma_id)
+            return FirmaErgebnis(
+                regel.firma_id, QUELLE_GEDAECHTNIS, hinweise, tuple(kandidaten), regel.kundengruppe or kundengruppe
+            )
 
     # 2. Kunden-Alias
     kandidaten.extend(f for f in firmen_kunde if f not in kandidaten)
     firma_kunde = _eindeutig(firmen_kunde, roh, settings, f"Kunden-Alias '{alias_kunde}'", hinweise)
     if firma_kunde:
         logger.info("Firma %s über Kunden-Alias '%s'", firma_kunde, alias_kunde)
-        return FirmaErgebnis(firma_kunde, QUELLE_ALIAS_KUNDE, hinweise, tuple(kandidaten))
+        return FirmaErgebnis(firma_kunde, QUELLE_ALIAS_KUNDE, hinweise, tuple(kandidaten), kundengruppe)
+
+    # 2b. Firmenkatalog (Kundengruppe -> Firma(en))
+    if klassifikation.entscheidung != "unbekannt":
+        firmen_katalog = [f for f in klassifikation.firmen if f in settings.firmen]
+        firma_katalog: str | None = None
+        if klassifikation.entscheidung == "eindeutig" and firmen_katalog:
+            firma_katalog = firmen_katalog[0]
+        elif klassifikation.entscheidung == "lieferant":
+            firma_katalog = _firma_aus_lieferanten_katalog(katalog, lieferanten_texte, firmen_katalog)
+            if firma_katalog is None:
+                logger.info(
+                    "Firmenkatalog: Kundengruppe %s entscheidet nach Lieferant, aber kein Lieferant im Katalog (%s)",
+                    klassifikation.kundengruppe.value,
+                    ", ".join(lieferanten_texte) or "kein Lieferantentext",
+                )
+        if firma_katalog:
+            logger.info("Firma %s über den Firmenkatalog (%s)", firma_katalog, klassifikation.grund)
+            if firma_katalog not in kandidaten:
+                kandidaten.append(firma_katalog)
+            return FirmaErgebnis(firma_katalog, QUELLE_KATALOG, hinweise, tuple(kandidaten), kundengruppe)
+
+        kandidaten.extend(f for f in firmen_katalog if f not in kandidaten)
+        if len(firmen_katalog) >= 2:
+            if not wahl.gedaechtnis_vor_katalog:
+                regel = _firma_aus_gedaechtnis(gedaechtnis, kunden_texte, lieferanten_texte, settings)
+                if regel is not None:
+                    hinweise.append(hinweis_gelernt(regel))
+                    if regel.firma_id not in kandidaten:
+                        kandidaten.append(regel.firma_id)
+                    return FirmaErgebnis(
+                        regel.firma_id,
+                        QUELLE_GEDAECHTNIS,
+                        hinweise,
+                        tuple(kandidaten),
+                        regel.kundengruppe or kundengruppe,
+                    )
+            if wahl.fragen_wenn_unklar:
+                logger.warning(
+                    "Firma für %s nicht automatisch wählbar (%s); Anwender muss zwischen %s wählen",
+                    quelldatei,
+                    klassifikation.grund,
+                    " und ".join(firmen_katalog),
+                )
+                hinweise.append(_frage(klassifikation, firmen_katalog))
+                return FirmaErgebnis(None, None, hinweise, tuple(kandidaten), kundengruppe)
+            logger.info(
+                "Firmenkatalog: %s; fragen_wenn_unklar ist aus, Suche geht mit Stammdaten/Empfänger weiter",
+                klassifikation.grund,
+            )
 
     # 3. Lieferanten-Alias / Produktmarke (nur, wenn kein Kunden-Alias getroffen hat)
     if not firmen_kunde:
@@ -422,7 +641,7 @@ def ermittle_firma(
         )
         if firma_lieferant:
             logger.info("Firma %s über Lieferanten-Alias/Produktmarke '%s'", firma_lieferant, alias_lieferant)
-            return FirmaErgebnis(firma_lieferant, QUELLE_ALIAS_LIEFERANT, hinweise, tuple(kandidaten))
+            return FirmaErgebnis(firma_lieferant, QUELLE_ALIAS_LIEFERANT, hinweise, tuple(kandidaten), kundengruppe)
 
     # 4. Stammdaten aller Firmen
     lader = stammdaten_lader if stammdaten_lader is not None else laden.lade_alle
@@ -436,7 +655,7 @@ def ermittle_firma(
     if firma_stamm:
         nummer = next(nr for f, nr in treffer if f == firma_stamm)
         logger.info("Firma %s über die Stammdaten (Kunde %s sicher)", firma_stamm, nummer)
-        return FirmaErgebnis(firma_stamm, QUELLE_STAMMDATEN, hinweise, tuple(kandidaten))
+        return FirmaErgebnis(firma_stamm, QUELLE_STAMMDATEN, hinweise, tuple(kandidaten), kundengruppe)
 
     # 5. Empfänger im Dokument
     firma_empfaenger = firma_aus_empfaenger(roh.empfaenger_firma_text, settings)
@@ -444,7 +663,7 @@ def ermittle_firma(
         logger.info("Firma %s über den Empfänger %r im Dokument", firma_empfaenger, roh.empfaenger_firma_text)
         if firma_empfaenger not in kandidaten:
             kandidaten.append(firma_empfaenger)
-        return FirmaErgebnis(firma_empfaenger, QUELLE_EMPFAENGER, hinweise, tuple(kandidaten))
+        return FirmaErgebnis(firma_empfaenger, QUELLE_EMPFAENGER, hinweise, tuple(kandidaten), kundengruppe)
 
     logger.warning(
         "Keine Firma für %s ermittelbar (Kunde %r, Lieferant %r)%s",
@@ -453,4 +672,4 @@ def ermittle_firma(
         roh.lieferant_text,
         f"; Kandidaten: {', '.join(kandidaten)}" if kandidaten else "",
     )
-    return FirmaErgebnis(None, None, hinweise, tuple(kandidaten))
+    return FirmaErgebnis(None, None, hinweise, tuple(kandidaten), kundengruppe)

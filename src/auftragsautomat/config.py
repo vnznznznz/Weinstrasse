@@ -292,8 +292,7 @@ class AblageKonfig(BaseModel):
     WOE) in **"Aufträge ohne Provision"**. ``auftraege_ordner`` ist der OneDrive-Ordner, der diese
     beiden Ordner enthält. ``struktur`` ist der Zielpfad darunter; der Platzhalter ``{provision}``
     wird je Firma durch einen der beiden Ordnernamen ersetzt (weitere Platzhalter: ``{firma}`` =
-    Kürzel, ``{jahr}``, ``{monat}``, ``{lieferant}``, ``{kunde}``). Eine frühere Vorgabe
-    ("Aufträge/1 Eingang") ist damit überholt.
+    Kürzel, ``{jahr}``, ``{monat}``, ``{lieferant}``, ``{kunde}``).
     """
 
     aktiv: bool = False  # erst nach Freigabe des Benennungsschemas durch den Anwender einschalten
@@ -328,7 +327,7 @@ class EingangKonfig(BaseModel):
     upload_dateitypen: list[str] = Field(default_factory=lambda: [".pdf", ".msg", ".eml", ".png", ".jpg", ".jpeg"])
     upload_in_firmen_unterordner: bool = True  # bei gewählter Firma nach eingang/<firma>/ speichern
     onedrive_ordner: DateiRefKonfig = Field(default_factory=DateiRefKonfig)  # optional: Eingang in OneDrive (Graph)
-    als_kundenbestellung_ablegen: bool = True  # Eingangsdokument nach Freigabe als "Kd" mit in "1 Eingang" ablegen
+    als_kundenbestellung_ablegen: bool = True  # Eingangsdokument nach Freigabe als "Kd" mit in den Provisionsordner ablegen
 
 
 class DossierKonfig(BaseModel):

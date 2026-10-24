@@ -1,0 +1,18 @@
+{# Speditionsauftrag (deutsch). Kontext: anrede, kunde, lieferant, abholadresse, lieferadresse, liefertag,
+   verladedatum, gesamtmenge, positionen, paletten, referenz, mit_lieferschein, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>Anbei erhalten Sie einen neuen Auftrag für <b>{{ kunde }}</b>{% if referenz %} (unsere Referenz {{ referenz }}){% endif %}:</p>
+<ul>
+<li>Abholung bei <b>{{ lieferant }}</b>{% if abholadresse %}, {{ abholadresse }}{% endif %}{% if verladedatum %} – Verladung am {{ verladedatum | datum_de }}{% endif %}</li>
+<li>Lieferung an <b>{{ kunde }}</b>{% if lieferadresse %}, {{ lieferadresse }}{% endif %}</li>
+{% if liefertag %}
+<li><b>Fixtermin beim Empfänger: {{ liefertag | datum_de }}</b></li>
+{% endif %}
+<li>Menge: {{ gesamtmenge | menge_de }} Flaschen{% if positionen %} in {{ positionen | length }} Position{% if positionen | length != 1 %}en{% endif %}{% endif %}{% if paletten %}, {{ paletten }}{% endif %}</li>
+</ul>
+<p>Den Speditionsauftrag{% if mit_lieferschein %} und den Lieferschein{% endif %} finden Sie im Anhang. Bitte bestätigen Sie uns kurz den Abholtermin.</p>
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

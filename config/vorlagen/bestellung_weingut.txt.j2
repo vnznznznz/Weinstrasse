@@ -1,0 +1,19 @@
+{{ anrede }}
+
+please find attached our new order{% if bestellnummer %} {{ bestellnummer }}{% endif %} for {{ kunde }}{% if kundenbestellnummer %} (customer order no. {{ kundenbestellnummer }}){% endif %}: {{ gesamtmenge | menge_de }} bottles in {{ positionen | length }} item{% if positionen | length != 1 %}s{% endif %}.
+{% if liefertag %}
+The goods are due at the customer on {{ liefertag | datum_de }} (fixed delivery date){% if spedition %}; transport will be arranged by {{ spedition }}{% endif %}.
+{% elif shipment %}
+Shipment: {{ shipment }}{% if spedition %} via {{ spedition }}{% endif %}.
+{% elif spedition %}
+Transport will be arranged by {{ spedition }}.
+{% endif %}
+
+Kindly confirm receipt of the order and let us know the loading date.
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}

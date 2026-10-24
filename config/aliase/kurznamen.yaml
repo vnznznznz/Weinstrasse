@@ -1,0 +1,47 @@
+# Kurznamen für die Fixterminüberwachung (Spalten "Lieferant" und "Kunde").
+#
+# Die Fixterminüberwachung führt Lieferanten und Kunden mit Kurznamen (in der Regel die
+# Lexware-Matchcodes). Diese Datei überschreibt den Kurznamen je Lexware-Nummer, wenn der
+# Matchcode nicht passt oder fehlt. Reihenfolge der Ermittlung (termine/kurznamen.py):
+#   1. Eintrag in dieser Datei (Lexware-Nummer + Firma),
+#   2. Lexware-Matchcode des Kunden/Lieferanten,
+#   3. erster Wortbestandteil des Namens ohne Rechtsform und Gattungswort
+#      ("Weinhaus Beispiel GmbH" -> "Beispiel").
+# Der ermittelte Name wird anschließend mit der Dropdown-Ressourcenliste der Excel
+# (Blatt "Ressourcen für Auto DropDown") abgeglichen: gleiche Schreibweise (ohne Groß-/
+# Kleinschreibung und Umlaute) oder Ähnlichkeit >= 90 % übernimmt den vorhandenen Namen,
+# sonst wird der Name als neu gemeldet.
+#
+# Format:
+#   kunden:
+#     - kundennummer: "10001"          # Kundennummer in Lexware (als Text)
+#       firma: wik_fh_seh              # Firmen-ID aus config/firmen.yaml; fehlt sie, gilt der Eintrag für alle Firmen
+#       kurzname: "Musterhandel"       # genau so, wie er in der Excel stehen soll
+#   lieferanten:
+#     - lieferantennummer: "90001"
+#       firma: wik_fh_seh
+#       kurzname: "Beispielgut"
+#   rechtsformen: [...]                # optional: ergänzt die eingebaute Liste (GmbH, srl, SAS ...)
+#   generische_woerter: [...]          # optional: ergänzt die eingebaute Liste (Weingut, Cantina, Domaine ...)
+#
+# Alle Einträge hier sind synthetische Beispiele.
+
+kunden:
+  - kundennummer: "10001"
+    firma: wik_fh_seh
+    kurzname: "Musterhandel"
+
+  - kundennummer: "10002"
+    firma: weinstrasse_agentur
+    kurzname: "Beispielmarkt"
+
+lieferanten:
+  - lieferantennummer: "90001"
+    firma: wik_fh_seh
+    kurzname: "Beispielgut"
+
+  - lieferantennummer: "90002"            # ohne "firma": gilt in allen Firmen
+    kurzname: "Musterweine"
+
+rechtsformen: []
+generische_woerter: []

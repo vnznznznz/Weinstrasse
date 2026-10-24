@@ -1,46 +1,41 @@
-# Firmenkatalog: über welche Firma wird ein Auftrag abgewickelt?
+# Test-Firmenkatalog (Format und Kommentare: siehe config/firmenkatalog.yaml).
+# Gleiche Gruppen und Entscheidungen wie in der Produktion, aber nur synthetische Beispiele.
 #
-# Reihenfolge der Firmen-Ermittlung (matching/firma.py):
-#   Eingangsordner -> Firmen-Gedächtnis (gelernt, config/firmen_gedaechtnis.yaml) -> Kunden-Alias
-#   -> Katalog (diese Datei) -> Stammdaten -> Empfänger im Dokument.
-#
-# Kundengruppen (Vorgabe des Anwenders):
-#   fachhandel            Fachhandelskunden: Weinstrasse Agentur ODER WIK FH & SEH – entscheidet der Lieferant
-#                         (Abschnitt "lieferanten" unten: Fachhandelslieferant -> Firma).
-#   eigenstaendiger_leh   selbständige Lebensmittel-Einzelhändler (eigene Kaufleute, keine Region) -> WIK FH & SEH
-#   region                Einkaufsregionen (z. B. Rhein-Ruhr, Minden-Hannover) -> WIK LEH oder WOE -> Tool fragt
-#   kette                 große Supermarktketten -> WIK LEH oder WOE -> Tool fragt
-#   grosskunde            Großkunden -> WIK LEH oder WOE -> Tool fragt
-#
-# Fragt das Tool, merkt es sich die Antwort je Kunde + Lieferant (firmen_gedaechtnis.yaml) und fragt
-# beim nächsten Auftrag dieses Kunden mit diesem Lieferanten nicht mehr.
-#
-# "muster" sind Textbausteine (Groß-/Kleinschreibung egal), die im Kundennamen/der Adresse vorkommen.
-# Bitte mit dem echten Katalog abgleichen und ergänzen (docs/WAS_ICH_BRAUCHE.md, Abschnitt J).
+# Absichtlich NICHT enthalten sind die Regionsbegriffe "Rhein-Ruhr" und "Zentrale": die Tests der
+# Stufe 1 (tests/test_firma.py) benutzen den synthetischen Stammdaten-Kunden "Edeka Zentrale Rhein-Ruhr",
+# um die Stammdaten-Stufe der Firmen-Ermittlung zu prüfen; mit diesen Mustern würde der Katalog vorher
+# fragen (Region -> WIK LEH oder WOE). Die Katalog-Tests (tests/test_firmenwahl.py) verwenden
+# "Minden-Hannover", "Zentraleinkauf" usw.
 
 kundengruppen:
   fachhandel:
+    beschreibung: "Fachhandel (Weinhandlungen, Vinotheken, Getränkehandel)"
     firmen: [weinstrasse_agentur, wik_fh_seh]
     entscheidung: lieferant          # welche der beiden Firmen: laut Abschnitt "lieferanten"
     muster: ["Weinhandlung", "Weinhandel", "Vinothek", "Weinkontor", "Weindepot", "Weinladen", "Getränke"]
   eigenstaendiger_leh:
+    beschreibung: "Selbständige Lebensmittel-Einzelhändler (eigene Kaufleute)"
     firmen: [wik_fh_seh]
+    entscheidung: eindeutig
     muster: ["e.K.", "e. K.", "oHG", "Kaufmann", "Frischemarkt", "Markt GmbH"]
   region:
+    beschreibung: "Einkaufsregionen des LEH"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen             # Tool fragt in der Freigabe und merkt sich die Antwort
-    muster: ["Rhein-Ruhr", "Rhein Ruhr", "Minden-Hannover", "Minden", "Nord", "Südwest", "Nordbayern", "Hessenring", "Südbayern", "Zentrallager", "Region"]
+    muster: ["Minden-Hannover", "Minden", "Nord", "Südwest", "Nordbayern", "Hessenring", "Südbayern", "Zentrallager", "Region", "Einkaufsregion"]
   kette:
+    beschreibung: "Große Supermarktketten"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen
-    muster: ["Spar", "Zentrale", "Großhandel", "Grosshandel", "Zentraleinkauf"]
+    muster: ["Spar", "Großhandel", "Grosshandel", "Zentraleinkauf", "Supermarktkette"]
   grosskunde:
+    beschreibung: "Großkunden"
     firmen: [wik_leh, woe_leh]
     entscheidung: fragen
-    muster: []
+    muster: ["Großkunde"]
+    kundennummern: ["99001"]         # synthetische Kundennummer laut Dokument
 
-# Fachhandelslieferanten: welcher Lieferant (Weingut) läuft im Fachhandel über welche Firma.
-# Schlüssel = Lieferantenname/Alias wie in config/aliase/lieferanten.yaml.
-lieferanten: {}
-#  "Beispiel Weingut": weinstrasse_agentur
-#  "Beispiel Cantina": wik_fh_seh
+# Fachhandelslieferanten (synthetisch): Lieferant -> Firma.
+lieferanten:
+  "Weingut Beispiel": wik_fh_seh
+  "Cantina Esempio": weinstrasse_agentur

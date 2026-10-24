@@ -1,0 +1,10 @@
+{# Nachfrage beim Weingut (englisch): Eingangsbestätigung und Verladedatum. Kontext: anrede, bestellnummer,
+   kundenbestellnummer, kunde, auftragsdatum, liefertag, verladedatum, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>we have not yet received your confirmation of our order{% if bestellnummer %} <b>{{ bestellnummer }}</b>{% endif %} for <b>{{ kunde }}</b>{% if auftragsdatum %} dated {{ auftragsdatum | datum_de }}{% endif %}. The delivery is scheduled as a fixed date for <b>{{ liefertag | datum_de }}</b>{% if verladedatum %}, loading planned for {{ verladedatum | datum_de }}{% endif %}.</p>
+<p>Could you please confirm the order and let us know the loading date? Thank you very much.</p>
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

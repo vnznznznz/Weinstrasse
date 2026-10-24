@@ -1,0 +1,19 @@
+{# Interne Erinnerung an den Anwender (deutsch). Kontext: anrede, zeitpunkt, zeitraum_bis, punkte
+   (Liste mit liefertag, lieferant, kunde, ampel, grund, aktionen), zusammenfassung, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>Zur Erinnerung (Stand {{ zeitpunkt | datum_de }}, Zeitraum bis {{ zeitraum_bis | datum_de }}): {% if punkte %}{{ punkte | length }} Fixtermin{% if punkte | length != 1 %}e{% endif %} brauch{% if punkte | length == 1 %}t{% else %}en{% endif %} Aufmerksamkeit.{% else %}derzeit sind keine Punkte fällig.{% endif %}</p>
+{% if punkte %}
+<ul>
+{% for p in punkte %}
+<li><b>{{ p.liefertag | datum_de }}</b> – {{ p.lieferant }} an {{ p.kunde }} ({{ p.ampel }}): {{ p.grund }}{% if p.aktionen %} – {{ p.aktionen | join(", ") }}{% endif %}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% if zusammenfassung %}
+<p>{{ zusammenfassung | nl2br }}</p>
+{% endif %}
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

@@ -1,0 +1,24 @@
+{{ anrede }}
+
+{% if sprache == "en" %}
+please find attached the delivery note{% if nummer %} {{ nummer }}{% endif %} for {{ kunde }}{% if lieferant and empfaenger_rolle != "lieferant" %} (goods from {{ lieferant }}){% endif %}{% if liefertag %}, delivery due on {{ liefertag | datum_de }}{% endif %}.
+{% if empfaenger_rolle == "lieferant" %}
+Kindly hand it over to the carrier together with the shipment.
+{% else %}
+Kindly check the goods against it on receipt and let us know if anything differs.
+{% endif %}
+{% else %}
+Anbei erhalten Sie den Lieferschein{% if nummer %} {{ nummer }}{% endif %} für {{ kunde }}{% if kundenbestellnummer %} (Bestellung {{ kundenbestellnummer }}){% endif %}{% if liefertag %}, Lieferung am {{ liefertag | datum_de }}{% endif %}.
+{% if empfaenger_rolle == "lieferant" %}
+Bitte geben Sie ihn der Spedition mit der Sendung mit.
+{% else %}
+Bitte gleichen Sie die Ware beim Eingang damit ab und melden Sie sich kurz, falls etwas abweicht.
+{% endif %}
+{% endif %}
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}

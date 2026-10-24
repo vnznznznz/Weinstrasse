@@ -52,6 +52,12 @@ REMARK type="origin_company_id" (GUID)      [V]    Mandantenschutz im ORDER_ITEM
 Belegfelder / Kopftext                      [A]    nicht per XML setzbar -> Klartext in REMARK order
 Kein Importordner, kein automatischer Import [V]   Datei wird im Dialog "Daten austauschen" gewählt
 Kein Doppelimport-Schutz                    [A]    Dublettenprüfung bleibt im Automaten
+Positionsrabatt                             [A]    openTRANS/Lexware kennen keinen Positionsrabatt:
+                                                   PRICE_AMOUNT = rabattierter VK (Preisgruppe 1 minus
+                                                   Rabatt %) + REMARK "Rabatt x % (Quelle)" je Position
+Angebot                                     [V]    nicht möglich: der Import erzeugt nur Webshop-Aufträge,
+                                                   die als AB übernommen werden (Weg "direkt_ab")
+PDF-Ausgabe                                 [V]    nicht möglich: der Beleg entsteht erst beim Übernehmen
 ==========================================  =====  ================================================
 
 So stößt der Anwender den Import an (Lexware warenwirtschaft premium 2026)
@@ -85,6 +91,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from auftragsautomat.config import Firma, Settings
+from auftragsautomat.lexware.basis import Verkaufsweg, pdf_zielpfad, weg_beschreibung
 from auftragsautomat.models import (
     Belegart,
     Belegergebnis,
@@ -187,6 +194,27 @@ def _betrag(wert: Decimal) -> str:
 def _menge(wert: Decimal) -> str:
     """Menge ohne unnötige Nachkommastellen: 60.00 -> "60", 1.50 -> "1.5"."""
     return format(Decimal(wert).normalize(), "f")
+
+
+def _prozent(wert: Decimal) -> str:
+    """Prozentsatz für Bemerkungen: 10 -> "10", 7.50 -> "7,5"."""
+    return format(Decimal(wert).normalize(), "f").replace(".", ",")
+
+
+def _preis_einzel(p: PositionsZuordnung) -> Decimal:
+    """Einzelpreis für die XML: VK Preisgruppe 1 abzüglich Positionsrabatt, auf Cent gerundet.
+
+    Lexware kennt keinen Positionsrabatt per XML [A]; der rabattierte Preis ersetzt deshalb den
+    Listenpreis, und PRICE_LINE_AMOUNT/TOTAL_AMOUNT rechnen mit genau diesem Centbetrag weiter
+    (sonst scheitert die Zielprüfung ``validiere_xml``).
+    """
+    preis = p.vk_preis_rabattiert if p.vk_preis_rabattiert is not None else p.vk_preis
+    assert preis is not None  # durch pruefe_paket gesichert
+    return Decimal(preis).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _rabatt_text(p: PositionsZuordnung) -> str:
+    return f"Rabatt {_prozent(p.rabatt_prozent or Decimal(0))} % ({_sauber(p.rabatt_quelle) or 'ohne Quelle'})"
 
 
 def _steuersatz(prozent: Decimal) -> str:
@@ -613,6 +641,11 @@ class OpenTransSchreiber:
                 teile.append(f"{feld.capitalize()}: {_sauber(wert)}")
         for p in positionen:
             artnr = p.artikel.artikelnummer if p.artikel else "?"
+            if p.rabatt_prozent:
+                teile.append(
+                    f"Pos. {p.roh.laufnr} ({artnr}): {_rabatt_text(p)} - PRICE_AMOUNT {_betrag(_preis_einzel(p))} "
+                    f"statt VK {_betrag(p.vk_preis or Decimal(0))}"
+                )
             if p.roh.hinweis:
                 teile.append(f"Pos. {p.roh.laufnr} ({artnr}): {_sauber(p.roh.hinweis)}")
             if p.roh.lieferadresse and p.roh.lieferadresse.strip():
@@ -655,10 +688,18 @@ class OpenTransSchreiber:
             ET.SubElement(item, "ORDER_UNIT").text = _sauber(p.artikel.einheit or p.roh.einheit) or "1"
             preis = ET.SubElement(item, "ARTICLE_PRICE")
             preis.set("type", self.preistyp)
-            # Preis = vk_preis (Preisgruppe 1 aus dem Stamm), NIEMALS preis_dokument [Geschäftsregel 3]
-            ET.SubElement(preis, "PRICE_AMOUNT").text = _betrag(p.vk_preis)
-            ET.SubElement(preis, "PRICE_LINE_AMOUNT").text = _betrag(p.vk_preis * p.menge)
+            # Preis = vk_preis (Preisgruppe 1 aus dem Stamm) abzüglich Positionsrabatt (Geschäftsregel 16),
+            # NIEMALS preis_dokument [Geschäftsregel 3]
+            einzel = _preis_einzel(p)
+            ET.SubElement(preis, "PRICE_AMOUNT").text = _betrag(einzel)
+            ET.SubElement(preis, "PRICE_LINE_AMOUNT").text = _betrag(einzel * p.menge)
             ET.SubElement(preis, "TAX").text = _steuersatz(self.firma.opentrans.mwst_satz)
+            if p.rabatt_prozent:
+                # TODO-LEXWARE: REMARK im ORDER_ITEM mit eigenem type – Lexware ignoriert unbekannte Typen vermutlich;
+                # prüfen, ob der Text in der Position (Langtext) oder gar nicht erscheint.
+                rabatt = ET.SubElement(item, "REMARK")
+                rabatt.set("type", "rabatt")
+                rabatt.text = _rabatt_text(p)
             if self.firmen_guid:
                 # Mandantenschutz: Import nur in diese Firma möglich [V]
                 guid = ET.SubElement(item, "REMARK")
@@ -669,7 +710,7 @@ class OpenTransSchreiber:
         summary = ET.SubElement(order, "ORDER_SUMMARY")
         ET.SubElement(summary, "TOTAL_ITEM_NUM").text = str(len(positionen))
         summe = sum(
-            ((p.vk_preis or Decimal(0)) * p.menge).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            (_preis_einzel(p) * p.menge).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             for p in positionen
         )
         summe = Decimal(summe)
@@ -846,7 +887,8 @@ class OpenTransSchreiber:
         for p in paket.aktive_positionen():
             artnr = p.artikel.artikelnummer if p.artikel else "?"
             vk = _betrag(p.vk_preis) if p.vk_preis is not None else ""
-            teile.append(f"{artnr}|{_menge(p.menge)}|{vk}")
+            rabatt = _prozent(p.rabatt_prozent) if p.rabatt_prozent else ""
+            teile.append(f"{artnr}|{_menge(p.menge)}|{vk}|{rabatt}")
         return hashlib.sha256("\n".join(teile).encode("utf-8")).hexdigest()[:8]
 
     def dateiname(self, paket: Belegpaket) -> str:
@@ -958,6 +1000,13 @@ class OpenTransSchreiber:
             "Belegnummer wird erst beim Import in Lexware vergeben",
             *warnungen,
         ]
+        rabattiert = [p for p in paket.aktive_positionen() if p.rabatt_prozent]
+        if rabattiert:
+            liste = "; ".join(f"Pos. {p.roh.laufnr}: {_prozent(p.rabatt_prozent or Decimal(0))} %" for p in rabattiert)
+            warnungen.append(
+                f"Positionsrabatte ({liste}) sind als rabattierter PRICE_AMOUNT plus REMARK übergeben; openTRANS kennt "
+                "keinen Positionsrabatt – beim Übernehmen in Lexware prüfen, ob der Rabatt sichtbar sein soll"
+            )
         if dry_run:
             warnungen.append(f"Dry Run: XML nur nach {ziel} geschrieben, nicht in den Lexware-Importordner")
         else:
@@ -1017,3 +1066,53 @@ class OpenTransSchreiber:
             methode="opentrans",
             fehler=text,
         )
+
+    def schreibe_angebot(self, paket: Belegpaket, *, dry_run: bool = True) -> Belegergebnis:
+        """Kein Angebot per openTRANS: der Import erzeugt nur Webshop-Aufträge, die als AB übernommen werden.
+
+        Liefert ein erfolgreiches, aber leeres Ergebnis (``methode="keine"``) mit Hinweis; :meth:`angebot_zu_ab`
+        legt anschließend die AB direkt an (Weg "direkt_ab" per XML).
+        """
+        text = "Angebot per openTRANS nicht möglich; AB direkt"
+        logger.info("openTRANS: %s (Quelldatei %s)", text, paket.roh.quelldatei.name)
+        return Belegergebnis(
+            belegart=Belegart.ANGEBOT,
+            netto=paket.summe_netto_vk,
+            brutto=self._brutto(paket.summe_netto_vk),
+            erfolgreich=True,
+            dry_run=dry_run,
+            methode="keine",
+            warnungen=[text],
+        )
+
+    def angebot_zu_ab(
+        self,
+        angebot: Belegergebnis,
+        paket: Belegpaket,
+        *,
+        weg: Verkaufsweg = "angebot_weiterfuehren",
+        dry_run: bool = True,
+    ) -> Belegergebnis:
+        """Weiterführen/Wandeln gibt es per XML nicht: die AB wird direkt geschrieben (:meth:`schreibe_verkauf_ab`)."""
+        ergebnis = self.schreibe_verkauf_ab(paket, dry_run=dry_run)
+        hinweis = (
+            f"Verkaufsweg '{weg_beschreibung(weg)}' ist per openTRANS nicht abbildbar: der Webshop-Auftrag wird in "
+            "Lexware direkt als Auftragsbestätigung übernommen"
+        )
+        if self.firma.lieferdatum_in_ab_loeschen or self.firma.ab_text_loeschen:
+            hinweis += "; Lieferdatum und AB-Text beim Übernehmen laut Firma leeren (DELIVERY_DATE steht in der XML)"
+        ergebnis.warnungen.insert(0, hinweis)
+        return ergebnis
+
+    def pdf_ausgeben(
+        self, beleg: Belegergebnis, *, formular: str | None, dateiname: str, dry_run: bool = True
+    ) -> Path | None:
+        """Nicht möglich: der Beleg entsteht erst beim Übernehmen in Lexware; die PDF-Ausgabe übernimmt die
+        UI-Automation nach dem Import oder der Anwender. Liefert ``None`` und einen Hinweis."""
+        ziel = pdf_zielpfad(self.settings, dateiname)
+        beleg.warnungen.append(
+            f"PDF {ziel.name} (Formular {formular or 'Standard'}) kann per openTRANS nicht erzeugt werden – "
+            "nach dem Übernehmen in Lexware per UI-Automation oder manuell ausgeben"
+        )
+        logger.info("openTRANS: keine PDF-Ausgabe möglich (%s)", ziel.name)
+        return None

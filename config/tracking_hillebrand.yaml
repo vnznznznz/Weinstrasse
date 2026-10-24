@@ -1,0 +1,199 @@
+# Sendungsverfolgung Hillebrand Gori (Modul tracking/).
+# Grundlage: docs/recherche/hillebrand_tracking.md. Alle Muster und URLs sind hier
+# konfigurierbar, damit sie am echten System ohne Code-Änderung nachgezogen werden können.
+#
+# Konventionen:
+#   * Regex-Muster sind Python-re-Muster (Groß-/Kleinschreibung wird ignoriert).
+#   * Benannte Gruppen: referenz (Hillebrand "Our Ref", z. B. DEMB00000), job (interne
+#     Job-Nummer), kundenref ("Your Ref" = unsere Referenz), datum (Tag.Monat.[Jahr]).
+#   * Status-Werte entsprechen models.SendungStatus: unbekannt, beauftragt, bestaetigt,
+#     abholung_geplant, abgeholt, unterwegs, zustellung_geplant, zugestellt, verspaetet, problem.
+#
+# Beispiele in dieser Datei sind synthetisch (DEMB00000, example.org).
+
+sprache: "en"            # Portal und API-Texte sind englisch (Deutsch wird nicht angeboten)
+spedition: "Hillebrand"  # Name der Spedition wie in Sendung.spedition / Kontaktliste
+
+# Absender-Domains, deren Mails als Hillebrand-Mails ausgewertet werden (ohne "@").
+# Die konkreten Postfächer (Neue Aufträge / Sendungsnachfragen) stehen NICHT hier,
+# sondern in der Kontaktliste "Ansprechpartner Abwicklung.xlsx" (Rollen "Neue Aufträge",
+# "Sendungsnachfragen").
+absender_domains:
+  - "hillebrandgori.com"
+  - "hillebrand.com"
+
+# Betreff der Auftragsbestätigung (einziges bisher belegtes Muster):
+#   "Auftragsbestätigung; Your Ref: <unsere Referenz>; Our Ref: DEMB00000[jobDEM00000000]"
+betreff_regex:
+  bestaetigung: >-
+    Auftragsbest(?:ä|ae|&auml;)tigung.*?Your\s*Ref\s*:\s*(?P<kundenref>[^;\n]+?)\s*;\s*Our\s*Ref\s*:\s*(?P<referenz>DEM[A-Z]?\d{3,})(?:\s*\[\s*job(?P<job>DEM\d+)\s*\])?
+  # TODO-PRUEFEN: Betreffzeilen der Portal-Benachrichtigungen (Abholung/Zustellung/Umbuchung) sind
+  # öffentlich nicht dokumentiert; sobald Beispiel-Mails vorliegen, hier ergänzen.
+  terminaenderung: >-
+    (?:Termin(?:ä|ae)nderung|neuer\s+Liefertermin|Umbuchung|rescheduled|new\s+delivery\s+date)
+
+# Referenz-Muster (Betreff und Text). "Our Ref: DEMB00000[jobDEM00000000]"
+referenz_regex: >-
+  Our\s*Ref\.?\s*:?\s*(?P<referenz>DEM[A-Z]?\d{3,})(?:\s*\[\s*job(?P<job>DEM\d+)\s*\])?
+# Referenz ohne "Our Ref"-Präfix irgendwo im Text (Rückfall, geringere Konfidenz).
+referenz_frei_regex: >-
+  \b(?P<referenz>DEMB\d{4,})\b
+kundenreferenz_regex: >-
+  Your\s*Ref\.?\s*:?\s*(?P<kundenref>[^;\n]+)
+
+# Lieferzeitfenster laut Transporeon ("laut Transporeon soll am 27.10. angeliefert werden").
+# Jahr optional; fehlt es, wird es aus dem Empfangsdatum der Mail ergänzt.
+zeitfenster_regex: >-
+  laut\s+Transporeon[^0-9\n]{0,80}?am\s+(?P<datum>\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})?)
+# Terminänderung im Text ("neuer Liefertermin 03.11.", "verschoben auf den 03.11.2026",
+# "Anlieferung jetzt am 03.11.").
+terminaenderung_regex: >-
+  (?:verschoben\s+auf(?:\s+den)?|neuer\s+(?:Liefer|Anliefer)termin(?:\s*:)?|jetzt\s+am|rescheduled\s+(?:to|for)|new\s+delivery\s+date(?:\s*:)?)\s*(?P<datum>\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})?|\d{4}-\d{2}-\d{2})
+
+# Meilenstein-Muster: englische Textvorlagen der API-Ereignisse (OpenAPI EventSummary.template,
+# z. B. "Shipment {{shipment}} has departed from {{shipFromLocation}} on {{shipFromDate}}").
+# Die Portal-Benachrichtigungen verwenden vermutlich dieselben Texte.
+# TODO-PRUEFEN: Wortlaut der echten Meilenstein-Mails/-Ereignisse gegen diese Muster prüfen.
+#   code       = Ereigniscode der API/Webhooks
+#   muster     = Regex auf Betreff + Text (ignoriert Groß-/Kleinschreibung)
+#   status     = abgeleiteter Sendungsstatus
+#   geplant    = true: geplanter Termin (noch nicht eingetreten)
+#   ereignis   = Ereignistyp für MailEreignis (abholung, zustellung, terminaenderung, sonstiges)
+#   voraussetzung = Status, der erreicht sein muss, damit ein geplanter Meilenstein den Status hebt
+meilenstein_muster:
+  - code: "shprdy"
+    muster: "ready\\s+for\\s+(?:transport|pick-?up|collection)"
+    status: "bestaetigt"
+    geplant: false
+    ereignis: "sonstiges"
+  - code: "shpsupdeppln"
+    muster: "(?:planned|scheduled|expected)\\s+(?:to\\s+)?(?:depart|departure|pick-?up|collection)|pick-?up\\s+(?:is\\s+)?planned"
+    status: "abholung_geplant"
+    geplant: true
+    ereignis: "sonstiges"
+  - code: "shpsupdepcnf"
+    muster: "has\\s+(?:departed|been\\s+collected|been\\s+picked\\s+up)|departed\\s+from|collected\\s+from|picked\\s+up\\s+(?:at|from)"
+    status: "abgeholt"
+    geplant: false
+    ereignis: "abholung"
+  - code: "shpcusarrpln"
+    muster: "(?:planned|scheduled|expected|estimated)\\s+(?:to\\s+)?(?:arrive|arrival|delivery|be\\s+delivered)|delivery\\s+(?:is\\s+)?planned"
+    status: "zustellung_geplant"
+    geplant: true
+    ereignis: "terminaenderung"
+    voraussetzung: "abgeholt"
+  - code: "shpcusarrcnf"
+    muster: "has\\s+(?:arrived|been\\s+delivered)|arrived\\s+at|delivered\\s+(?:to|at)"
+    status: "zugestellt"
+    geplant: false
+    ereignis: "zustellung"
+  - code: "shpintransit"
+    muster: "in\\s+transit|is\\s+on\\s+its\\s+way"
+    status: "unterwegs"
+    geplant: false
+    ereignis: "sonstiges"
+
+# Texte, mit denen ein geplanter (noch nicht eingetretener) Eintrag in Timeline/Mail erkannt wird.
+geplant_regex: "\\b(?:planned|estimated|expected|scheduled|ETA|ETD|geplant|voraussichtlich)\\b"
+
+# Offizielle REST-API (Developer-Portal, OpenAPI 1.2.8). Zugangsdaten NUR aus Umgebungsvariablen
+# (settings.tracking.api_key_env usw.), nie aus dieser Datei.
+api:
+  basis_url: "https://api.hillebrandgori.com/"
+  # Token-URL laut "Get Started"-Text und OpenID-Metadaten (nicht die Apigee-Test-URL der Spec).
+  token_url: "https://login.hillebrand.com/oauth2/aus95hq7r8iIqp14M0i7/v1/token"
+  scope: "offline_access"
+  pfad_sendungen: "/v6/shipments"
+  pfad_ereignisse: "/v6/shipments/{id}/events"
+  limit_pro_minute: 100
+  timeout_sekunden: 30
+  token_gueltigkeit_sekunden: 7200   # "Token expiration is 2 hours"; expires_in der Antwort hat Vorrang
+  seitengroesse: 100
+  inaktive_einschliessen: true       # includeInactiveShipments (abgeschlossene Sendungen > 1 Monat)
+
+# Abbildung shipmentStatusEnum -> SendungStatus.
+# TODO-PRUEFEN: Zuordnung von loaded/shipped/arrived/unloaded für reine Lkw-Transporte am Live-System prüfen.
+status_mapping:
+  notReady: "beauftragt"
+  ready: "bestaetigt"
+  collected: "abgeholt"
+  loaded: "abgeholt"
+  shipped: "unterwegs"
+  arrived: "unterwegs"
+  unloaded: "unterwegs"
+  delivered: "zugestellt"
+
+# onTimeStatus -> Sendung.puenktlich
+on_time_mapping:
+  onTime: true
+  late: false
+
+# Status-Texte der Oberfläche (Public Tracking / Portal, englisch) -> SendungStatus.
+# TODO-PRUEFEN: tatsächliche Statusbezeichnungen der Timeline am echten Portal nachtragen.
+status_texte:
+  "booked": "beauftragt"
+  "not ready": "beauftragt"
+  "order confirmed": "bestaetigt"
+  "confirmed": "bestaetigt"
+  "ready": "bestaetigt"
+  "ready for transport": "bestaetigt"
+  "pick-up planned": "abholung_geplant"
+  "pickup planned": "abholung_geplant"
+  "collected": "abgeholt"
+  "picked up": "abgeholt"
+  "loaded": "abgeholt"
+  "in transit": "unterwegs"
+  "shipped": "unterwegs"
+  "departed": "unterwegs"
+  "arrived": "unterwegs"
+  "unloaded": "unterwegs"
+  "delivery planned": "zustellung_geplant"
+  "out for delivery": "zustellung_geplant"
+  "delivered": "zugestellt"
+  "delayed": "verspaetet"
+  "late": "verspaetet"
+  "exception": "problem"
+  "on hold": "problem"
+
+# Öffentliche Track&Trace-Seite ohne Login (Cloudflare-Challenge möglich).
+# TODO-PRUEFEN: Welcher Suchbegriff trifft (DEMB…, jobDEM…, Kundenreferenz)? Siehe Recherche 1.3.
+public_tracking_url: "https://my.hillebrandgori.com/public-tracking/{suchbegriff}"
+
+# Kundenportal (Login über Okta, login.hillebrand.com). Nur Rückfallebene!
+portal_url: "https://my.hillebrandgori.com/"
+portal_tracking_url: "https://my.hillebrandgori.com/public-tracking/{suchbegriff}"
+# TODO-PRUEFEN: Route der Sendungsdetails im eingeloggten Portal (nach Login mit aufzeichnen() ermitteln).
+login_hosts:
+  - "login.hillebrand.com"
+  - "okta.com"
+
+# Erkennung von Seiten, die KEINE Sendungsdaten enthalten.
+challenge_regex: "Just a moment|challenge-running|cf-chl|Enable JavaScript and cookies to continue|Verifying you are human"
+login_regex: "okta-sign-in|myHillebrandGori\\s*-\\s*Sign In|id=\"okta-signin-username\"|Unlock account\\?"
+
+# Selektoren (einfaches CSS: Tag, .klasse, #id, Nachfahren per Leerzeichen, [attr=wert]).
+# TODO-PRUEFEN: Platzhalter aus dem SPA-Bundle (jfh-…-Elemente); mit aufzeichnen() am echten
+# Portal/Public Tracking einstellen. Generierte Klassen (_ngcontent-…) nie verwenden.
+selektoren:
+  public:
+    timeline: "jfh-tracking-timeline"
+    eintrag: "jfh-tracking-timeline li"
+    status: "jfh-tracking-info-card .status"
+    status_regex: "Status\\s*:?\\s*(?P<status>[A-Za-z][A-Za-z \\-]{2,40})"
+    herkunft: "jfh-tracking-info-card .origin"
+    ziel: "jfh-tracking-info-card .destination"
+    warten_auf: "jfh-tracking-timeline"
+  portal:
+    suche: "jfh-tracking-search input"
+    timeline: "jfh-tracking-timeline"
+    eintrag: "jfh-tracking-timeline li"
+    status: "jfh-tracking-info-card .status"
+    status_regex: "Status\\s*:?\\s*(?P<status>[A-Za-z][A-Za-z \\-]{2,40})"
+    warten_auf: "jfh-tracking-timeline"
+
+# Browser (Playwright)
+browser:
+  timeout_sekunden: 30
+  viewport_breite: 1400
+  viewport_hoehe: 900
+  slow_mo_ms: 50

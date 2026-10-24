@@ -13,6 +13,27 @@ Vier Dokumente in unterschiedlichen Layouts, wie sie im Alltag eingehen:
 4. ``scan_preisliste.pdf`` – Seite nur als Bild (ohne Textebene), simuliert eine
    eingescannte Preisliste mit handschriftlichen Mengen.
 
+Ausbaustufe 2 (echte Belegformate, Daten frei erfunden):
+
+5. ``spar_sap_bestellung.pdf`` – SAP-Bestellung einer Handelskette: "Bestellung - Nr.",
+   Blöcke Bestellempfänger (wir, mit Lieferanten-Nr.), Rechnungsempfänger (Kette, GLN),
+   Bestellinformation (Bestelldatum, Lieferdatum = Fixtermin), Warenempfänger (Lager);
+   Tabelle mit GTIN, Kunden-Artikelnummer, "Lief. ANr.", "Bestellmenge in Bestell-Einheit"
+   × "Einheiten pro Bestell-Einheit"; Lieferbedingungen FH / Frei Haus, Palettenhinweis.
+6. ``lagerbestellung_edeka.pdf`` – "Lagerbestellung" einer Kellerei: Belegnummer, Adressat
+   unsere Firma, Ladeadresse (Weingut) und Anlieferadresse (Lager), Lieferdatum; Tabelle
+   Kolli-GTIN, Artikelnr., Menge in KOA × Inhalt, Gesamt (Flaschen), Preis; Bitte um
+   Auftragsbestätigung/Verladebereitschaft innerhalb 48 Stunden.
+7. ``shop_bestellung_fachhandel.pdf`` – Shop-Bestellung eines Fachhändlers: "BESTELLUNG",
+   Auftragsnummer/-datum, Tabelle ohne Gitterlinien (Menge | Bezeichnung | MwSt | Einzelpreis |
+   Gesamtpreis) mit Folgezeilen "ArtNr:" und "Hinweis: 11+1", Speditionszeile "DAA …" mit
+   Verbrauchsteuernummer zu 0,00, "Rechnungs-/Lieferanschrift".
+8. ``kundenbestellung_revised.pdf`` – Revised Order ("ersetzt Bestellung Nr. …") mit
+   Rabattspalte, Rabatt im Positionstext ("Aktion -5 %") und Aktionszeitraum auf Belegebene.
+9. ``rabattliste_beispiel.pdf`` – Rabattliste (Aktionen) als Text-PDF für ``rabatte.rabattliste_pdf``:
+   Tabelle mit Kunde/Kundengruppe, Lieferant, Artikel, Art.-Nr., Von, Bis, Rabatt %, Aktionspreis
+   sowie eine Freitextzeile mit Zeitraum und Rabatt (Zeilen-Regex). Alle Namen synthetisch.
+
 Das Skript ist idempotent und deterministisch (``invariant=1``): mehrfacher
 Aufruf erzeugt byte-identische Dateien. Aufruf::
 
@@ -45,8 +66,16 @@ DATEI_KIRCHHELLEN = "kundenbestellung_kirchhellen.pdf"
 DATEI_MENRATH = "kundenbestellung_menrath.pdf"
 DATEI_CIDE = "eigene_bestellung_cide.pdf"
 DATEI_SCAN = "scan_preisliste.pdf"
+DATEI_SPAR = "spar_sap_bestellung.pdf"
+DATEI_LAGER = "lagerbestellung_edeka.pdf"
+DATEI_SHOP = "shop_bestellung_fachhandel.pdf"
+DATEI_REVISED = "kundenbestellung_revised.pdf"
+DATEI_RABATTLISTE = "rabattliste_beispiel.pdf"
 
 _UNSERE_FIRMA = ("Wein-Import-Kreis LEH", "Musterweg 10", "40210 Düsseldorf")
+_FIRMA_WOE = ("Wine-of-Excellence LEH", "Musterweg 10", "40210 Düsseldorf")
+_FIRMA_WS = ("Weinstrasse Agentur", "Musterweg 10", "40210 Düsseldorf")
+_FIRMA_WIK_FH = ("Wein-Import-Kreis FH & SEH", "Musterweg 10", "40210 Düsseldorf")
 
 
 def _stile() -> dict[str, ParagraphStyle]:
@@ -363,28 +392,351 @@ def erzeuge_scan_preisliste(ziel: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Hilfen für die Ausbaustufe-2-Layouts
+# ---------------------------------------------------------------------------
+
+
+def _zweispaltig(links: list[str], rechts: list[str], st: dict[str, ParagraphStyle]) -> Table:
+    """Zwei Adress-/Infoblöcke nebeneinander (erste Zeile fett = Überschrift)."""
+
+    def block(zeilen: list[str]) -> list[Paragraph]:
+        return [Paragraph(f"<b>{zeilen[0]}</b>", st["normal"]), *_absaetze(zeilen[1:], st["normal"])]
+
+    tabelle = Table([[block(links), block(rechts)]], colWidths=[85 * mm, 85 * mm])
+    tabelle.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    return tabelle
+
+
+def _zellen(zeilen: list[tuple[str, ...]], st: dict[str, ParagraphStyle]) -> list[list[Paragraph]]:
+    return [[Paragraph(z, st["zelle"]) for z in zeile] for zeile in zeilen]
+
+
+# ---------------------------------------------------------------------------
+# (5) SAP-Bestellung einer Handelskette – VE-Mengen, GTIN, Lieferanten-Nr.
+# ---------------------------------------------------------------------------
+
+
+def erzeuge_spar_sap_bestellung(ziel: Path) -> Path:
+    st = _stile()
+    doc = _dokument(ziel, "Bestellung 4500000001")
+    inhalt: list = []
+
+    inhalt.append(Paragraph("Bestellung - Nr.: 4500000001", st["titel"]))
+    inhalt.append(
+        Paragraph("Bitte die Bestellnummer auf Lieferschein und Rechnung unbedingt angeben", st["klein"])
+    )
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.append(
+        _zweispaltig(
+            ["Bestellempfänger", "Lieferanten-Nr.: 100001", *_UNSERE_FIRMA],
+            ["Rechnungsempfänger", "Beispiel Handels AG", "GLN 4099999000001", "Handelsstraße 1", "5020 Salzburg"],
+            st,
+        )
+    )
+    inhalt.append(Spacer(1, 5 * mm))
+    inhalt.append(
+        _zweispaltig(
+            ["Bestellinformation", "Bestelldatum: 20.10.2026", "Lieferdatum: 03.11.2026", "Währung: EUR"],
+            ["Warenempfänger", "Beispiel Handels AG Lager Nord", "Lagerstraße 5", "4600 Wels"],
+            st,
+        )
+    )
+    inhalt.append(Spacer(1, 6 * mm))
+
+    kopfzeile = [
+        "Pos",
+        "GTIN",
+        "Artikelnummer",
+        "Lief. ANr.",
+        "Artikelbezeichnung",
+        "Bestellmenge in Bestell-Einheit",
+        "Einheiten pro Bestell-Einheit",
+    ]
+    zeilen = [
+        ("1", "4099999000018", "700123", "1643", "Villa Armellina Gloria Secco Frizzante 0,75l G VE 6", "570.0", "6.00"),
+        ("2", "4099999000025", "700124", "957", "Villa Armellina Rosato Secco Frizzante 0,75l G VE 6", "120.0", "6.00"),
+    ]
+    daten = [[Paragraph(k, st["zelle"]) for k in kopfzeile], *_zellen(zeilen, st)]
+    inhalt.append(
+        _gittertabelle(daten, [10 * mm, 26 * mm, 22 * mm, 16 * mm, 56 * mm, 20 * mm, 20 * mm], (5, 6))
+    )
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.extend(
+        _absaetze(
+            [
+                "Lieferbedingungen: FH / Frei Haus",
+                "Palettenhinweis: Bitte sortenrein auf Euro-Paletten, max. 60 Kartons je Palette.",
+                "Anzahl Paletten: 12",
+            ],
+            st["normal"],
+        )
+    )
+    doc.build(inhalt)
+    logger.info("Erzeugt: %s", ziel)
+    return ziel
+
+
+# ---------------------------------------------------------------------------
+# (6) Lagerbestellung einer Kellerei – Kolli × Inhalt, Ladeadresse/Anlieferadresse
+# ---------------------------------------------------------------------------
+
+
+def erzeuge_lagerbestellung_edeka(ziel: Path) -> Path:
+    st = _stile()
+    doc = _dokument(ziel, "Lagerbestellung 3450000001")
+    inhalt: list = []
+
+    inhalt.append(Paragraph("Musterkellerei Nord GmbH · Kellerweg 1 · 12345 Musterstadt", st["klein"]))
+    inhalt.append(Spacer(1, 8 * mm))
+    inhalt.extend(_absaetze(list(_FIRMA_WOE), st["normal"]))
+    inhalt.append(Spacer(1, 8 * mm))
+    inhalt.append(Paragraph("Belegnummer: 3450000001 Lagerbestellung", st["titel"]))
+    inhalt.append(Spacer(1, 5 * mm))
+    inhalt.append(
+        _zweispaltig(
+            ["Ladeadresse:", "Quinta Beispiel Lda.", "Rua do Vinho 10", "4900 Viana do Castelo", "Portugal"],
+            ["Anlieferadresse:", "Lagerhaus Beispiel Nord", "Hafenstraße 8", "47119 Duisburg"],
+            st,
+        )
+    )
+    inhalt.append(Spacer(1, 5 * mm))
+    inhalt.extend(
+        _absaetze(
+            ["Datum: 21.10.2026", "Unser Ansprechpartner: Frau Beispiel", "Lieferdatum: 05.11.2026"],
+            st["normal"],
+        )
+    )
+    inhalt.append(Spacer(1, 5 * mm))
+
+    kopfzeile = ["Pos", "Nr.", "Kolli-GTIN", "Artikelnr.", "Artikelbez.", "Menge", "ME", "Inhalt", "Gesamt", "Preis", "Gesamtwert"]
+    zeilen = [
+        ("1", "10", "4099999000100", "123456", "Quinta Beispiel Vinho Verde DOC htr.0,75l", "3.250", "KOA", "6", "19.500", "1,1410", "22.249,50"),
+        ("2", "20", "4099999000117", "123457", "Quinta Beispiel Vinho Verde Rosé DOC 0,75l", "500", "KOA", "6", "3.000", "1,2500", "3.750,00"),
+    ]
+    daten = [[Paragraph(k, st["zelle"]) for k in kopfzeile], *_zellen(zeilen, st)]
+    inhalt.append(
+        _gittertabelle(
+            daten,
+            [9 * mm, 9 * mm, 24 * mm, 17 * mm, 40 * mm, 13 * mm, 14 * mm, 12 * mm, 14 * mm, 13 * mm, 17 * mm],
+            (5, 7, 8, 9, 10),
+        )
+    )
+    inhalt.append(Spacer(1, 5 * mm))
+    inhalt.extend(
+        _absaetze(
+            [
+                "Anzahl Paletten: 13",
+                "Bitte senden Sie uns innerhalb von 48 Stunden eine Auftragsbestätigung bzw. teilen Sie uns "
+                "die Verladebereitschaft mit.",
+            ],
+            st["normal"],
+        )
+    )
+    doc.build(inhalt)
+    logger.info("Erzeugt: %s", ziel)
+    return ziel
+
+
+# ---------------------------------------------------------------------------
+# (7) Shop-Bestellung eines Fachhändlers – Tabelle ohne Gitter, Folgezeilen ArtNr/Hinweis, DAA-Zeile
+# ---------------------------------------------------------------------------
+
+
+def erzeuge_shop_bestellung_fachhandel(ziel: Path) -> Path:
+    st = _stile()
+    doc = _dokument(ziel, "Bestellung 1559")
+    inhalt: list = []
+
+    inhalt.append(Paragraph("BESTELLUNG", st["titel"]))
+    inhalt.append(Spacer(1, 4 * mm))
+    absender = _absaetze(
+        ["<b>Vinothek Beispiel GmbH</b>", "Marktplatz 2", "45127 Essen", "Tel. 0201 000000"], st["normal"]
+    )
+    infos = _absaetze(["Auftragsnummer 1559", "Auftragsdatum 22.10.2026", "Kundennummer 2100"], st["rechts"])
+    kopf = Table([[absender, infos]], colWidths=[95 * mm, 75 * mm])
+    kopf.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    inhalt.append(kopf)
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.extend(_absaetze(["An", *_FIRMA_WS], st["normal"]))
+    inhalt.append(Spacer(1, 8 * mm))
+
+    kopfzeile = ["Menge", "Bezeichnung", "MwSt", "Einzelpreis", "Gesamtpreis"]
+    zeilen = [
+        ("1,00", "DAA Neptun DE00000000000", "", "0,00 €", "0,00 €"),
+        ("60,00", "Villa Armellina Gloria Secco Frizzante 0,75l<br/>ArtNr: 11081<br/>Hinweis: 11+1", "19 %", "6,90 €", "414,00 €"),
+        ("12,00", "Colosi Nero d'Avola Sicilia DOC 2022 0,75l<br/>ArtNr: 2001", "19 %", "8,40 €", "100,80 €"),
+    ]
+    daten = [[Paragraph(f"<b>{k}</b>", st["zelle"]) for k in kopfzeile], *_zellen(zeilen, st)]
+    tabelle = Table(daten, colWidths=[18 * mm, 92 * mm, 16 * mm, 22 * mm, 22 * mm])
+    tabelle.setStyle(
+        TableStyle(
+            [
+                ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (3, 1), (4, -1), "RIGHT"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    inhalt.append(tabelle)
+    inhalt.append(Spacer(1, 4 * mm))
+    inhalt.extend(
+        _absaetze(["Zwischensumme netto 514,80 €", "zzgl. 19 % MwSt. 97,81 €", "Gesamt 612,61 €"], st["rechts"])
+    )
+    inhalt.append(Spacer(1, 8 * mm))
+    inhalt.append(Paragraph("<b>Rechnungs-/Lieferanschrift</b>", st["normal"]))
+    inhalt.extend(_absaetze(["Vinothek Beispiel GmbH", "Marktplatz 2", "45127 Essen"], st["normal"]))
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.append(Paragraph("Lieferung frei Haus.", st["normal"]))
+    doc.build(inhalt)
+    logger.info("Erzeugt: %s", ziel)
+    return ziel
+
+
+# ---------------------------------------------------------------------------
+# (8) Revised Order – ersetzt eine frühere Bestellung, Rabatte und Aktionszeitraum
+# ---------------------------------------------------------------------------
+
+
+def erzeuge_kundenbestellung_revised(ziel: Path) -> Path:
+    st = _stile()
+    doc = _dokument(ziel, "Bestellung B-5002 (Revised)")
+    inhalt: list = []
+
+    absender = _absaetze(["<b>Vinothek Beispiel GmbH</b>", "Marktplatz 2", "45127 Essen"], st["normal"])
+    infos = _absaetze(
+        ["Bestell-Nr.: B-5002", "Datum: 23.10.2026", "Liefertermin: 06.11.2026", "Kundennr.: 2100"], st["rechts"]
+    )
+    kopf = Table([[absender, infos]], colWidths=[95 * mm, 75 * mm])
+    kopf.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    inhalt.append(kopf)
+    inhalt.append(Spacer(1, 8 * mm))
+    inhalt.extend(_absaetze(["An", *_FIRMA_WIK_FH], st["normal"]))
+    inhalt.append(Spacer(1, 8 * mm))
+    inhalt.append(Paragraph("Bestellung – REVISED ORDER", st["titel"]))
+    inhalt.append(Spacer(1, 3 * mm))
+    inhalt.extend(
+        _absaetze(
+            [
+                "Revised order: Änderung zur Bestellung Nr. B-5001 vom 10.10.2026 – diese Bestellung ersetzt die "
+                "vorherige vollständig.",
+                "Aktionszeitraum 01.11.-30.11.2026 (Herbstaktion)",
+            ],
+            st["normal"],
+        )
+    )
+    inhalt.append(Spacer(1, 4 * mm))
+
+    kopfzeile = ["Pos", "Menge", "Einheit", "Artikel", "Jahrgang", "Einzelpreis", "Rabatt", "Gesamt"]
+    zeilen = [
+        ("1", "60", "Fl", "Villa Armellina Gloria Secco Frizzante", "", "6,90 €", "10 %", "372,60 €"),
+        ("2", "24", "Fl", "Colosi Nero d'Avola Sicilia DOC Aktion -5 %", "2022", "8,40 €", "", "191,52 €"),
+        ("3", "6", "Fl", "Bollina Gavi di Gavi DOCG", "2023", "12,50 €", "", "75,00 €"),
+    ]
+    daten = [kopfzeile, *_zellen(zeilen, st)]
+    inhalt.append(
+        _gittertabelle(daten, [10 * mm, 14 * mm, 15 * mm, 62 * mm, 17 * mm, 20 * mm, 15 * mm, 20 * mm], (1, 5, 6, 7))
+    )
+    inhalt.append(Spacer(1, 4 * mm))
+    inhalt.append(Paragraph("Gesamt: 90 Fl.", st["fett"]))
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.extend(_absaetze(["Mit freundlichen Grüßen", "Vinothek Beispiel GmbH"], st["normal"]))
+    doc.build(inhalt)
+    logger.info("Erzeugt: %s", ziel)
+    return ziel
+
+
+# ---------------------------------------------------------------------------
+# (9) Rabattliste – Aktionszeiträume als Tabelle plus Freitextzeile (Ausbaustufe 2, Abschnitt 7)
+# ---------------------------------------------------------------------------
+
+
+def erzeuge_rabattliste_beispiel(ziel: Path) -> Path:
+    st = _stile()
+    doc = _dokument(ziel, "Rabattliste Herbst 2026")
+    inhalt: list = []
+
+    inhalt.append(Paragraph("Rabattliste Herbst 2026 – Aktionen Fachhandel", st["titel"]))
+    inhalt.append(Paragraph(" · ".join(_FIRMA_WIK_FH), st["klein"]))
+    inhalt.append(Spacer(1, 4 * mm))
+    inhalt.extend(
+        _absaetze(
+            [
+                "Lieferant: Weingut Beispiel",
+                "Alle Rabatte sind Positionsrabatte auf den Verkaufspreis Preisgruppe 1 (netto je Flasche).",
+            ],
+            st["normal"],
+        )
+    )
+    inhalt.append(Spacer(1, 5 * mm))
+
+    kopfzeile = ["Kunde", "Lieferant", "Artikel", "Art.-Nr.", "Von", "Bis", "Rabatt %", "Aktionspreis"]
+    zeilen = [
+        ("Vinothek Beispiel", "Weingut Beispiel", "Riesling trocken 2023 0,75 l", "4001", "01.11.2026", "30.11.2026", "10 %", ""),
+        ("Fachhandel", "Cantine Colosi", "Nero d'Avola Sicilia DOC 2022", "2001", "01.11.2026", "15.11.2026", "5 %", ""),
+        ("", "Bollina", "Gavi di Gavi DOCG 2023 0,75 l", "", "15.10.2026", "31.12.2026", "", "11,50 €"),
+    ]
+    daten = [[Paragraph(f"<b>{k}</b>", st["zelle"]) for k in kopfzeile], *_zellen(zeilen, st)]
+    inhalt.append(
+        _gittertabelle(
+            daten, [22 * mm, 22 * mm, 40 * mm, 16 * mm, 20 * mm, 20 * mm, 14 * mm, 16 * mm], (6, 7)
+        )
+    )
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.extend(
+        _absaetze(
+            [
+                "Weitere Aktion (alle Kunden):",
+                "Villa Armellina Gloria Secco Frizzante 0,75 l, Aktionszeitraum 01.12.–24.12.2026, Rabatt -8 %",
+            ],
+            st["normal"],
+        )
+    )
+    inhalt.append(Spacer(1, 6 * mm))
+    inhalt.append(Paragraph("Stand 20.10.2026 – nur zu Testzwecken, alle Angaben frei erfunden.", st["klein"]))
+    doc.build(inhalt)
+    logger.info("Erzeugt: %s", ziel)
+    return ziel
+
+
+# ---------------------------------------------------------------------------
 # Alle
 # ---------------------------------------------------------------------------
 
 
-def erzeuge_alle(ordner: Path | None = None) -> list[Path]:
-    """Erzeugt alle Beispiel-PDFs im Ordner (Standard: tests/fixtures/pdfs) und liefert die Pfade."""
+def erzeuge_alle(ordner: Path | None = None, *, mit_rabattliste: bool = False) -> list[Path]:
+    """Erzeugt alle Beispiel-PDFs im Ordner (Standard: tests/fixtures/pdfs) und liefert die Pfade.
+
+    Reihenfolge: die vier Dokumente der Ausbaustufe 1, danach die vier echten Belegformate; mit
+    ``mit_rabattliste`` zusätzlich die Rabattliste (``rabattliste_beispiel.pdf``, Ausbaustufe 2).
+    """
     ordner = Path(ordner) if ordner is not None else STANDARD_ORDNER
     ordner.mkdir(parents=True, exist_ok=True)
-    return [
+    pfade = [
         erzeuge_kundenbestellung_kirchhellen(ordner / DATEI_KIRCHHELLEN),
         erzeuge_kundenbestellung_menrath(ordner / DATEI_MENRATH),
         erzeuge_eigene_bestellung_cide(ordner / DATEI_CIDE),
         erzeuge_scan_preisliste(ordner / DATEI_SCAN),
+        erzeuge_spar_sap_bestellung(ordner / DATEI_SPAR),
+        erzeuge_lagerbestellung_edeka(ordner / DATEI_LAGER),
+        erzeuge_shop_bestellung_fachhandel(ordner / DATEI_SHOP),
+        erzeuge_kundenbestellung_revised(ordner / DATEI_REVISED),
     ]
+    if mit_rabattliste:
+        pfade.append(erzeuge_rabattliste_beispiel(ordner / DATEI_RABATTLISTE))
+    return pfade
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Erzeugt die Beispiel-PDFs für Tests und Demos.")
     parser.add_argument("ordner", nargs="?", type=Path, default=STANDARD_ORDNER, help="Zielordner")
+    parser.add_argument(
+        "--ohne-rabattliste", action="store_true", help="Rabattliste (rabattliste_beispiel.pdf) nicht erzeugen"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    for pfad in erzeuge_alle(args.ordner):
+    for pfad in erzeuge_alle(args.ordner, mit_rabattliste=not args.ohne_rabattliste):
         print(pfad)
     return 0
 

@@ -1,0 +1,40 @@
+{
+  "pageNumber": 1,
+  "pageSize": 100,
+  "totalCount": 1,
+  "items": [
+    {
+      "id": 123456,
+      "shipmentStatus": "collected",
+      "onTimeStatus": "onTime",
+      "progress": 40,
+      "mainModality": "truck",
+      "references": [
+        {
+          "referenceType": "File",
+          "referenceValue": "DEMB00000"
+        }
+      ],
+      "otherReferences": [
+        {
+          "referenceType": "Customer",
+          "referenceValue": "WS-2026-0042"
+        }
+      ],
+      "shipFromPartyName": "Weingut Beispiel",
+      "shipToPartyName": "Beispielmarkt Zentrallager",
+      "readyDate": 1792497600,
+      "estimatedDepartureDate": 1792670400,
+      "actualDepartureDate": 1792656000,
+      "estimatedArrivalDate": "2026-10-27T10:00:00Z",
+      "actualArrivalDate": null,
+      "modifiedTimeStamp": 1792659600,
+      "lastEvent": {
+        "code": "shpsupdepcnf",
+        "category": "shipment",
+        "date": 1792656000,
+        "text": "Shipment DEMB00000 has departed from Treviso on 2026-10-22"
+      }
+    }
+  ]
+}

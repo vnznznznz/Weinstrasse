@@ -1,0 +1,18 @@
+{{ anrede }}
+
+Zur Erinnerung (Stand {{ zeitpunkt | datum_de }}, Zeitraum bis {{ zeitraum_bis | datum_de }}): {% if punkte %}{{ punkte | length }} Fixtermin{% if punkte | length != 1 %}e{% endif %} brauch{% if punkte | length == 1 %}t{% else %}en{% endif %} Aufmerksamkeit.{% else %}derzeit sind keine Punkte fällig.{% endif +%}
+
+{% for p in punkte %}
+- {{ p.liefertag | datum_de }} – {{ p.lieferant }} an {{ p.kunde }} ({{ p.ampel }}): {{ p.grund }}{% if p.aktionen %} – {{ p.aktionen | join(", ") }}{% endif +%}
+{% endfor %}
+{% if zusammenfassung %}
+
+{{ zusammenfassung }}
+{% endif %}
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}

@@ -1,0 +1,7 @@
+"Lieferantennummer";"Kreditorenkonto";"Matchcode";"Anrede";"Name";"Vorname";"Firma";"Zusatz";"Ansprechpartner";"Straße";"HausNr";"Postleitzahl";"Ort";"Land";"Telefon";"EMAIL";"Web";"Bemerkung";"Inaktiv"
+"72";"72";"CIDE";"Firma";"";"";"Cide srl";"Villa Armellina";"";"Via Roma";"12";"31100";"Treviso";"Italien";"0000 000000";"orders@example.org";"";"Orders-Kontakt laut Kontaktliste";"N"
+"87";"87";"COLOSI";"Firma";"";"";"Cantine Colosi";"Colosi";"";"Via Messina";"1";"98100";"Messina";"Italien";"0000 000000";"ordini@example.org";"";"";"N"
+"138";"138";"BOLLINA";"Firma";"";"";"Bollina srl";"";"";"Via Gavi";"5";"15066";"Gavi";"Italien";"0000 000000";"info@example.org";"";"";"N"
+"210";"210";"QUINTA";"Firma";"";"";"Quinta Beispiel Lda.";"";"";"Rua do Vinho";"10";"4900";"Viana do Castelo";"Portugal";"0000 000000";"export@example.org";"";"Verladung nur Mo-Do";"N"
+"300";"300";"BEISPIEL";"Firma";"Beispiel";"Franz";"";"Weinbauer";"";"Weinstraße";"3";"67098";"Bad Dürkheim";"Deutschland";"0000 000000";"franz.beispiel@example.org";"";"Winzer ohne Firmennamen";"N"
+"301";"301";"ALTWG";"Firma";"";"";"Ehemaliges Weingut GmbH";"";"";"Weg";"2";"67098";"Bad Dürkheim";"Deutschland";"0000 000000";"";"";"";"J"

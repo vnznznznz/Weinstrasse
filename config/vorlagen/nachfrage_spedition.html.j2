@@ -1,0 +1,10 @@
+{# Statusanfrage an die Spedition (deutsch) mit "Our Ref". Kontext: anrede, lieferant, kunde, referenz,
+   kundenreferenz, liefertag, verladedatum, status, hinweis, gruss, signatur #}
+<p>{{ anrede }}</p>
+<p>Zu unserer Sendung von <b>{{ lieferant }}</b> an <b>{{ kunde }}</b>{% if referenz %} (Our Ref <b>{{ referenz }}</b>){% endif %}{% if kundenreferenz %}, unsere Referenz {{ kundenreferenz }},{% endif %} mit Fixtermin <b>{{ liefertag | datum_de }}</b>{% if verladedatum %} (Verladung {{ verladedatum | datum_de }}){% endif %} liegt uns noch keine Rückmeldung vor{% if status %} (letzter Stand bei uns: {{ status }}){% endif %}.</p>
+<p>Könnten Sie uns bitte kurz den aktuellen Status und den geplanten Abholtermin mitteilen? Vielen Dank.</p>
+{% if hinweis %}
+<p>{{ hinweis | nl2br }}</p>
+{% endif %}
+<p>{{ gruss }}</p>
+{{ signatur }}

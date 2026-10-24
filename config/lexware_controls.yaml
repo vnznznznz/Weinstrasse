@@ -151,3 +151,53 @@ controls:
   SPALTE_BEZEICHNUNG: "Bezeichnung"
   SPALTE_MENGE: "Menge"
   SPALTE_PREIS: "Einzelpreis"
+
+  # ---- Verkaufsweg laut Ablaufplan (docs/AUSBAUSTUFE_2.md, Abschnitt 5): Angebot -> Weiterführen/Wandeln -> AB
+  # [V] Auftragsart "Angebot" im Verkauf
+  AUFTRAGSART_ANGEBOT: "Angebot"
+  # TODO-LEXWARE: Schaltfläche "Weiterführen" in der Aktionsleiste (Rückfall, wenn das Menü fehlt)
+  WEITERFUEHREN_BUTTON: {title: "Weiterführen", control_type: "Button"}
+  # TODO-LEXWARE: Menüpfad "Auftrag wandeln" (vermutlich Bearbeiten -> Aufträge -> Wandeln oder Kontextmenü)
+  MENUE_AUFTRAG_WANDELN: ["Bearbeiten", "Aufträge", "Wandeln"]
+  # TODO-LEXWARE: Titel des Dialogs "Auftrag wandeln"
+  WANDELN_TITEL_REGEX: ".*wandeln.*"
+  # TODO-LEXWARE: Zielbelegart im Wandeln-Dialog (Auftragsbestätigung)
+  WANDELN_ZIELART: {title: "Auftragsart", control_type: "ComboBox"}
+  # TODO-LEXWARE: Positionsrabatt in % je Position (Seite 2, nur Verkauf); Beschriftung prüfen
+  RABATT: {title: "Rabatt %", control_type: "Edit"}
+  # TODO-LEXWARE: "AB-Text" = Auftragsbeschreibung (Standardtext laut Verwaltung -> Texte) oder Einleitungstext?
+  AB_TEXT: {title: "Auftragsbeschreibung", control_type: "Edit"}
+  # TODO-LEXWARE: Register "Nachbemerkung" auf der Seite Summen (falls die Nachbemerkung nicht direkt sichtbar ist)
+  REGISTER_NACHBEMERKUNG: {title: "Nachbemerkung", control_type: "TabItem"}
+  # TODO-LEXWARE: Textfeld Nachbemerkung (bis 2000 Zeichen) [V]
+  NACHBEMERKUNG: {title: "Nachbemerkung", control_type: "Edit"}
+  # TODO-LEXWARE: Spaltenüberschrift des Positionsrabatts in der Positionsliste
+  SPALTE_RABATT: "Rabatt %"
+
+  # ---- PDF-Ausgabe (settings.lexware.pdf_ausgabe: drucker | export | keine) – nie Papier, nie E-Mail
+  # TODO-LEXWARE: Drucken des markierten Belegs (Menü, Kontextmenü oder Aktionsleiste)
+  MENUE_BELEG_DRUCKEN: ["Datei", "Drucken"]
+  # TODO-LEXWARE: Titel des Lexware-Druckdialogs
+  DRUCKDIALOG_TITEL_REGEX: ".*Drucken.*"
+  # TODO-LEXWARE: Formularauswahl im Druckdialog ("WIK EN", "WIK AB_LS", "WS_EN", "WS_AB")
+  DRUCK_FORMULAR: {title: "Formular", control_type: "ComboBox"}
+  # TODO-LEXWARE: Druckerauswahl im Druckdialog (settings.lexware.pdf_drucker)
+  DRUCK_DRUCKER: {title: "Drucker", control_type: "ComboBox"}
+  # TODO-LEXWARE: Schaltfläche, die den Druck startet
+  DRUCK_STARTEN: {title: "Drucken", control_type: "Button"}
+  # TODO-LEXWARE: Dateinamen-Dialog des PDF-Druckers (Microsoft Print to PDF: "Druckausgabe speichern unter")
+  DATEIDIALOG_TITEL_REGEX: ".*(Druckausgabe speichern|Speichern unter|Save Print Output).*"
+  # TODO-LEXWARE: Feld "Dateiname:" des Windows-Dateidialogs (alternativ auto_id "1001")
+  DATEIDIALOG_NAME: {title: "Dateiname:", control_type: "Edit"}
+  # TODO-LEXWARE: Schaltfläche "Speichern" des Dateidialogs (alternativ auto_id "1")
+  DATEIDIALOG_SPEICHERN: {title: "Speichern", control_type: "Button"}
+  # TODO-LEXWARE: "Exportieren als PDF", falls Lexware das im Belegfenster anbietet
+  MENUE_BELEG_EXPORT_PDF: ["Datei", "Export", "PDF"]
+  # TODO-LEXWARE: Titel des Exportdialogs
+  EXPORTDIALOG_TITEL_REGEX: ".*(Export|PDF).*"
+  # TODO-LEXWARE: Formularauswahl im Exportdialog
+  EXPORT_FORMULAR: {title: "Formular", control_type: "ComboBox"}
+  # TODO-LEXWARE: Dateiname im Exportdialog (vollständiger Pfad)
+  EXPORT_DATEINAME: {title: "Dateiname", control_type: "Edit"}
+  # TODO-LEXWARE: OK-Schaltfläche des Exportdialogs
+  EXPORT_OK: {title: "OK", control_type: "Button"}

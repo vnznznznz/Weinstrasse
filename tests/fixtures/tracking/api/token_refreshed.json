@@ -1,0 +1,7 @@
+{
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "access_token": "fixture-access-2",
+  "scope": "offline_access",
+  "refresh_token": "fixture-refresh-2"
+}

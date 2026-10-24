@@ -40,7 +40,15 @@ from PIL import Image
 from pydantic import BaseModel, Field
 
 from auftragsautomat.config import Settings
-from auftragsautomat.extraktion.zahlen import parse_datum, parse_dezimal
+from auftragsautomat.extraktion.text_pdf import (
+    SPEDITIONSZEILE_HINWEIS,
+    RevisionTreffer,
+    finde_aktionshinweis,
+    finde_revision,
+    ist_speditionszeile,
+    revisions_hinweis,
+)
+from auftragsautomat.extraktion.zahlen import glatt, parse_datum, parse_dezimal, parse_rabatt
 from auftragsautomat.matching.volumen import parse_jahrgang, parse_volumen_cl
 from auftragsautomat.models import (
     Eingangstyp,
@@ -138,8 +146,13 @@ class VisionAbgeschnitten(VisionFehler):
 # ---------------------------------------------------------------------------
 #
 # Für das JSON-Schema der API werden Zahlen als number/integer geführt (kein Decimal);
-# die Umwandlung in Decimal passiert in ``wandle_in_rohbestellung``. Alle Felder sind
+# die Umwandlung in Decimal passiert in ``wandle_in_rohbestellung``. Die Kernfelder sind
 # Pflicht (ohne Default), damit das Modell jedes Feld explizit – ggf. mit null – ausgibt.
+# Die Felder zu Rabatt, Aktion und Revised Order (Ausbaustufe 2) haben Defaults; fehlen sie
+# in der Antwort, greift die deterministische Erkennung über ``zahlen.parse_rabatt`` bzw.
+# ``text_pdf.finde_revision``/``finde_aktionshinweis`` auf Rohtext und Anmerkungen.
+# TODO-PRUEFEN: Am echten Tenant prüfen, ob Claude die optionalen Felder rabatt_prozent /
+# ist_revision / aktionshinweis zuverlässig füllt; sonst als Pflichtfelder führen.
 
 
 class VisionPosition(BaseModel):
@@ -167,6 +180,13 @@ class VisionPosition(BaseModel):
     konfidenz_menge: float = Field(description="Sicherheit beim Lesen der Menge, 0 bis 1 (1 = sicher). 1.0, wenn keine Menge eingetragen ist.")
     konfidenz_preis: float | None = Field(description="Sicherheit beim Lesen des Preises, 0 bis 1; null wenn kein Preis.")
     rohtext: str | None = Field(description="Die komplette Zeile wörtlich, inklusive handschriftlicher Einträge.")
+    rabatt_prozent: float | None = Field(
+        default=None,
+        description="Positionsrabatt in Prozent, falls in der Zeile ein Rabatt steht (z. B. 'Rabatt 10 %', '-10%', 'Aktion -10 %'); positiv angeben; null wenn kein Rabatt. Ein Mehrwertsteuersatz ist KEIN Rabatt.",
+    )
+    rabatt_text: str | None = Field(
+        default=None, description="Der Rabatt wörtlich, wie er in der Zeile steht (z. B. 'Aktion -10 %'); null wenn kein Rabatt."
+    )
 
 
 class VisionSummenvermerk(BaseModel):
@@ -192,6 +212,18 @@ class VisionErgebnis(BaseModel):
     summenvermerke: list[VisionSummenvermerk] = Field(description="Alle Summenvermerke im Dokument.")
     seitenzahl: int | None = Field(description="Anzahl der Seiten des Dokuments; null wenn unklar.")
     anmerkungen: list[str] = Field(description="Auffälligkeiten (unleserliche Stellen, Notizen am Rand, Unklarheiten).")
+    aktionshinweis: str | None = Field(
+        default=None,
+        description="Aktionshinweis auf Belegebene wörtlich, z. B. 'Aktion KW 45', 'Promo', 'Aktionszeitraum 01.11.-30.11.'; null wenn keiner.",
+    )
+    ist_revision: bool = Field(
+        default=False,
+        description="true, wenn das Dokument eine geänderte/ersetzende Bestellung ist ('Revised order', 'REVISED', 'Änderung zur Bestellung', 'ersetzt Bestellung Nr. …', 'Storno + Neu').",
+    )
+    revision_von: str | None = Field(
+        default=None,
+        description="Nummer der ersetzten Bestellung, falls genannt ('ersetzt Bestellung Nr. 123' -> '123'); sonst null.",
+    )
 
 
 SYSTEM_PROMPT = """Du bist Sachbearbeiter im Weinhandel und liest eingescannte Preislisten aus.
@@ -208,7 +240,10 @@ Regeln:
 7. Preise netto so übernehmen, wie sie gedruckt sind (keine Umrechnung, keine Mehrwertsteuer). preis mit Dezimalpunkt; der Originaltext steht im rohtext.
 8. Kopfdaten: kunde_text (Besteller/Empfänger, falls erkennbar), lieferant_text (Weingut/Händler der Preisliste), belegnummer, bestellnummer, datum und liefertag als "TT.MM.JJJJ", lieferadresse.
 9. hinweis für Zusätze wie "11+1" oder "Restposten"; anmerkungen für alles, was unklar ist (unleserliche Stellen, Randnotizen, mehrere Mengen in einer Zeile).
-10. Texte so belassen, wie sie im Dokument stehen (Deutsch oder Italienisch), keine Übersetzung."""
+10. Texte so belassen, wie sie im Dokument stehen (Deutsch oder Italienisch), keine Übersetzung.
+11. Rabatte: Steht in einer Zeile ein Positionsrabatt ("Rabatt 10 %", "-10%", "Aktion -10 %", "Aktionsrabatt 10%"), rabatt_prozent als positive Zahl und rabatt_text wörtlich angeben. Ein Mehrwertsteuersatz ("19 %") ist kein Rabatt.
+12. Aktionshinweis auf Belegebene ("Aktion KW 45", "Promo", "Aktionszeitraum 01.11.-30.11.") wörtlich in aktionshinweis; sonst null.
+13. Revised Order: Ist das Dokument eine geänderte oder ersetzende Bestellung ("Revised order", "REVISED", "Änderung zur Bestellung", "ersetzt Bestellung Nr. 123", "Storno + Neu"), ist_revision = true und revision_von = die genannte Nummer der ersetzten Bestellung (sonst null)."""
 
 BENUTZER_PROMPT = (
     "Lies die angehängte eingescannte Preisliste vollständig aus. Jede Zeile wird eine Position, "
@@ -468,6 +503,22 @@ def _wandle_position(vp: VisionPosition, laufnr: int) -> RohPosition | None:
     konfidenz_menge = _konfidenz(vp.konfidenz_menge)
     konfidenz_preis = _konfidenz(vp.konfidenz_preis) if preis is not None else None
 
+    # Rabatt laut Dokument: aus der Antwort, sonst deterministisch aus Rabatttext/Hinweis/Rohtext
+    hinweis = _text(vp.hinweis)
+    rabatt_prozent = glatt(_decimal_aus_zahl(vp.rabatt_prozent, nachkommastellen=2))
+    rabatt_text = _text(vp.rabatt_text)
+    if rabatt_prozent is not None and not 0 < rabatt_prozent <= 100:
+        logger.warning("Pos. %s: Rabatt %s %% ist unplausibel und wird verworfen", laufnr, rabatt_prozent)
+        rabatt_prozent = None
+    if rabatt_prozent is None:
+        fund = parse_rabatt(rabatt_text) or parse_rabatt(hinweis) or parse_rabatt(_text(vp.rohtext))
+        if fund is not None:
+            rabatt_prozent = fund.prozent
+            rabatt_text = rabatt_text or fund.rohtext
+            logger.debug("Pos. %s: Rabatt %s %% aus dem Text abgeleitet (%r)", laufnr, fund.prozent, fund.rohtext)
+    if ist_speditionszeile(bezeichnung, preis) and SPEDITIONSZEILE_HINWEIS.casefold() not in (hinweis or "").casefold():
+        hinweis = f"{hinweis}; {SPEDITIONSZEILE_HINWEIS}" if hinweis else SPEDITIONSZEILE_HINWEIS
+
     return RohPosition(
         laufnr=laufnr,
         bezeichnung=bezeichnung,
@@ -477,11 +528,13 @@ def _wandle_position(vp: VisionPosition, laufnr: int) -> RohPosition | None:
         preis=preis,
         volumen_cl=volumen_cl,
         artikelnummer=_text(vp.artikelnummer),
-        hinweis=_text(vp.hinweis),
+        hinweis=hinweis,
         durchgestrichen=bool(vp.durchgestrichen),
         konfidenz_menge=konfidenz_menge,
         konfidenz_preis=konfidenz_preis,
         rohtext=_text(vp.rohtext),
+        rabatt_prozent=rabatt_prozent,
+        rabatt_text=rabatt_text,
     )
 
 
@@ -671,6 +724,17 @@ def wandle_in_rohbestellung(
         zeilen.append("Anmerkungen: " + " | ".join(anmerkungen))
     rohtext = "\n".join(zeilen) or None
 
+    # Aktionshinweis und Revised Order: aus der Antwort, sonst deterministisch aus Anmerkungen/Rohtext
+    texte: list[str | None] = [*anmerkungen, *(p.rohtext for p in positionen), *(p.hinweis for p in positionen)]
+    aktionshinweis = _text(ergebnis.aktionshinweis) or finde_aktionshinweis(texte)
+    revision: RevisionTreffer | None
+    if ergebnis.ist_revision:
+        revision = RevisionTreffer(rohtext="laut Vision-Auswertung", revision_von=_text(ergebnis.revision_von))
+    else:
+        revision = finde_revision(texte)
+    if revision is not None:
+        hinweise.append(revisions_hinweis(revision))
+
     return RohBestellung(
         eingangstyp=Eingangstyp.PREISLISTE_SCAN,
         quelldatei=datei,
@@ -687,6 +751,9 @@ def wandle_in_rohbestellung(
         hinweise=hinweise,
         rohtext=rohtext,
         seiten=seiten if seiten is not None else ergebnis.seitenzahl,
+        ist_revision=revision is not None,
+        revision_von=revision.revision_von if revision else None,
+        aktionshinweis=aktionshinweis,
     )
 
 

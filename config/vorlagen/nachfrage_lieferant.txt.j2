@@ -1,0 +1,12 @@
+{{ anrede }}
+
+we have not yet received your confirmation of our order{% if bestellnummer %} {{ bestellnummer }}{% endif %} for {{ kunde }}{% if auftragsdatum %} dated {{ auftragsdatum | datum_de }}{% endif %}. The delivery is scheduled as a fixed date for {{ liefertag | datum_de }}{% if verladedatum %}, loading planned for {{ verladedatum | datum_de }}{% endif %}.
+
+Could you please confirm the order and let us know the loading date? Thank you very much.
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}

@@ -1,0 +1,19 @@
+{{ anrede }}
+
+Anbei erhalten Sie einen neuen Auftrag für {{ kunde }}{% if referenz %} (unsere Referenz {{ referenz }}){% endif %}:
+
+- Abholung bei {{ lieferant }}{% if abholadresse %}, {{ abholadresse }}{% endif %}{% if verladedatum %} – Verladung am {{ verladedatum | datum_de }}{% endif +%}
+- Lieferung an {{ kunde }}{% if lieferadresse %}, {{ lieferadresse }}{% endif +%}
+{% if liefertag %}
+- Fixtermin beim Empfänger: {{ liefertag | datum_de }}
+{% endif %}
+- Menge: {{ gesamtmenge | menge_de }} Flaschen{% if positionen %} in {{ positionen | length }} Position{% if positionen | length != 1 %}en{% endif %}{% endif %}{% if paletten %}, {{ paletten }}{% endif +%}
+
+Den Speditionsauftrag{% if mit_lieferschein %} und den Lieferschein{% endif %} finden Sie im Anhang. Bitte bestätigen Sie uns kurz den Abholtermin.
+{% if hinweis %}
+
+{{ hinweis }}
+{% endif %}
+
+{{ gruss }}
+{{ signatur }}
