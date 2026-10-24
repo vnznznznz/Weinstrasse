@@ -12,6 +12,9 @@ from decimal import Decimal, InvalidOperation
 
 STANDARD_VOLUMEN_CL = Decimal("75")
 
+#: Lookbehind vor einer Volumenzahl: keine Ziffer, kein Komma, kein Punkt hinter einer Ziffer.
+_VOR_ZAHL = r"(?<![\d,])(?<!\d\.)"
+
 # Reihenfolge ist wichtig: spezifische Muster zuerst.
 _VOLUMEN_MUSTER: list[tuple[re.Pattern[str], Decimal | None]] = [
     # Wortformen
@@ -19,12 +22,14 @@ _VOLUMEN_MUSTER: list[tuple[re.Pattern[str], Decimal | None]] = [
     (re.compile(r"\bjeroboam\b", re.I), Decimal("300")),
     (re.compile(r"\bmagnum\b", re.I), Decimal("150")),
     (re.compile(r"\b(halbe\s+flasche|halbflasche|demi|piccolo)\b", re.I), Decimal("37.5")),
-    # Zahl + Einheit (deutsche oder englische Dezimaltrennung)
-    (re.compile(r"(?<![\d,.])(\d+(?:[.,]\d+)?)\s*(?:ml|milliliter)\b", re.I), None),
-    (re.compile(r"(?<![\d,.])(\d+(?:[.,]\d+)?)\s*(?:cl|zentiliter|centiliter)\b", re.I), None),
-    (re.compile(r"(?<![\d,.])(\d+(?:[.,]\d+)?)\s*(?:l|lt|ltr|liter|litre)\b(?!\w)", re.I), None),
+    # Zahl + Einheit (deutsche oder englische Dezimaltrennung). Vor der Zahl darf keine Ziffer, kein
+    # Komma und kein Dezimalpunkt einer Zahl stehen ("1.234,50"); ein Punkt nach einem Wort zählt nicht
+    # als Dezimalpunkt, damit Abkürzungen wie "htr.0,75l" (halbtrocken) gelesen werden.
+    (re.compile(_VOR_ZAHL + r"(\d+(?:[.,]\d+)?)\s*(?:ml|milliliter)\b", re.I), None),
+    (re.compile(_VOR_ZAHL + r"(\d+(?:[.,]\d+)?)\s*(?:cl|zentiliter|centiliter)\b", re.I), None),
+    (re.compile(_VOR_ZAHL + r"(\d+(?:[.,]\d+)?)\s*(?:l|lt|ltr|liter|litre)\b(?!\w)", re.I), None),
     # Nackte Dezimalzahl, die nur ein Volumen sein kann: 0,75 / 0,375 / 1,5 / 0,5 / 0,2
-    (re.compile(r"(?<![\d,.])(0[.,]\d{1,3}|1[.,]5|3[.,]0)(?![\d,.%])(?!\s*(?:€|eur|%))", re.I), None),
+    (re.compile(_VOR_ZAHL + r"(0[.,]\d{1,3}|1[.,]5|3[.,]0)(?![\d,.%])(?!\s*(?:€|eur|%))", re.I), None),
 ]
 
 _HOLZKISTE_MUSTER = re.compile(

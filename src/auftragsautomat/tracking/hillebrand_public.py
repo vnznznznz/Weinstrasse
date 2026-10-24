@@ -38,6 +38,7 @@ from auftragsautomat.tracking.basis import (
     mit_hinweis,
     status_aus_meilensteinen,
     status_mit_puenktlichkeit,
+    zeit_schluessel,
 )
 
 logger = logging.getLogger(__name__)
@@ -403,7 +404,7 @@ def parse_public_tracking_html(
         m = _meilenstein_aus_eintrag(eintrag, konfig, bezug)
         if m is not None:
             meilensteine.append(m)
-    meilensteine.sort(key=lambda m: (m.zeitpunkt or datetime.min, m.geplant))
+    meilensteine.sort(key=lambda m: (zeit_schluessel(m.zeitpunkt), m.geplant))
 
     status_text = _status_text(wurzel, seite_text, sel, konfig)
     puenktlich: bool | None = None

@@ -422,23 +422,29 @@ def _aliase(settings: Settings, aliase: AliasTabellen | None) -> AliasTabellen |
 
 
 def _markiere_mehrfachtreffer(treffer: list[AktionTreffer]) -> None:
+    """Mehrere Aktionen je Position (docs/AUSBAUSTUFE_2.md 7: "mehrere Aktionen -> RABATT_UNSICHER"): Weichen die
+    Rabattsätze ab, werden alle Treffer – sichere wie unsichere – unsicher und nennen die Kandidaten; eine sichere
+    Aktion wird dann nicht still angewendet, nur weil die konkurrierende unscharf passt. Gleicher Satz: die erste
+    sichere Aktion bleibt sicher."""
     nach_position: dict[int | None, list[AktionTreffer]] = defaultdict(list)
     for t in treffer:
         nach_position[t.position_laufnr].append(t)
     for liste in nach_position.values():
-        sichere = [t for t in liste if t.sicher and t.rabatt_prozent is not None]
-        if len(sichere) < 2:
+        mit_satz = [t for t in liste if t.rabatt_prozent is not None]
+        if len(mit_satz) < 2:
             continue
-        saetze = {t.rabatt_prozent for t in sichere}
-        ids = ", ".join(t.aktion.aktion_id for t in sichere)
+        sichere = [t for t in mit_satz if t.sicher]
+        saetze = {t.rabatt_prozent for t in mit_satz}
         if len(saetze) == 1:
-            for t in sichere[1:]:
-                t.sicher = False
-                t.grund += f"; gleicher Rabatt wie {sichere[0].aktion.aktion_id} (dort übernommen)"
-            sichere[0].grund += f"; auch {', '.join(t.aktion.aktion_id for t in sichere[1:])} mit gleichem Rabatt"
+            if len(sichere) >= 2:
+                for t in sichere[1:]:
+                    t.sicher = False
+                    t.grund += f"; gleicher Rabatt wie {sichere[0].aktion.aktion_id} (dort übernommen)"
+                sichere[0].grund += f"; auch {', '.join(t.aktion.aktion_id for t in sichere[1:])} mit gleichem Rabatt"
             continue
-        hoechster = max(sichere, key=lambda t: t.rabatt_prozent or Decimal(0))
-        for t in sichere:
+        ids = ", ".join(f"{t.aktion.aktion_id} ({_prozent_text(t.rabatt_prozent)})" for t in mit_satz)
+        hoechster = max(mit_satz, key=lambda t: t.rabatt_prozent or Decimal(0))
+        for t in mit_satz:
             t.sicher = False
             t.grund += (
                 f"; mehrere Aktionen passen ({ids}) – höchster Rabatt {_prozent_text(hoechster.rabatt_prozent)} "

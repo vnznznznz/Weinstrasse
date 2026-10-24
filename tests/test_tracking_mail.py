@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -196,6 +196,19 @@ def test_mailquelle_zuordnung_ueber_referenz(ereignisse: list[MailEreignis], kon
     assert ergebnis.geplante_zustellung == date(2026, 11, 3)  # letzte Terminänderung
     assert len(ergebnis.meilensteine) == 5
     assert ergebnis.hinweise == []
+
+
+def test_mailquelle_mit_zeitzonen_empfangszeiten(ereignisse: list[MailEreignis], konfig: HillebrandKonfig) -> None:
+    """Regression: Ereignisse aus Graph/Fake-Postfach tragen Empfangszeiten mit Zeitzone; zusammen mit den
+    zeitzonenlosen Terminen aus dem Mailtext (Transporeon, Terminänderung) darf die Auswertung nicht
+    scheitern (früher TypeError -> Status "unbekannt" mit Hinweis "Mail-Auswertung fehlgeschlagen")."""
+    mit_tz = [e.model_copy(update={"empfangen": e.empfangen.astimezone(UTC)}) for e in ereignisse]
+    assert all(e.empfangen.tzinfo is not None for e in mit_tz)
+    ergebnis = MailQuelle(mit_tz, konfig).aktualisiere(Sendung(spedition="Hillebrand", referenz="DEMB00000"))
+    assert ergebnis.quelle == "mail"
+    assert ergebnis.status == SendungStatus.ZUGESTELLT
+    assert not any("fehlgeschlagen" in h for h in ergebnis.hinweise)
+    assert ergebnis.geplante_zustellung == date(2026, 11, 3)
 
 
 def test_mailquelle_nur_bestaetigung(ereignisse: list[MailEreignis], konfig: HillebrandKonfig) -> None:

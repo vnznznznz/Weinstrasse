@@ -411,7 +411,7 @@ def buchen(
     ergebnis = buche(paket, settings, dry_run=dry_run)
     ziel = zustand.speichere_paket(paket, paket_json.parent, dateiname=paket_json.name)
     console = _console()
-    console.print(zusammenfassung(paket, ergebnis))
+    console.print(zusammenfassung(paket, ergebnis, firma=settings.firmen.get(paket.firma_id or "")))
     console.print(f"Paket aktualisiert: {ziel}")
     _zeige_nachbereitung(console, paket, settings)
     if ergebnis.erfolgreich:
@@ -452,7 +452,7 @@ def lieferschein(
     ergebnis = lieferschein_nachziehen(paket, ab, settings, dry_run=not scharf)
     ziel = zustand.speichere_paket(paket, paket_json.parent, dateiname=paket_json.name)
     console = _console()
-    console.print(zusammenfassung(paket, ergebnis))
+    console.print(zusammenfassung(paket, ergebnis, firma=settings.firmen.get(paket.firma_id or "")))
     console.print(f"Paket aktualisiert: {ziel}")
     if ergebnis.erfolgreich:
         console.print(f"Lieferschein {'simuliert (Dry Run)' if ergebnis.dry_run else 'ERFOLGREICH'}.", style="green")
@@ -784,7 +784,7 @@ def entwuerfe(
     ergebnis = gespeichert.ergebnis if gespeichert is not None else None
     fixtermin = gespeichert.fixtermin if gespeichert is not None else None
     kontakte = nachbereitung.lade_kontakte(settings, backends, hinweise=hinweise)
-    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings)
+    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings, nicht_vor=ergebnis.zeitpunkt if ergebnis is not None else None)
     liste = nachbereitung.entwuerfe_erstellen(
         paket, ergebnis, settings, backends=backends, fixtermin=fixtermin, kontakte=kontakte, lexware_pdfs=pdfs, hinweise=hinweise
     )
@@ -819,7 +819,7 @@ def dossier(
     ergebnis = gespeichert.ergebnis if gespeichert is not None else None
     fixtermin = gespeichert.fixtermin if gespeichert is not None else None
     entwuerfe_alt = gespeichert.entwuerfe if gespeichert is not None else []
-    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings)
+    pdfs = nachbereitung.finde_lexware_pdfs(paket, settings, nicht_vor=ergebnis.zeitpunkt if ergebnis is not None else None)
     if ergebnis is not None:
         for kuerzel, pfad in ergebnis.pdfs.items():
             if Path(pfad).is_file():
@@ -862,18 +862,20 @@ def ablegen(
     gespeichert = nachbereitung.lade_nachbereitung(paket, settings)
     if gespeichert is not None and gespeichert.ergebnis is not None:
         ergebnis = gespeichert.ergebnis
+        nicht_vor: datetime | None = ergebnis.zeitpunkt
     else:
         hinweise.append(
-            "Kein Buchungsergebnis gespeichert (zuerst 'buchen'); PDFs werden nach Hausmuster gesucht – "
+            "Kein Buchungsergebnis gespeichert (zuerst 'buchen'); abgelegt werden nur Dateien aus einer Buchung – "
             "scharf ablegen ist erst nach einer erfolgreichen Buchung möglich"
         )
         ergebnis = BuchungsErgebnis(
             firma_id=paket.firma_id or "unbekannt", quelldatei=Path(paket.roh.quelldatei), dry_run=True, zeitpunkt=datetime.now(),
-            pdfs=nachbereitung.finde_lexware_pdfs(paket, settings),
         )
-    for kuerzel, pfad in nachbereitung.finde_lexware_pdfs(paket, settings).items():
+        nicht_vor = None
+    # Nach Hausmuster gefundene Dateien nur als Vorschlag nennen, nie unter dem Namen des Auftrags ablegen
+    for kuerzel, pfad in nachbereitung.finde_lexware_pdfs(paket, settings, nicht_vor=nicht_vor).items():
         if kuerzel not in ergebnis.pdfs or not Path(ergebnis.pdfs[kuerzel]).is_file():
-            ergebnis.pdfs[kuerzel] = pfad
+            hinweise.append(f"Vorschlag (nicht abgelegt): PDF {kuerzel} nach Hausmuster gefunden: {pfad}")
     ergebnisse = nachbereitung.ablegen(paket, ergebnis, settings, backends=backends, dry_run=dry_run, hinweise=hinweise)
     console = _console()
     tabelle = Table(title=f"Ablage ({_modus_text(dry_run)})")

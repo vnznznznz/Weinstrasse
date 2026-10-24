@@ -2,8 +2,9 @@
 #
 # Die Hauptschwellen stehen in config/settings.yaml unter "ueberwachung":
 #   tage_voraus, mails_rueckblick_tage, nachfrage_lieferant_werktage (Frist: Bestätigung des
-#   Lieferanten spätestens so viele Werktage vor dem Fixtermin), nachfrage_spedition_werktage
-#   (Frist für die Spedition), erneut_nach_werktagen (Drossel), bestaetigungen_automatisch_setzen,
+#   Lieferanten spätestens so viele Werktage vor dem Fixtermin; ab dann Nachfrage-Entwurf, vorher nur
+#   gelb), nachfrage_spedition_werktage (dasselbe für die Spedition), erneut_nach_werktagen (Drossel),
+#   bestaetigungen_automatisch_setzen,
 #   termine_automatisch_anpassen, bundesland, merkdatei, berichte_ordner.
 # Hier stehen nur Ampel-Feinheiten und Texte. Fehlt die Datei, gelten die eingebauten Standardwerte.
 # Alle Beispiele sind synthetisch.

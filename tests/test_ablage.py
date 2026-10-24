@@ -22,7 +22,7 @@ from auftragsautomat.ablage import (
     zielordner,
 )
 from auftragsautomat.ablage import ablage as ablage_modul
-from auftragsautomat.benennung import name_fuer_paket
+from auftragsautomat.benennung import name_fuer_paket, pruefe_auftragskopie_name
 from auftragsautomat.config import DateiRefKonfig, Settings
 from auftragsautomat.m365.basis import M365Fehler
 from auftragsautomat.m365.fake import FakeDateiBackend
@@ -288,6 +288,20 @@ def test_quellen_unbekanntes_kuerzel_behaelt_quellnamen(settings: Settings, tmp_
     assert "Anlage" in caplog.text
 
 
+def test_quellen_auftragskopie_name_verbindlich_ohne_verbotene_woerter(settings: Settings, tmp_path: Path):
+    """Regression (Review Befund 5): Auch beim Rückfall auf den Quellnamen (Paket ohne Firma) trägt die
+    abgelegte Auftragskopie keines der verbotenen Wörter im Namen (Geschäftsregel 18)."""
+    paket = _paket(tmp_path)
+    ergebnis = _ergebnis(paket, settings, tmp_path / "pdf", kuerzel=("Cde",))
+    lexware_name = tmp_path / "pdf" / "Auftragsbestätigung 4711.pdf"
+    lexware_name.write_bytes(b"%PDF")
+    ergebnis.pdfs["Kopie"] = lexware_name
+    paket.firma_id = None
+    kopie = next(q for q in quellen(paket, ergebnis, settings) if q.kuerzel == "Kopie")
+    assert pruefe_auftragskopie_name(kopie.zielname, settings) == []
+    assert kopie.zielname == "4711.pdf"
+
+
 # ---------------------------------------------------------------------------
 # lege_ab: scharf
 # ---------------------------------------------------------------------------
@@ -483,3 +497,28 @@ def test_lege_ab_kaputte_struktur_wirft(settings: Settings, tmp_path: Path, auft
     paket = _paket(tmp_path)
     with pytest.raises(AblageFehler):
         lege_ab(paket, _ergebnis(paket, settings, tmp_path / "pdf"), settings, datei_backend=backend)
+
+
+def test_pdfs_weiterer_weingueter_behalten_ihren_titulierungsnamen(settings: Settings, tmp_path: Path, auftraege: Path, backend: FakeDateiBackend, caplog):
+    """Regression (Integration Stufe 2): Bei Positionen mehrerer Weingüter legt lexware.buchen die PDFs des
+    zweiten Weinguts unter "Cde (2)"/"Speditionsauftrag (2)" ab, benannt mit dessen Lieferanten. Die Ablage
+    erkannte diese Schlüssel nicht (Warnung "nicht in DOKUMENTKUERZEL") – jetzt Kürzel "Cde" mit dem Namen des
+    zweiten Weinguts, ohne Warnung und ohne Kollision mit der Cde des Hauptlieferanten."""
+    paket = _paket(tmp_path)
+    ergebnis = _ergebnis(paket, settings, tmp_path / "pdf", kuerzel=("Cde", "Kopie"))
+    zweites = paket.model_copy(deep=True)
+    zweites.lieferant = LieferantZuordnung(lieferant=_lieferant("wik_fh_seh", name="Cantina Muster", matchcode="Muster"), status=MatchStatus.SICHER)
+    pfad2 = tmp_path / "pdf" / name_fuer_paket("Cde", zweites, settings, datum=STICHTAG)
+    pfad2.write_bytes(b"%PDF-1.4 Cde 2")
+    ergebnis.pdfs["Cde (2)"] = pfad2
+    assert pfad2.name.startswith("Muster – WIK – 4711 – Cde – ")
+
+    with caplog.at_level(logging.WARNING, logger="auftragsautomat.ablage.ablage"):
+        ergebnisse = lege_ab(paket, ergebnis, settings, datei_backend=backend, dry_run=False)
+
+    assert not [r for r in caplog.records if "DOKUMENTKUERZEL" in r.getMessage()]
+    nach_name = {e.zielname: e for e in ergebnisse}
+    assert pfad2.name in nach_name and nach_name[pfad2.name].kuerzel == "Cde" and nach_name[pfad2.name].abgelegt
+    assert (auftraege / "Aufträge ohne Provision" / pfad2.name).is_file()
+    assert sorted(e.kuerzel for e in ergebnisse) == ["Cde", "Cde", "Kd", "Kopie"]
+    assert all(" (2)" not in e.zielname for e in ergebnisse)  # keine Namenskollision mit der Cde des Hauptlieferanten

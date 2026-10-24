@@ -166,6 +166,19 @@ def test_uebernehme_korrekturen_kunde_wechseln_und_fehler(settings: Settings, ki
         app.uebernehme_korrekturen(kirchhellen, {"liefertag": "morgen"}, settings)
 
 
+def test_uebernehme_korrekturen_revision_zuruecknehmen_und_bestaetigen(settings: Settings, kirchhellen: Belegpaket):
+    """Regression (Review Befund 1): Eine fälschlich erkannte Revised Order lässt sich in der Freigabe
+    zurücknehmen (übersteuert roh.ist_revision); ein unveränderter Haken lässt die Extraktion entscheiden."""
+    kirchhellen.roh.ist_revision = True
+    kirchhellen.ist_revision = True
+    unveraendert = app.uebernehme_korrekturen(kirchhellen, {"revision": True}, settings)
+    assert unveraendert.revision_bestaetigt is None and unveraendert.revision_wirksam
+    nein = app.uebernehme_korrekturen(kirchhellen, {"revision": False}, settings)
+    assert nein.revision_bestaetigt is False and nein.revision_wirksam is False
+    ja = app.uebernehme_korrekturen(nein, {"revision": True, "revision_von": " B-0815 "}, settings)
+    assert ja.revision_bestaetigt is True and ja.revision_wirksam and ja.revision_von == "B-0815"
+
+
 def test_freigeben_und_buchen_dry_run(settings: Settings, kirchhellen: Belegpaket):
     paket = app.uebernehme_korrekturen(kirchhellen, {"lieferant": "72"}, settings)
     ergebnis, text = app.freigeben_und_buchen(paket, settings, dry_run=True)

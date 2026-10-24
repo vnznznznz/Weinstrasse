@@ -88,6 +88,11 @@ ENTSCHEIDUNGEN: tuple[str, ...] = ("eindeutig", "lieferant", "fragen")
 #: (zu viele Zufallstreffer); exakte Treffer gelten immer.
 _MIN_LAENGE_TOLERANT = 3
 
+#: Kundengruppen, bei denen der Anwender die Firma entscheidet (Geschäftsregel 17). Für sie wird der gelernte
+#: Matchcode (bei Ketten oft nur der Kettenname, z. B. "EDEKA") nicht tolerant verglichen, sonst ginge eine
+#: Antwort für eine Einkaufsregion auf alle Regionen derselben Kette über.
+FRAGEN_GRUPPEN: frozenset[Kundengruppe] = frozenset({Kundengruppe.REGION, Kundengruppe.KETTE, Kundengruppe.GROSSKUNDE})
+
 _KOPF_GEDAECHTNIS = (
     "# Firmen-Gedächtnis des Auftrags-Automaten: gelernte Zuordnung Kunde (+ Lieferant) -> Firma.\n"
     "# Wird vom Tool geschrieben (Freigabe: Häkchen \"für diesen Kunden und Lieferanten merken\").\n"
@@ -459,8 +464,9 @@ def _regel_sortierung(regel: Firmenregel) -> tuple[str, str]:
 class Firmengedaechtnis:
     """Gelernte Regeln Kunde (+ Lieferant) -> Firma (siehe Modul-Docstring)."""
 
-    def __init__(self, regeln: Iterable[Firmenregel] = (), *, pfad: Path | None = None) -> None:
+    def __init__(self, regeln: Iterable[Firmenregel] = (), *, pfad: Path | None = None, tolerant: bool = True) -> None:
         self.pfad = pfad
+        self.tolerant = tolerant  # False: nur exakte Schlüssel (Einstellung firmenwahl.gedaechtnis_tolerant)
         self._regeln: dict[tuple[str, str | None], Firmenregel] = {}
         for regel in regeln:
             self.merke(regel)
@@ -480,26 +486,27 @@ class Firmengedaechtnis:
 
     @classmethod
     def aus_settings(cls, settings: Settings) -> Firmengedaechtnis:
-        return cls.lade(Path(settings.firmenwahl.gedaechtnis_datei))
+        return cls.lade(Path(settings.firmenwahl.gedaechtnis_datei), tolerant=settings.firmenwahl.gedaechtnis_tolerant)
 
     @classmethod
-    def lade(cls, pfad: Path | str) -> Firmengedaechtnis:
+    def lade(cls, pfad: Path | str, *, tolerant: bool = True) -> Firmengedaechtnis:
         """Liest die YAML-Liste von Firmenregeln; fehlende/leere/kaputte Datei -> leeres Gedächtnis.
 
         Einzelne ungültige Einträge werden mit Warnung übersprungen, die übrigen bleiben erhalten.
+        ``tolerant=False`` schaltet die tolerante Suche (Kurzname als Wort im Kundentext) ab.
         """
         pfad = Path(pfad)
         if not pfad.exists():
             logger.info("Firmen-Gedächtnis %s gibt es noch nicht; es beginnt leer", pfad)
-            return cls(pfad=pfad)
+            return cls(pfad=pfad, tolerant=tolerant)
         daten = _lies_yaml(pfad, "Firmen-Gedächtnis")
         if daten is None:
-            return cls(pfad=pfad)
+            return cls(pfad=pfad, tolerant=tolerant)
         if isinstance(daten, dict):
             daten = daten.get("regeln", [])
         if not isinstance(daten, list):
             logger.warning("Firmen-Gedächtnis %s: erwartet eine Liste von Regeln", pfad)
-            return cls(pfad=pfad)
+            return cls(pfad=pfad, tolerant=tolerant)
         regeln: list[Firmenregel] = []
         for i, eintrag in enumerate(daten, start=1):
             if not isinstance(eintrag, dict):
@@ -514,7 +521,7 @@ class Firmengedaechtnis:
                 logger.warning("Firmen-Gedächtnis %s: Eintrag %d ohne Kunde oder Firma; übersprungen", pfad, i)
                 continue
             regeln.append(regel)
-        gedaechtnis = cls(regeln, pfad=pfad)
+        gedaechtnis = cls(regeln, pfad=pfad, tolerant=tolerant)
         logger.info("Firmen-Gedächtnis %s geladen: %d Regeln", pfad, len(gedaechtnis))
         return gedaechtnis
 
@@ -581,11 +588,16 @@ class Firmengedaechtnis:
         """Löscht die Regel mit diesem Schlüssel; ``True``, wenn es sie gab."""
         return self._regeln.pop(self.schluessel(kunde_kurz, lieferant_kurz), None) is not None
 
-    def finde(self, kunde_kurz: str | None, lieferant_kurz: str | None = None) -> Firmenregel | None:
+    def finde(
+        self, kunde_kurz: str | None, lieferant_kurz: str | None = None, *, streng: bool = False
+    ) -> Firmenregel | None:
         """Regel zu Kunde + Lieferant, sonst zu Kunde allgemein (``lieferant_kurz`` leer); sonst ``None``.
 
         Erst exakte Schlüssel, dann tolerant: der gelernte Kurzname kommt als ganzes Wort im
         übergebenen Kundentext vor (bzw. der gelernte Lieferant im Lieferantentext oder umgekehrt).
+        ``streng`` (Dokument einer Kundengruppe, bei der gefragt wird) bzw. eine Regel einer solchen
+        Gruppe (:data:`FRAGEN_GRUPPEN`): tolerant nur über die gelernten Namen (``kunde_texte``), die
+        vollständig im Kundentext stehen müssen – nie über den Matchcode.
         """
         kunde, lieferant = self.schluessel(kunde_kurz, lieferant_kurz)
         if not kunde:
@@ -598,13 +610,13 @@ class Firmengedaechtnis:
         if regel is not None:
             return regel
         if lieferant is not None:
-            regel = self._tolerant(kunde, lieferant, nur_spezifisch=True)
+            regel = self._tolerant(kunde, lieferant, nur_spezifisch=True, streng=streng)
             if regel is not None:
                 return regel
-        return self._tolerant(kunde, None, nur_spezifisch=False)
+        return self._tolerant(kunde, None, nur_spezifisch=False, streng=streng)
 
     def finde_fuer_texte(
-        self, kunde_texte: Iterable[str | None], lieferant_texte: Iterable[str | None]
+        self, kunde_texte: Iterable[str | None], lieferant_texte: Iterable[str | None], *, streng: bool = False
     ) -> Firmenregel | None:
         """Wie :meth:`finde`, aber über mehrere Kandidatentexte (Kundentext, Adresse, Alias-Namen …):
         zuerst alle Kombinationen Kunde + Lieferant, dann Kunde allgemein."""
@@ -612,41 +624,53 @@ class Firmengedaechtnis:
         lieferanten = [lf for lf in dict.fromkeys(lieferant_texte) if _lieferant_schluessel(lf)]
         for kunde in kunden:
             for lieferant in lieferanten:
-                regel = self._spezifisch(kunde, lieferant)
+                regel = self._spezifisch(kunde, lieferant, streng=streng)
                 if regel is not None:
                     return regel
         for kunde in kunden:
-            regel = self.finde(kunde, None)
+            regel = self.finde(kunde, None, streng=streng)
             if regel is not None:
                 return regel
         return None
 
-    def _spezifisch(self, kunde_kurz: str, lieferant_kurz: str) -> Firmenregel | None:
+    def _spezifisch(self, kunde_kurz: str, lieferant_kurz: str, *, streng: bool = False) -> Firmenregel | None:
         kunde, lieferant = self.schluessel(kunde_kurz, lieferant_kurz)
         if not kunde or lieferant is None:
             return None
         regel = self._regeln.get((kunde, lieferant))
         if regel is not None:
             return regel
-        return self._tolerant(kunde, lieferant, nur_spezifisch=True)
+        return self._tolerant(kunde, lieferant, nur_spezifisch=True, streng=streng)
 
-    def _tolerant(self, kunde: str, lieferant: str | None, *, nur_spezifisch: bool) -> Firmenregel | None:
-        """Tolerante Suche: gelernter Kunden-Kurzname als Wort im Kundentext (oder umgekehrt), längster zuerst."""
-        # TODO-PRUEFEN: setzt voraus, dass die Lexware-Matchcodes (Kunde.matchcode, z. B. "Rheinberg",
-        # "Spar") unterscheidungskräftig sind; ein sehr allgemeiner Matchcode (etwa nur der Kettenname)
-        # würde auf alle Regionen dieser Kette verallgemeinern. Am echten Kundenstamm prüfen, ggf.
-        # _MIN_LAENGE_TOLERANT erhöhen oder die tolerante Stufe per Einstellung abschaltbar machen.
+    def _tolerant(
+        self, kunde: str, lieferant: str | None, *, nur_spezifisch: bool, streng: bool = False
+    ) -> Firmenregel | None:
+        """Tolerante Suche: gelernter Kunden-Kurzname als Wort im Kundentext (oder umgekehrt), längster zuerst.
+
+        Bei ``streng`` bzw. Regeln aus :data:`FRAGEN_GRUPPEN` zählen nur die gelernten Namen (``kunde_texte``,
+        nicht der Matchcode), und nur wenn sie vollständig als Wortfolge im Kundentext stehen.
+        """
+        if not self.tolerant:
+            return None
         kandidaten: list[tuple[int, Firmenregel]] = []
-        for (r_kunde, r_lieferant), regel in self._regeln.items():
+        for (_r_kunde, r_lieferant), regel in self._regeln.items():
             if nur_spezifisch and r_lieferant is None:
                 continue
             if not nur_spezifisch and r_lieferant is not None:
                 continue
-            if not _passt_tolerant(r_kunde, kunde):
+            kunden_schluessel, lieferanten_schluessel = _regel_schluessel(regel)
+            if streng or regel.kundengruppe in FRAGEN_GRUPPEN:
+                matchcode = _schluessel(regel.kunde_kurz)
+                passend = [k for k in kunden_schluessel if k != matchcode and _passt_tolerant(k, kunde, beidseitig=False)]
+            else:
+                passend = [k for k in kunden_schluessel if _passt_tolerant(k, kunde)]
+            if not passend:
                 continue
-            if r_lieferant is not None and not (lieferant is not None and _passt_tolerant(r_lieferant, lieferant)):
+            if r_lieferant is not None and not (
+                lieferant is not None and any(_passt_tolerant(lf, lieferant) for lf in lieferanten_schluessel)
+            ):
                 continue
-            kandidaten.append((len(r_kunde), regel))
+            kandidaten.append((max(len(k) for k in passend), regel))
         if not kandidaten:
             return None
         kandidaten.sort(key=lambda e: -e[0])
@@ -655,17 +679,40 @@ class Firmengedaechtnis:
         return regel
 
 
-def _passt_tolerant(gelernt: str, text: str) -> bool:
+def _regel_schluessel(regel: Firmenregel) -> tuple[list[str], list[str]]:
+    """Normalisierte Schlüssel einer Regel: Kurzname plus die weiteren Schreibweisen (``kunde_texte`` /
+    ``lieferant_texte``, z. B. der Kundenname laut Dokument), ohne Leere und Doppelte."""
+    kunden = [_schluessel(t) for t in [regel.kunde_kurz, *regel.kunde_texte]]
+    lieferanten = [_schluessel(t) for t in [regel.lieferant_kurz, *regel.lieferant_texte]] if regel.lieferant_kurz else []
+    return [k for k in dict.fromkeys(kunden) if k], [lf for lf in dict.fromkeys(lieferanten) if lf]
+
+
+def _passt_tolerant(gelernt: str, text: str, *, beidseitig: bool = True) -> bool:
+    """Gelernter Schlüssel als Wortfolge im Text (``beidseitig``: auch der Text im gelernten Schlüssel)."""
     if gelernt == text:
         return True
     if len(gelernt) < _MIN_LAENGE_TOLERANT or len(text) < _MIN_LAENGE_TOLERANT:
         return False
-    return enthaelt_als_wort(text, gelernt) or enthaelt_als_wort(gelernt, text)
+    return enthaelt_als_wort(text, gelernt) or (beidseitig and enthaelt_als_wort(gelernt, text))
 
 
 # ---------------------------------------------------------------------------
 # Aus der Freigabe merken
 # ---------------------------------------------------------------------------
+
+
+def _weitere_texte(kurz: str | None, *texte: str | None) -> list[str]:
+    """Weitere Schreibweisen (getrimmt, ohne Leere, ohne Doppelte und ohne den Kurznamen selbst)."""
+    kurz_norm = normalisiere_name(kurz)
+    ergebnis: list[str] = []
+    gesehen: set[str] = {kurz_norm} if kurz_norm else set()
+    for text in texte:
+        wert = (text or "").strip()
+        norm = normalisiere_name(wert)
+        if norm and norm not in gesehen:
+            gesehen.add(norm)
+            ergebnis.append(wert)
+    return ergebnis
 
 
 def _kurzname(matchcode: str | None, name: str | None) -> str | None:
@@ -727,6 +774,19 @@ def merke_firma(
     dokument_text = (paket.roh.kunde_text or "").strip()
     if dokument_text and normalisiere_name(dokument_text) != normalisiere_name(kunde_kurz):
         bemerkung = f"Kunde laut Dokument: {dokument_text}"
+    # Beim nächsten Auftrag ist die Firma (und damit der Matchcode) noch unbekannt: die Regel muss auch über
+    # die Namen laut Dokument und Stamm wiedererkannt werden.
+    kunde_texte = _weitere_texte(kunde_kurz, paket.roh.kunde_text, kunde.name if kunde is not None else None)
+    lieferant_texte = (
+        _weitere_texte(
+            lieferant_kurz,
+            paket.roh.lieferant_text,
+            lieferant.name if lieferant is not None else None,
+            lieferant.name2 if lieferant is not None else None,
+        )
+        if lieferant_kurz
+        else []
+    )
 
     regel = Firmenregel(
         kunde_kurz=kunde_kurz,
@@ -737,6 +797,8 @@ def merke_firma(
         gelernt_von=(benutzer or "").strip() or None,
         quelle="freigabe",
         bemerkung=bemerkung,
+        kunde_texte=kunde_texte,
+        lieferant_texte=lieferant_texte,
     )
 
     if gedaechtnis is None:

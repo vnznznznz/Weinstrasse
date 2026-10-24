@@ -282,6 +282,9 @@ class FirmenwahlKonfig(BaseModel):
     merken: bool = True  # Antwort aus der Freigabe je Kunde + Lieferant speichern
     fragen_wenn_unklar: bool = True  # mehrere Firmen möglich -> Pruefhinweis FIRMA_UNKLAR (FEHLER) bis zur Wahl
     gedaechtnis_vor_katalog: bool = True  # gelernte Regel schlägt den Katalog
+    # Gelernte Regeln auch tolerant wiedererkennen (Kurzname als Wort im Kundentext). Bei Region/Kette/
+    # Großkunde nie über den Matchcode, nur über die gelernten Namen; False = nur exakte Schlüssel.
+    gedaechtnis_tolerant: bool = True
 
 
 class AblageKonfig(BaseModel):
@@ -335,7 +338,9 @@ class DossierKonfig(BaseModel):
     lokaler_ordner: Path = Path("logs/dossiers")  # Dry Run / Backend "fake"
     gesamt_pdf: bool = False
     verschieben_erlauben: bool = False
-    ablage_mit_provision: str = "Aufträge mit Provision"  # Zielordner-Vorschlag (siehe AblageKonfig)
+    # Veraltet und ohne Wirkung (nur noch geduldet, damit ältere settings.yaml gültig bleiben): der
+    # Zielordner-Vorschlag im Deckblatt folgt der Ablage (AblageKonfig.struktur/provisionsordner).
+    ablage_mit_provision: str = "Aufträge mit Provision"
     ablage_ohne_provision: str = "Aufträge ohne Provision"
     firmen_mit_provision: list[str] = Field(default_factory=lambda: ["weinstrasse_agentur"])
 

@@ -366,20 +366,6 @@ class DossierVerwaltung:
         return vorhandene
 
     @staticmethod
-    def _freier_name(name: str, vorhandene: Mapping[str, DateiInfo]) -> str:
-        ordner, _, basis = name.rpartition("/")
-        stamm, punkt, endung = basis.rpartition(".")
-        if not punkt:
-            stamm, endung = basis, ""
-        laufnr = 2
-        while True:
-            kandidat = f"{stamm}_{laufnr}{'.' + endung if punkt else ''}"
-            voll = f"{ordner}/{kandidat}" if ordner else kandidat
-            if voll not in vorhandene:
-                return voll
-            laufnr += 1
-
-    @staticmethod
     def _ersetze_eintrag(dossier: Dossier, eintrag: DossierDatei) -> None:
         dossier.dateien = [d for d in dossier.dateien if d.name != eintrag.name] + [eintrag]
         dossier.dateien.sort(key=lambda d: d.name.casefold())
@@ -395,24 +381,34 @@ class DossierVerwaltung:
         quelle_text: str | None,
         jetzt: datetime,
     ) -> DossierDatei:
-        """Lädt ``quelle`` als ``zielname`` ins Dossier – nie überschreiben: gleicher Name und gleiche
-        Größe -> übersprungen (vorhandener Eintrag bleibt), sonst Suffix ``_2``, ``_3`` …"""
+        """Lädt ``quelle`` als ``zielname`` ins Dossier – nie überschreiben: gibt es unter ``zielname`` (oder
+        ``…_2``, ``…_3``) schon dieselbe Datei, wird übersprungen (vorhandener Eintrag bleibt), sonst unter dem
+        ersten freien Namen abgelegt.
+
+        "Dieselbe Datei" heißt gleiche Größe **und** gleicher Inhalt: zwei Entwürfe desselben Typs aus derselben
+        Sekunde (z. B. die Bestellungen an zwei Weingüter) haben denselben technischen Namen und oft dieselbe
+        Größe. Lässt sich die vorhandene Datei nicht laden, gilt wie bisher die gleiche Größe als gleich."""
         groesse = quelle.stat().st_size
-        info = vorhandene.get(zielname)
-        if info is not None:
-            if info.groesse == groesse:
-                logger.info("Dossier %s: %s ist bereits vorhanden (gleiche Größe) – übersprungen.", dossier.name, zielname)
-                bisher = next((d for d in dossier.dateien if d.name == zielname), None)
+        ordner, _, basis = zielname.rpartition("/")
+        stamm, punkt, endung = basis.rpartition(".")
+        if not punkt:
+            stamm, endung = basis, ""
+        kandidat = zielname
+        laufnr = 2
+        while (info := vorhandene.get(kandidat)) is not None:
+            if info.groesse == groesse and self._gleicher_inhalt(dossier, kandidat, quelle) is not False:
+                logger.info("Dossier %s: %s ist bereits vorhanden (gleicher Inhalt) – übersprungen.", dossier.name, kandidat)
+                bisher = next((d for d in dossier.dateien if d.name == kandidat), None)
                 if bisher is None:
-                    bisher = DossierDatei(name=zielname, typ=typ, quelle=quelle_text, hinzugefuegt=info.geaendert, groesse=groesse)
+                    bisher = DossierDatei(name=kandidat, typ=typ, quelle=quelle_text, hinzugefuegt=info.geaendert, groesse=groesse)
                     self._ersetze_eintrag(dossier, bisher)
                 return bisher
-            neuer_name = self._freier_name(zielname, vorhandene)
-            logger.warning(
-                "Dossier %s: %s existiert mit anderer Größe (%s statt %s Byte) – abgelegt als %s.",
-                dossier.name, zielname, info.groesse, groesse, neuer_name,
-            )
-            zielname = neuer_name
+            name = f"{stamm}_{laufnr}{'.' + endung if punkt else ''}"
+            kandidat = f"{ordner}/{name}" if ordner else name
+            laufnr += 1
+        if kandidat != zielname:
+            logger.warning("Dossier %s: %s existiert mit anderem Inhalt – abgelegt als %s.", dossier.name, zielname, kandidat)
+        zielname = kandidat
         # TODO-PRUEFEN: Am echten Tenant prüfen, dass OneDrive/SharePoint die Dossier-Namen annimmt
         # (Gedankenstrich " – " aus der Titulierung, Umlaute, Gesamtpfad < 400 Zeichen) und dass der
         # Graph-Upload in "06_Mails/" nach ordner_anlegen ohne Konflikt (409) durchläuft.
@@ -423,6 +419,17 @@ class DossierVerwaltung:
         logger.info("Dossier %s: %s abgelegt (%s).", dossier.name, zielname, typ)
         return eintrag
 
+    def _gleicher_inhalt(self, dossier: Dossier, zielname: str, quelle: Path) -> bool | None:
+        """``True``/``False``, ob die vorhandene Datei ``zielname`` denselben Inhalt wie ``quelle`` hat;
+        ``None``, wenn sie sich nicht laden lässt."""
+        try:
+            with tempfile.TemporaryDirectory(prefix="auftragsautomat_dossier_vergleich_") as tmp:
+                vorhanden = self.backend.herunterladen(self.wurzel, self._rel(dossier, zielname), Path(tmp) / "vorhanden")
+                return Path(vorhanden).read_bytes() == quelle.read_bytes()
+        except (M365Fehler, OSError) as exc:
+            logger.debug("Dossier %s: %s nicht zum Vergleich ladbar (%s)", dossier.name, zielname, exc)
+            return None
+
     def _hochladen_ersetzen(self, dossier: Dossier, lokal: Path, zielname: str, typ: DossierDateityp, jetzt: datetime) -> DossierDatei:
         """Statusdateien (Deckblatt, Gesamt-PDF): immer ersetzen."""
         self.backend.hochladen(lokal, self.wurzel, self._rel(dossier, zielname))
@@ -431,10 +438,21 @@ class DossierVerwaltung:
         return eintrag
 
     def _belegname(self, kuerzel: str, paket: Belegpaket, tag: date, endung: str) -> str:
-        """Belegname ausschließlich über ``benennung.name_fuer_paket`` (Titulierung)."""
-        from auftragsautomat.benennung import name_fuer_paket
+        """Belegname ausschließlich über ``benennung.name_fuer_paket`` (Titulierung); für die Auftragskopie
+        verbindlich ohne verbotene Wörter (``pruefe_auftragskopie_name``, Geschäftsregel 18)."""
+        from auftragsautomat.benennung import (
+            AUFTRAGSKOPIE_KUERZEL,
+            entferne_verbotene_woerter,
+            name_fuer_paket,
+            pruefe_auftragskopie_name,
+        )
 
-        return name_fuer_paket(kuerzel, paket, self.settings, datum=tag, endung=endung)
+        name = name_fuer_paket(kuerzel, paket, self.settings, datum=tag, endung=endung)
+        if kuerzel in AUFTRAGSKOPIE_KUERZEL and pruefe_auftragskopie_name(name, self.settings):
+            stamm = entferne_verbotene_woerter(Path(name).stem, self.settings) or kuerzel
+            logger.warning("Dossier: verbotene Wörter aus dem Namen der Auftragskopie entfernt: %s", name)
+            name = stamm + Path(name).suffix
+        return name
 
     def _lege_beleg_ab(
         self,
@@ -448,6 +466,16 @@ class DossierVerwaltung:
         quelle_text: str,
         jetzt: datetime,
     ) -> DossierDatei:
+        from auftragsautomat.ablage.ablage import basis_kuerzel
+
+        basis, weingut = basis_kuerzel(kuerzel)
+        if weingut is not None and basis in PRAEFIX_JE_KUERZEL:
+            # PDF eines weiteren Weinguts ("Cde (2)" …): lexware.buchen hat es bereits mit dem Teilpaket des
+            # Weinguts nach Titulierung benannt; das Gesamtpaket würde den Hauptlieferanten einsetzen.
+            typ = KUERZEL_DATEITYP.get(basis, "sonstiges")
+            return self._lege_datei_ab(
+                dossier, vorhandene, quelle, f"{PRAEFIX_JE_KUERZEL[basis]}_{quelle.name}", typ, quelle_text=quelle_text, jetzt=jetzt
+            )
         praefix = PRAEFIX_JE_KUERZEL.get(kuerzel)
         if praefix is None:
             logger.warning("Unbekanntes Dokumentkürzel '%s' – Datei %s wird als weitere Datei abgelegt.", kuerzel, quelle.name)
@@ -764,11 +792,15 @@ class DossierVerwaltung:
         fixtermin: Fixtermin | None = None,
         sendung: Sendung | None = None,
         weitere_dateien: Iterable[Path] = (),
+        dossier: Dossier | None = None,
     ) -> Dossier:
         """Legt das Dossier zum Vorgang an bzw. schreibt es fort und liefert den aktuellen Stand.
 
         * Ordner (falls neu) laut :func:`dossier_name`; ein vorhandenes Dossier wird über den Namen,
-          die Lexware-Nummern oder die Kundenbestellnummer wiedergefunden und fortgeschrieben.
+          die Lexware-Nummern oder die Kundenbestellnummer wiedergefunden und fortgeschrieben
+          (``dossier`` gibt es direkt vor, z. B. beim Nachtrag aus dem Überwachungslauf).
+        * Datum in den Namen: Buchungsdatum (:func:`stichtag`); ohne ``ergebnis`` das beim Anlegen
+          gespeicherte ``Dossier.stichtag``, damit Nachträge (Oc) dasselbe Datum tragen wie Kd/Cde.
         * ``quelldatei`` (sonst ``paket.roh.quelldatei``) -> ``01_Kundenbestellung_<Kd>``;
           ``lexware_pdfs`` (Dokumentkürzel -> Pfad) -> ``02_…``/``03_…``/``04_…``/``05_…``;
           ``entwuerfe`` -> ``06_Mails/``; ``fixtermin`` -> ``07_Fixtermin.txt``; ``weitere_dateien``
@@ -779,12 +811,19 @@ class DossierVerwaltung:
         jetzt = self._jetzt()
         tag = stichtag(paket, ergebnis)
         name = dossier_name(paket, ergebnis, settings=self.settings)
-        dossier = self._vorhandenes_dossier(paket, ergebnis, name)
+        if dossier is not None:
+            dossier = self.lade(dossier.name) or dossier  # aktueller Stand aus dossier.json
+        else:
+            dossier = self._vorhandenes_dossier(paket, ergebnis, name)
         if dossier is None:
-            dossier = Dossier(name=name, ordner="", erstellt_am=jetzt)
+            dossier = Dossier(name=name, ordner="", erstellt_am=jetzt, stichtag=tag)
             logger.info("Neues Dossier %s", name)
         else:
             logger.info("Dossier %s wird fortgeschrieben", dossier.name)
+            if ergebnis is None and dossier.stichtag is not None:
+                tag = dossier.stichtag  # Nachtrag ohne Buchung: Datum der Buchung beibehalten
+            elif dossier.stichtag is None:
+                dossier.stichtag = tag
         dossier.ordner = self.backend.ordner_anlegen(self.wurzel, dossier.name)
         self._aktualisiere_kopf(dossier, paket, ergebnis, fixtermin, sendung)
         entwuerfe = list(entwuerfe)
@@ -797,7 +836,7 @@ class DossierVerwaltung:
             quelle = quelldatei if quelldatei is not None else paket.roh.quelldatei
             if _ist_datei(quelle):
                 self._lege_beleg_ab(dossier, vorhandene, "Kd", Path(quelle), paket, tag, quelle_text=f"eingang:{Path(quelle).name}", jetzt=jetzt)
-            else:
+            elif not any(d.typ == KUERZEL_DATEITYP["Kd"] for d in dossier.dateien):
                 fehlende.append(f"Kundenbestellung (Kd): Quelldatei {quelle} nicht gefunden")
 
             for kuerzel, pfad in lexware_pdfs.items():

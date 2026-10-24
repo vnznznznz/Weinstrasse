@@ -271,7 +271,9 @@ def uebernehme_korrekturen(
     ``belegnummer``, ``bestellnummer``, ``lieferadresse`` (Text), ``datum``, ``liefertag`` (date |
     None), ``belegfelder`` (dict spedition/weingut/shipment/kunde), ``positionen`` ({laufnr:
     {"zuordnung": Artikelnummer | OPTION_*, "artikelnummer": str, "menge": Zahl, "rabatt": Prozent}}),
-    ``lieferschein`` (bool). Ein geänderter Rabatt wird mit Quelle "manuell" übernommen (0 = kein
+    ``lieferschein`` (bool), ``revision`` (bool: Revised Order ja/nein; eine Abweichung von der Extraktion
+    übersteuert sie über ``revision_bestaetigt``), ``revision_von`` (ersetzte Bestell-/Belegnummer).
+    Ein geänderter Rabatt wird mit Quelle "manuell" übernommen (0 = kein
     Rabatt; Aktionen schlagen dann nichts mehr vor). Nicht anwendbare Korrekturen lösen
     :class:`KorrekturFehler` aus (das Paket bleibt dann unverändert, weil auf einer Kopie gearbeitet
     wird). Die Freigabe wird zurückgesetzt.
@@ -364,6 +366,15 @@ def uebernehme_korrekturen(
     if "lieferschein" in werte:
         neu.lieferschein_erstellen = bool(werte["lieferschein"])
 
+    if "revision_von" in werte:
+        neu.revision_von = _text_oder_none(werte["revision_von"])
+    if "revision" in werte:
+        gewuenscht = bool(werte["revision"])
+        if gewuenscht != neu.revision_wirksam or neu.revision_bestaetigt is not None:
+            # Entscheidung des Anwenders übersteuert die Extraktion (auch das Zurücknehmen einer Fehlerkennung)
+            neu.revision_bestaetigt = gewuenscht
+            logger.info("Revised Order vom Anwender %s", "bestätigt" if gewuenscht else "verneint")
+
     neu.freigegeben = False
     neu.freigegeben_am = None
     neu.freigegeben_von = None
@@ -381,7 +392,7 @@ def freigeben_und_buchen(
         "Freigabe durch %s (%s) für %s", paket.freigegeben_von, "Dry Run" if dry_run else "SCHARF", paket.roh.quelldatei
     )
     ergebnis = buche(paket, settings, dry_run=dry_run)
-    return ergebnis, zusammenfassung(paket, ergebnis)
+    return ergebnis, zusammenfassung(paket, ergebnis, firma=settings.firmen.get(paket.firma_id or ""))
 
 
 def speichere_aliase(paket: Belegpaket, settings: Settings) -> list[str]:
@@ -798,6 +809,19 @@ def zeige_kopf(paket: Belegpaket, settings: Settings, stammdaten: Stammdaten | N
         st.text_area("Lieferadresse", value=roh.lieferadresse or "", key="kopf_lieferadresse", height=100)
         if roh.kundennummer_dokument:
             st.caption(f"Kundennummer laut Dokument: {roh.kundennummer_dokument}")
+        st.checkbox(
+            "Revised Order (ersetzt eine frühere Bestellung; Cde und AB neu)"
+            + (" – laut Dokument erkannt" if roh.ist_revision else ""),
+            value=paket.revision_wirksam,
+            key="kopf_revision",
+            help="Nur ankreuzen, wenn das Dokument wirklich eine frühere Bestellung ersetzt. Ohne abweichende "
+            "ersetzte Nummer gilt nur eine einzige ältere Bestellung als ersetzt; sonst bleibt die Dublette ein Fehler.",
+        )
+        st.text_input(
+            "Ersetzte Bestell-/Belegnummer (Revised Order)",
+            value=paket.revision_von or roh.revision_von or "",
+            key="kopf_revision_von",
+        )
 
     st.markdown("**Belegfelder (Lexware: Spedition, Weingut, Shipment, Kunde)**")
     spalten = st.columns(4)
@@ -985,6 +1009,8 @@ def lese_korrekturen(paket: Belegpaket) -> dict[str, Any]:
         ("kopf_datum", "datum"),
         ("kopf_liefertag", "liefertag"),
         ("lieferschein", "lieferschein"),
+        ("kopf_revision", "revision"),
+        ("kopf_revision_von", "revision_von"),
     ):
         if schluessel in zustand_:
             werte[feld] = zustand_[schluessel]

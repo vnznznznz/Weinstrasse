@@ -35,7 +35,7 @@ import logging
 import os
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +90,7 @@ __all__ = [
     "nachbereiten",
     "nachbereitung_pfad",
     "speichere_nachbereitung",
+    "weitere_weingueter",
     "zusammenfassung_nachbereitung",
 ]
 
@@ -113,6 +114,7 @@ class Nachbereitung(BaseModel):
     """Ergebnis der Nachbereitung einer Buchung (wird als JSON neben dem Paket gespeichert)."""
 
     fixtermin: Fixtermin | None = None
+    weitere_fixtermine: list[Fixtermin] = Field(default_factory=list)  # je weiterem Weingut (Einkauf 2..n)
     dossier: Dossier | None = None
     entwuerfe: list[EmailEntwurf] = Field(default_factory=list)
     hinweise: list[str] = Field(default_factory=list)
@@ -214,11 +216,11 @@ class VorschauExcelBackend:
         self.schreibprotokoll.append(zugriff)
         logger.info("Dry Run: Excel %s!%s nicht geschrieben (%d Zellen nur protokolliert)", blatt, bereich.adresse, len(zugriff.zellen))
 
-    def vorschau_csv(self, pfad: Path) -> Path:
+    def vorschau_csv(self, pfad: Path, *, anhaengen: bool = False) -> Path:
         """Schreibt die protokollierten Zelländerungen als CSV (Format wie :meth:`FakeExcelBackend.vorschau_csv`)."""
         fake = FakeExcelBackend()
         fake.schreibprotokoll = self.schreibprotokoll
-        return fake.vorschau_csv(pfad)
+        return fake.vorschau_csv(pfad, anhaengen=anhaengen)
 
 
 class LeseSchreibMailBackend:
@@ -354,6 +356,7 @@ def fixtermin_eintragen(
     kurznamen: Any | None = None,
     hinweise: list[str] | None = None,
     heute: date | None = None,
+    weitere: list[Fixtermin] | None = None,
 ) -> tuple[Fixtermin | None, Path | None]:
     """Fixtermin aus dem Paket bilden und in die Fixterminüberwachung eintragen.
 
@@ -361,6 +364,10 @@ def fixtermin_eintragen(
     die Excel geschrieben, die geplanten Zelländerungen stehen in der Vorschau-CSV. Scheitert das
     Eintragen (Datei nicht konfiguriert/lesbar, Tag ohne Zeile, alle Slots belegt), bleibt der
     Fixtermin ohne ``zeile`` erhalten und der Grund steht in ``hinweise``.
+
+    Hat die Buchung weitere Einkauf-Bestellungen (``ergebnis.einkauf_weitere``, mehrere Weingüter), bekommt
+    jedes weitere Weingut einen eigenen Eintrag mit seinem Kurznamen und der Belegnummer seiner Bestellung
+    (Nachfrage, Häkchen und Zuordnung seiner Bestätigung); diese Einträge werden an ``weitere`` angehängt.
     """
     from auftragsautomat.termine.register import FixterminRegister, RegisterFehler, fixtermin_aus_paket
 
@@ -387,11 +394,29 @@ def fixtermin_eintragen(
         logger.exception("Fixtermin konnte nicht eingetragen werden")
         lauf.hinweis(f"Fixtermin {fixtermin.liefertag:%d.%m.%Y} nicht eingetragen ({type(exc).__name__}: {exc})", fehler=True)
         return fixtermin, None
+    for teil in _weitere_fixtermine(paket, ergebnis, settings, kurznamen, heute, lauf):
+        try:
+            teil_eingetragen = register.trage_ein(teil)
+        except Exception as exc:  # noqa: BLE001 - wie beim Hauptweingut: Buchung bleibt gültig, Grund im Hinweis
+            logger.warning("Fixtermin des weiteren Weinguts %s nicht eingetragen: %s", teil.lieferant_kurz, exc)
+            lauf.hinweis(
+                f"Fixtermin {teil.liefertag:%d.%m.%Y} des weiteren Weinguts {teil.lieferant_kurz} nicht eingetragen "
+                f"({type(exc).__name__}: {exc})",
+                fehler=not dry_run,
+            )
+            continue
+        lauf.hinweis(
+            f"Weiteres Weingut: Fixtermin {teil_eingetragen.liefertag:%d.%m.%Y} ({teil_eingetragen.lieferant_kurz} / "
+            f"{teil_eingetragen.kunde_kurz}) in Zeile {teil_eingetragen.zeile}" + (" (nur Vorschau)" if dry_run else "")
+        )
+        if weitere is not None:
+            weitere.append(teil_eingetragen)
     vorschau: Path | None = None
     protokoll = getattr(backends.excel, "schreibprotokoll", None)
     if dry_run and protokoll is not None:
         try:
-            vorschau = backends.excel.vorschau_csv(Path(settings.log_ordner) / VORSCHAU_CSV)  # type: ignore[union-attr]
+            # Anhängen: jede Dry-Run-Buchung behält ihre Vorschau (sonst überschreibt die nächste Buchung sie)
+            vorschau = backends.excel.vorschau_csv(Path(settings.log_ordner) / VORSCHAU_CSV, anhaengen=True)  # type: ignore[union-attr]
         except OSError as exc:
             lauf.hinweis(f"Vorschau-CSV nicht schreibbar: {exc}")
         lauf.hinweis(
@@ -405,6 +430,30 @@ def fixtermin_eintragen(
             f"in Zeile {eingetragen.zeile} der Fixterminüberwachung eingetragen"
         )
     return eingetragen, vorschau
+
+
+def _weitere_fixtermine(
+    paket: Belegpaket,
+    ergebnis: BuchungsErgebnis | None,
+    settings: Settings,
+    kurznamen: Any | None,
+    heute: date | None,
+    lauf: _Lauf,
+) -> list[Fixtermin]:
+    """Fixtermine der weiteren Weingüter (Teilpakete 2..n mit ihrer Einkauf-Bestellung, AB wie beim Hauptweingut)."""
+    from auftragsautomat.termine.register import RegisterFehler, fixtermin_aus_paket
+
+    if ergebnis is None or not ergebnis.einkauf_weitere:
+        return []
+    fixtermine: list[Fixtermin] = []
+    for i, teil in enumerate(weitere_weingueter(paket, ergebnis, settings, hinweise=lauf.hinweise)):
+        einkauf = ergebnis.einkauf_weitere[i] if i < len(ergebnis.einkauf_weitere) else None
+        teil_ergebnis = ergebnis.model_copy(update={"einkauf": einkauf, "einkauf_weitere": [], "angebot": None})
+        try:
+            fixtermine.append(fixtermin_aus_paket(teil, teil_ergebnis, kurznamen, heute=heute))
+        except RegisterFehler as exc:
+            lauf.hinweis(f"Fixtermin des weiteren Weinguts nicht bestimmbar: {exc}")
+    return fixtermine
 
 
 def lade_kontakte(
@@ -461,6 +510,7 @@ def finde_lexware_pdfs(
     datum: date | None = None,
     ordner: Iterable[Path] | None = None,
     kuerzel: Iterable[str] = KUERZEL_LEXWARE_PDFS,
+    nicht_vor: datetime | None = None,
 ) -> dict[str, Path]:
     """Sucht die Lexware-PDFs eines Pakets nach Hausmuster (Titulierung) in ``ordner``.
 
@@ -468,9 +518,18 @@ def finde_lexware_pdfs(
     (rekursiv). Verglichen wird der Name laut :func:`benennung.name_fuer_paket` **ohne** den Datumsteil
     (die PDF kann an einem anderen Tag erzeugt worden sein); bei mehreren Treffern gewinnt die
     jüngste Datei. ``datum`` bestimmt nichts am Vergleich, nur Pakete ohne Firma liefern ``{}``.
+
+    Gesucht wird nur, wenn der Name den Auftrag eindeutig kennzeichnet (Bestell- bzw. Auftragsnummer im
+    Namen): ohne Nummer (z. B. WS ``Lieferant – Kunde – Kürzel – Datum`` oder ``ohne-Nr``) passt das
+    Präfix auf jede ältere Datei desselben Kunden und Lieferanten. ``nicht_vor`` (z. B.
+    ``ergebnis.zeitpunkt``) lässt nur Dateien zu, die danach geschrieben wurden.
     """
     if not paket.firma_id or paket.firma_id not in settings.firmen:
         return {}
+    ohne_nummer = paket.model_copy(deep=True)
+    ohne_nummer.roh.bestellnummer = None
+    ohne_nummer.roh.belegnummer = None
+    grenze = (nicht_vor - timedelta(seconds=2)).timestamp() if nicht_vor is not None else None
     suchordner: list[Path] = []
     if ordner is not None:
         suchordner = [Path(o) for o in ordner]
@@ -500,16 +559,62 @@ def finde_lexware_pdfs(
         except (ValueError, KeyError) as exc:
             logger.debug("Kein Hausmuster für %s: %s", k, exc)
             continue
+        try:
+            eindeutig = muster != benennung.name_fuer_paket(k, ohne_nummer, settings, datum=_DATUM_MARKE, endung="")
+        except (ValueError, KeyError):
+            eindeutig = False
+        if not eindeutig:
+            logger.info("Lexware-PDF %s: Name '%s' enthält keine Auftragsnummer – keine Suche nach Hausmuster", k, muster)
+            continue
         if muster.endswith(trenner + marke):
             praefix = muster[: -len(trenner + marke)] + trenner
         else:
             praefix = muster
-        treffer = [p for p in dateien if p.stem.startswith(praefix)]
+        treffer = [p for p in dateien if p.stem.startswith(praefix) and (grenze is None or p.stat().st_mtime >= grenze)]
         if treffer:
             bestes = max(treffer, key=lambda p: p.stat().st_mtime)
             gefunden[k] = bestes
             logger.info("Lexware-PDF %s nach Hausmuster gefunden: %s", k, bestes)
     return gefunden
+
+
+def weitere_weingueter(
+    paket: Belegpaket,
+    ergebnis: BuchungsErgebnis | None,
+    settings: Settings,
+    *,
+    stammdaten: Any | None = None,
+    hinweise: list[str] | None = None,
+) -> list[Belegpaket]:
+    """Teilpakete der weiteren Weingüter (ohne Hauptweingut) wie in :func:`lexware.buchen.einkaufs_teilpakete`.
+
+    Nur, wenn die Buchung weitere Einkauf-Bestellungen angelegt hat (``ergebnis.einkauf_weitere``) bzw. PDFs
+    "Cde (2)" … existieren; die Reihenfolge entspricht der Buchung. Stammdaten werden bei Bedarf geladen;
+    sind sie nicht verfügbar, gibt es nur einen Hinweis (die weiteren Weingüter bekommen dann keinen Entwurf).
+    """
+    if not paket.einkauf_erforderlich or not paket.firma_id or paket.firma_id not in settings.firmen:
+        return []
+    erwartet = len(ergebnis.einkauf_weitere) if ergebnis is not None else 0
+    if ergebnis is not None and not erwartet:
+        erwartet = sum(1 for k in ergebnis.pdfs if k.startswith("Cde ("))
+    if not erwartet:
+        return []
+    from auftragsautomat.lexware.buchen import einkaufs_teilpakete
+
+    lauf = _Lauf(hinweise if hinweise is not None else [])
+    if stammdaten is None:
+        from auftragsautomat.stammdaten.laden import lade_stammdaten
+
+        try:
+            stammdaten = lade_stammdaten(settings.firma(paket.firma_id))
+        except Exception as exc:  # noqa: BLE001 - ohne Stamm keine Aufteilung, nur Hinweis
+            lauf.hinweis(f"Weitere Weingüter: Stammdaten nicht ladbar ({type(exc).__name__}: {exc}) – nur Entwürfe für das Hauptweingut")
+            return []
+    teile = einkaufs_teilpakete(paket, stammdaten)
+    weitere = [teil for teil, _ in teile[1:]]
+    if len(weitere) != erwartet:
+        lauf.hinweis(f"Weitere Weingüter: {len(weitere)} Teilpakete, aber {erwartet} weitere Einkauf-Bestellungen gebucht – bitte Entwürfe prüfen")
+    return weitere
 
 
 def entwuerfe_erstellen(
@@ -538,9 +643,10 @@ def entwuerfe_erstellen(
     # TODO-PRUEFEN: Mit dem Anwender bestätigen, dass die Agentur die "new order"-Mail ans Weingut selbst schickt
     # (sonst bestellung_ohne_einkauf=False lassen).
     bestellung_ohne_einkauf = not paket.einkauf_erforderlich and bool(firma.formulare.angebot_en)
+    weitere = weitere_weingueter(paket, ergebnis, settings, hinweise=lauf.hinweise)
     try:
         fabrik = Entwurfsfabrik(settings, kontakte, firma, bestellung_ohne_einkauf=bestellung_ohne_einkauf)
-        entwuerfe = fabrik.fuer_buchung(paket, ergebnis, fixtermin, lexware_pdfs)
+        entwuerfe = fabrik.fuer_buchung(paket, ergebnis, fixtermin, lexware_pdfs, weitere_weingueter=weitere)
     except VorlagenFehler as exc:
         lauf.hinweis(f"Keine Entwürfe: {exc}", fehler=True)
         return []
@@ -591,14 +697,21 @@ def dossier_anlegen(
     lexware_pdfs: Mapping[str, Path] | None = None,
     hinweise: list[str] | None = None,
 ) -> Dossier | None:
-    """Dossier im Ordner "vorangefertigte Dossiers" anlegen bzw. fortschreiben (Dry Run: ``dossier.lokaler_ordner``)."""
+    """Dossier im Ordner "vorangefertigte Dossiers" anlegen bzw. fortschreiben (Dry Run: ``dossier.lokaler_ordner``).
+
+    Kundenbestellung (Kd): nach dem scharfen Lauf liegt die Quelldatei im Archiv (``ergebnis.archiv``) –
+    diese Kopie hat Vorrang vor dem (dann leeren) Eingangspfad, wie bei der Ablage.
+    """
     lauf = _Lauf(hinweise if hinweise is not None else [])
+    quelldatei = Path(paket.roh.quelldatei)
+    if ergebnis is not None and ergebnis.archiv is not None and Path(ergebnis.archiv).is_file():
+        quelldatei = Path(ergebnis.archiv)
     try:
         verwaltung = dossier_verwaltung(settings, dry_run=dry_run, backends=backends)
         dossier = verwaltung.erstelle_oder_aktualisiere(
             paket,
             ergebnis,
-            quelldatei=Path(paket.roh.quelldatei),
+            quelldatei=quelldatei,
             lexware_pdfs=dict(lexware_pdfs or {}),
             entwuerfe=list(entwuerfe),
             fixtermin=fixtermin,
@@ -678,14 +791,15 @@ def nachbereiten(
 
     kurznamen = lade_kurznamen(settings, backends.excel, lauf.hinweise)
     nb.fixtermin, nb.vorschau_csv = fixtermin_eintragen(
-        paket, ergebnis, settings, backends=backends, dry_run=dry_run, kurznamen=kurznamen, hinweise=lauf.hinweise
+        paket, ergebnis, settings, backends=backends, dry_run=dry_run, kurznamen=kurznamen, hinweise=lauf.hinweise,
+        weitere=nb.weitere_fixtermine,
     )
     kontakte = lade_kontakte(settings, backends, hinweise=lauf.hinweise)
 
     pdfs = _vorhandene_pdfs(ergebnis, lexware_pdfs)
     fehlend = [k for k in KUERZEL_LEXWARE_PDFS if k not in pdfs]
     if fehlend:
-        for k, pfad in finde_lexware_pdfs(paket, settings, kuerzel=fehlend).items():
+        for k, pfad in finde_lexware_pdfs(paket, settings, kuerzel=fehlend, nicht_vor=ergebnis.zeitpunkt).items():
             pdfs[k] = pfad
             lauf.hinweis(f"PDF {k} nach Hausmuster gefunden: {pfad}")
 

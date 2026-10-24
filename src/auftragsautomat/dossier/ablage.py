@@ -4,8 +4,9 @@
   ``<Lieferant>-<Firma>-<Kunde>-<Bestellnr>-<TT.MM.JJJJ>`` (Design ``docs/AUSBAUSTUFE_2.md``,
   Abschnitt 2.7). Kurznamen und Bereinigung kommen aus ``benennung.py`` (Titulierung); fällt der
   Import aus (paralleler Aufbau), greift eine schlichte Rückfalllogik mit derselben Semantik.
-* :func:`zielordner_vorschlag` – Vorschlag, wohin der Mitarbeiter das Dossier einsortiert:
-  ``Auftragsablage (mit|ohne Provision)/<Kunde_kurz>/<Jahr>`` (``settings.dossier``).
+* :func:`zielordner_vorschlag` – Vorschlag, wohin der Mitarbeiter das Dossier einsortiert: derselbe
+  Zielordner wie die Ablage (``ablage.zielordner``: ``ablage.struktur`` mit
+  ``AblageKonfig.provisionsordner``, Standard "Aufträge mit Provision" bzw. "Aufträge ohne Provision").
 * :func:`dateityp_aus_name` – Dossier-Dateityp aus einem Dateinamen (Dokumentkürzel der
   Titulierung, ältere Hausmuster wie ``-Kd-``/``AB-``/``LS-``/``Hillebrand-`` und Dossier-Präfixe).
 
@@ -193,19 +194,24 @@ def dossier_name(
 
 
 def zielordner_vorschlag(paket: Belegpaket, settings: Settings, *, datum: date | None = None) -> str:
-    """Vorschlag für den Zielordner in der Auftragsablage:
-    ``<Auftragsablage (mit|ohne Provision)>/<Kunde_kurz>/<Jahr>``.
+    """Vorschlag für den Zielordner in der Auftragsablage – derselbe wie bei der Ablage
+    (:func:`auftragsautomat.ablage.ablage.zielordner`: ``ablage.struktur``, ``{provision}`` =
+    ``AblageKonfig.provisionsordner(firma_id)``, also "Aufträge mit Provision" für die Weinstrasse Agentur,
+    sonst "Aufträge ohne Provision").
 
-    "mit Provision", wenn ``paket.firma_id`` in ``settings.dossier.firmen_mit_provision`` steht
-    (Standard: Weinstrasse Agentur), sonst "ohne Provision". Jahr = ``datum``, sonst Belegdatum,
-    sonst Liefertag, sonst heute. Das Tool verschiebt nichts; der Vorschlag steht im Deckblatt.
+    Datum für ``{jahr}``/``{monat}``: ``datum``, sonst Belegdatum, sonst Liefertag, sonst heute. Ist
+    ``ablage.struktur`` fehlerhaft, bleibt nur der Provisionsordner. Das Tool verschiebt nichts; der
+    Vorschlag steht im Deckblatt. (Die früheren Felder ``dossier.ablage_mit_provision``,
+    ``ablage_ohne_provision`` und ``firmen_mit_provision`` sind veraltet und ohne Wirkung.)
     """
-    k = settings.dossier
-    basis = k.ablage_mit_provision if paket.firma_id in k.firmen_mit_provision else k.ablage_ohne_provision
-    _, kunde_kurz = _kurznamen(paket)
-    jahr = datum or paket.roh.datum or paket.roh.liefertag or date.today()
-    kunde_teil = _bereinige(kunde_kurz, settings) or UNBEKANNT
-    return f"{basis}/{kunde_teil}/{jahr.year}"
+    from auftragsautomat.ablage.ablage import AblageFehler, zielordner
+
+    stichtag_ = datum or paket.roh.datum or paket.roh.liefertag or date.today()
+    try:
+        return zielordner(paket, settings, datum=stichtag_)
+    except AblageFehler as exc:
+        logger.warning("Zielordner-Vorschlag: ablage.struktur nicht verwendbar (%s) – nur Provisionsordner", exc)
+        return settings.ablage.provisionsordner(paket.firma_id or "")
 
 
 def dateityp_aus_name(name: str) -> DossierDateityp:

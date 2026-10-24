@@ -231,6 +231,9 @@ def erstelle_belegpaket(
             kundengruppe=ergebnis.kundengruppe,
         )
 
+    # Revised Order laut Dokument: im Paket sichtbar machen (Freigabe, Benennung "Neu"/"Neu Kopie", Dublettenprüfung)
+    paket.ist_revision = roh.ist_revision
+    paket.revision_von = roh.revision_von
     daten = _stammdaten(settings, paket.firma_id, stammdaten)
     if paket.firma_id is not None:
         paket.einkauf_erforderlich = settings.firma(paket.firma_id).einkauf_bestellung

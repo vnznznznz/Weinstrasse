@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -511,14 +511,17 @@ def test_lieferschein_bei_fehlgeschlagener_ab_nicht(settings: Settings):
 
 def test_scharf_archiviert_quelldatei(settings: Settings):
     quelle = _quelldatei(settings)
-    ergebnis = buche(_paket(quelle), settings, dry_run=False, schreiber=FakeSchreiber(), stammdaten=_leere_stammdaten())
+    ergebnis = buche(
+        _paket(quelle), settings, dry_run=False, schreiber=FakeSchreiber(), stammdaten=_leere_stammdaten(),
+        jetzt=lambda: datetime(2026, 12, 31, 23, 59, 59),  # feste Uhr statt date.today() (Review Befund 17)
+    )
     assert ergebnis.erfolgreich, ergebnis.warnungen
     assert ergebnis.dry_run is False
     assert not quelle.exists()
     archiviert = list(settings.archiv_ordner.rglob("kundenbestellung_kirchhellen.pdf"))
     assert len(archiviert) == 1
     assert archiviert[0].parent.parent == settings.archiv_ordner / FIRMA_ID
-    assert archiviert[0].parent.name == f"{date.today().year}"
+    assert archiviert[0].parent.name == "2026"
     assert any(w.startswith("Quelldatei archiviert: ") for w in ergebnis.warnungen)
     zeile = _protokoll_zeilen(settings)[0]
     assert zeile["dry_run"] == "nein" and zeile["erfolgreich"] == "ja"

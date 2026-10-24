@@ -156,10 +156,10 @@ def _ist_pdf(anhang: MailAnhang) -> bool:
 def _fuer_tracking(ereignis: MailEreignis) -> MailEreignis:
     """Kopie des Ereignisses mit zeitzonenloser Empfangszeit (Ortszeit) für die Tracking-Kette.
 
-    Graph und ``.eml``-Fixtures liefern Empfangszeiten mit Zeitzone; ``tracking.basis.vereinige_meilensteine``
-    sortiert Meilensteine aber gegen das zeitzonenlose ``datetime.min`` und würde mit gemischten Werten einen
-    ``TypeError`` werfen (die Mail-Quelle meldet dann nur "unbekannt"). Die Dossier-Ablage (Schritt 3) arbeitet
-    weiter mit der Originalzeit.
+    Graph und ``.eml``-Fixtures liefern Empfangszeiten mit Zeitzone, Termine aus Mailtexten sind zeitzonenlos.
+    Die Tracking-Quellen sortieren seit der Integration über ``tracking.basis.zeit_schluessel`` und vertragen
+    beides; die Umrechnung hier hält die Meilensteine einer Sendung trotzdem einheitlich in Ortszeit (Anzeige
+    im Bericht). Die Dossier-Ablage (Schritt 3) arbeitet weiter mit der Originalzeit.
     """
     zeit = ereignis.empfangen
     if zeit.tzinfo is None:
@@ -214,6 +214,8 @@ class Ueberwachungslauf:
         self.protokoll: list[str] = []
         self.bericht: Ueberwachungsbericht | None = None
         self._fabriken: dict[str | None, Entwurfsfabrik] = {}
+        # Dry Run: Änderungen, die ein scharfer Lauf in die Excel schreiben würde (je Fixtermin-Schlüssel)
+        self._simulation: dict[str, dict[str, Any]] = {}
 
     # -- Bausteine aus der Konfiguration ---------------------------------------------------------
 
@@ -318,6 +320,19 @@ class Ueberwachungslauf:
             return f"zeile:{fixtermin.zeile}"
         return f"{fixtermin.lieferant_kurz}|{fixtermin.kunde_kurz}|{fixtermin.liefertag.isoformat()}"
 
+    def _simuliere(self, fixtermin: Fixtermin, aenderung: Mapping[str, Any]) -> None:
+        """Dry Run: merkt sich, was ein scharfer Lauf in die Zeile schreiben würde (Excel bleibt unverändert)."""
+        self._simulation.setdefault(self._schluessel(fixtermin), {}).update(aenderung)
+
+    def _sicht(self, fixtermin: Fixtermin) -> Fixtermin:
+        """Die Zeile so, wie sie nach einem scharfen Lauf aussähe (Dry Run); ohne Simulation unverändert.
+
+        Damit bewertet der Dry Run wie der scharfe Lauf: ein Weingut, dessen Bestätigung gerade eingegangen ist,
+        bekommt auch im Dry Run keine Nachfrage. Der Bericht zeigt weiter den echten Stand der Excel.
+        """
+        aenderung = self._simulation.get(self._schluessel(fixtermin))
+        return fixtermin.model_copy(update=aenderung) if aenderung else fixtermin
+
     @staticmethod
     def _ersetze(fixtermine: list[Fixtermin], alt: Fixtermin, neu: Fixtermin) -> None:
         for i, ft in enumerate(fixtermine):
@@ -416,6 +431,7 @@ class Ueberwachungslauf:
             return ft
         if dry_run:
             notiz.append(f"Dry Run: Häkchen '{label}' würde gesetzt ({herkunft})")
+            self._simuliere(ft, {feldname: True})
             return ft
         neu = self.register.setze_bestaetigung(ft, feld, True)  # type: ignore[arg-type]
         self._ersetze(fixtermine, ft, neu)
@@ -447,6 +463,7 @@ class Ueberwachungslauf:
             return ft
         if dry_run:
             notiz.append(f"Dry Run: Referenz {referenz} würde in die Bemerkung eingetragen")
+            self._simuliere(ft, {"tracking_referenz": referenz})
             return ft
         neu = self.register.trage_ein(ft.model_copy(update={"tracking_referenz": referenz}))
         self._ersetze(fixtermine, ft, neu)
@@ -467,6 +484,14 @@ class Ueberwachungslauf:
         assert datum is not None
         if ft.verladedatum == datum:
             return ft
+        if ft.liefertag is not None and datum > ft.liefertag:
+            # unplausibel: Verladung nach dem Fixtermin – nie automatisch eintragen, nur melden
+            notiz.append(f"Verladedatum laut Lieferant {datum:%d.%m.%Y} liegt nach dem Fixtermin {ft.liefertag:%d.%m.%Y} – nicht eingetragen")
+            self._hinweis(
+                f"{_beschreibung(ft)}: Verladedatum laut Lieferant {datum:%d.%m.%Y} liegt nach dem Fixtermin "
+                f"{ft.liefertag:%d.%m.%Y} – nicht eingetragen, bitte prüfen (ggf. Termin verschieben)"
+            )
+            return ft
         if ft.verladedatum is not None:
             notiz.append(f"Verladedatum laut Lieferant {datum:%d.%m.%Y} weicht von der Excel ({ft.verladedatum:%d.%m.%Y}) ab")
             self._hinweis(f"{_beschreibung(ft)}: Verladedatum laut Lieferant {datum:%d.%m.%Y}, in der Excel {ft.verladedatum:%d.%m.%Y} – bitte prüfen")
@@ -476,6 +501,7 @@ class Ueberwachungslauf:
             return ft
         if dry_run:
             notiz.append(f"Dry Run: Verladedatum {datum:%d.%m.%Y} würde eingetragen")
+            self._simuliere(ft, {"verladedatum": datum})
             return ft
         neu = self.register.setze_verladedatum(ft, datum)
         self._ersetze(fixtermine, ft, neu)
@@ -585,7 +611,7 @@ class Ueberwachungslauf:
             ordner = Path(tmp)
             try:
                 lokal = self.mail.speichere_anhang(mail.kopf.id, pdfs[0].id, ordner / pdfs[0].name)
-                self.dossiers.erstelle_oder_aktualisiere(paket, None, lexware_pdfs={"Oc": Path(lokal)})
+                self.dossiers.erstelle_oder_aktualisiere(paket, None, lexware_pdfs={"Oc": Path(lokal)}, dossier=dossier)
             except Exception as exc:
                 notiz.append(f"Anhang {pdfs[0].name} nicht als Oc abgelegt ({type(exc).__name__}: {exc})")
                 logger.warning("Dossier %s: Oc-Anhang %s nicht übernommen: %s", dossier.name, pdfs[0].name, exc)
@@ -657,9 +683,10 @@ class Ueberwachungslauf:
     ) -> tuple[UeberwachungsPunkt, list[tuple[EmailEntwurf, str, Fixtermin]]]:
         heute = self.heute
         notiz = list(notizen.get(self._schluessel(ft), []))
-        sendung = self._tracking(ft, kette, dossiers, bericht)
+        sendung = self._tracking(self._sicht(ft), kette, dossiers, bericht)
         ft = self._abholung_aus_tracking(ft, sendung, dry_run, fixtermine, notiz)
-        bewertung: Bewertung = bewerte(ft, sendung, heute, konfig=self.settings.ueberwachung, regelwerk=self.regelwerk)
+        sicht = self._sicht(ft)  # Dry Run: bewerten wie nach dem scharfen Lauf (ohne zu schreiben)
+        bewertung: Bewertung = bewerte(sicht, sendung, heute, konfig=self.settings.ueberwachung, regelwerk=self.regelwerk)
         aktionen: list[str] = []
         geplant: list[tuple[EmailEntwurf, str, Fixtermin]] = []
         for m in bewertung.massnahmen:
@@ -668,7 +695,7 @@ class Ueberwachungslauf:
                     letzte = self.drossel.letzte(m.typ, ft)
                     aktionen.append(f"{m.bezeichnung} gedrosselt (zuletzt {letzte:%d.%m.%Y}, erneut nach {self.drossel.erneut_nach_werktagen} Werktagen)")
                     continue
-                entwurf = self._entwurf_fuer(m, ft, sendung)
+                entwurf = self._entwurf_fuer(m, sicht, sendung)
                 if entwurf is None:
                     continue
                 geplant.append((entwurf, m.typ, ft))
@@ -697,6 +724,7 @@ class Ueberwachungslauf:
         k = self.settings.ueberwachung
         bericht = Ueberwachungsbericht(zeitpunkt=self._zeitpunkt(), zeitraum_bis=heute + timedelta(days=k.tage_voraus))
         self.hinweise, self.protokoll = [], []
+        self._simulation = {}
         ab = heute - timedelta(days=RUECKBLICK_TAGE)
         logger.info("Überwachungslauf %s (%s): Fixtermine %s bis %s", heute.strftime("%d.%m.%Y"), "Dry Run" if dry_run else "scharf", ab.strftime("%d.%m.%Y"), bericht.zeitraum_bis.strftime("%d.%m.%Y"))
 

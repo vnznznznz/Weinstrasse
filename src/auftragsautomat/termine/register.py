@@ -103,6 +103,7 @@ _FORMEL_RE = re.compile(r"^=\s*(?:'[^']*'!|[A-Za-z0-9_]+!)?\$?([A-Za-z]{1,3})\$?
 _BEST_RE = re.compile(r"best\.?\s*-?\s*nr\.?\s*:?\s*([^\s,;|]+)", re.IGNORECASE)
 _AB_RE = re.compile(r"(?<![A-Za-z0-9])AB\s*:?\s*(?:Nr\.?\s*:?\s*)?(\d[^\s,;|]*)")
 _REF_RE = re.compile(r"\bRef(?:erenz)?\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9-]*)", re.IGNORECASE)
+_KD_RE = re.compile(r"\bKd\.?\s*-?\s*Nr\.?\s*:?\s*([^\s,;|]+)", re.IGNORECASE)
 _WAHR = {"wahr", "true", "ja", "yes", "x", "1", "1.0"}
 _FALSCH = {"falsch", "false", "nein", "no", "0", "0.0", ""}
 _WOCHENENDE = {5: "Samstag", 6: "Sonntag"}
@@ -221,13 +222,15 @@ def _spaltenname(text: Any) -> str | None:
 
 
 def bemerkung_teile(text: str | None) -> dict[str, str | None]:
-    """Liest ``Best.-Nr``, ``AB``, Spedition und ``Ref.`` aus einer Bemerkung.
+    """Liest ``Best.-Nr``, ``AB``, ``Kd-Nr`` (Kundenbestellnummer), Spedition und ``Ref.`` aus einer Bemerkung.
 
     Die Spedition wird nur in einem Abschnitt (zwischen ``|``) erkannt, der auch eine Nummer
-    (Best.-Nr, AB oder Ref.) enthält, damit freier Text ("Kunde wünscht Vormittag") nicht als
+    (Best.-Nr, AB, Kd-Nr oder Ref.) enthält, damit freier Text ("Kunde wünscht Vormittag") nicht als
     Spedition gilt. Die erste Fundstelle gewinnt.
     """
-    teile: dict[str, str | None] = {"bestellnummer": None, "ab_nummer": None, "spedition": None, "tracking_referenz": None}
+    teile: dict[str, str | None] = {
+        "bestellnummer": None, "ab_nummer": None, "spedition": None, "tracking_referenz": None, "kundenbestellnummer": None,
+    }
     if not text:
         return teile
     for abschnitt in str(text).split("|"):
@@ -245,6 +248,9 @@ def bemerkung_teile(text: str | None) -> dict[str, str | None]:
             elif (m := _REF_RE.search(token)) is not None:
                 kennung = True
                 teile["tracking_referenz"] = teile["tracking_referenz"] or m.group(1)
+            elif (m := _KD_RE.search(token)) is not None:
+                kennung = True
+                teile["kundenbestellnummer"] = teile["kundenbestellnummer"] or m.group(1)
             else:
                 rest.append(token)
         if kennung and rest and teile["spedition"] is None:
@@ -254,7 +260,9 @@ def bemerkung_teile(text: str | None) -> dict[str, str | None]:
 
 def bemerkung_zusammenfuegen(bisher: str | None, fixtermin: Fixtermin) -> str:
     """Bisherige Bemerkung + freier Text des Fixtermins + kompakter Abschnitt
-    ``Best.-Nr <nr>, AB <nr>, <Spedition>, Ref. <Referenz>``; schon vorhandene Angaben werden nicht wiederholt."""
+    ``Best.-Nr <nr>, AB <nr>, <Spedition>, Ref. <Referenz>, Kd-Nr <Kundenbestellnummer>``; schon vorhandene
+    Angaben werden nicht wiederholt. Die Kundenbestellnummer bleibt bei einer Revised Order gleich und
+    verbindet so den neuen Beleg mit der vorhandenen Zeile."""
     basis = (bisher or "").strip()
     frei = (fixtermin.bemerkung or "").strip()
     if frei and normalisiere(frei) not in normalisiere(basis):
@@ -268,12 +276,40 @@ def bemerkung_zusammenfuegen(bisher: str | None, fixtermin: Fixtermin) -> str:
         kandidaten.append(fixtermin.spedition.strip())
     if fixtermin.tracking_referenz:
         kandidaten.append(f"Ref. {fixtermin.tracking_referenz.strip()}")
+    if fixtermin.kundenbestellnummer and fixtermin.kundenbestellnummer.strip():
+        kandidaten.append(f"Kd-Nr {fixtermin.kundenbestellnummer.strip()}")
     basis_norm = normalisiere(basis)
     neu = [k for k in kandidaten if normalisiere(k) not in basis_norm]
     abschnitt = ", ".join(neu)
     if basis and abschnitt:
         return f"{basis}{BEMERKUNG_TRENNER}{abschnitt}"
     return basis or abschnitt
+
+
+def _ersetze_nummern(vorhanden: Fixtermin, neu: Fixtermin) -> str:
+    """Bemerkung der vorhandenen Zeile, in der eine Revised Order (neue Cde/AB, gleiche bzw. ersetzte
+    Kundenbestellnummer) die alten Nummern ersetzt; die alten stehen danach als "ersetzt …" (nicht als
+    Best.-Nr/AB lesbar), damit Nachfragen und Zuordnung die neuen Nummern verwenden."""
+    bemerkung = vorhanden.bemerkung or ""
+    ersetzt: list[str] = []
+    for feld, muster, text in (("bestellnummer", _BEST_RE, "Bestellung"), ("ab_nummer", _AB_RE, "AB-Nr.")):
+        alt, neu_wert = (getattr(vorhanden, feld) or "").strip(), (getattr(neu, feld) or "").strip()
+        if not alt or not neu_wert or alt == neu_wert:
+            continue
+        treffer = muster.search(bemerkung)
+        if treffer is not None and treffer.group(1) == alt:
+            bemerkung = bemerkung[: treffer.start(1)] + neu_wert + bemerkung[treffer.end(1) :]
+        ersetzt.append(f"{text} {alt}")
+    if neu.revision_von and normalisiere(neu.revision_von) != normalisiere(neu.kundenbestellnummer or ""):
+        kd = _KD_RE.search(bemerkung)
+        if kd is not None and normalisiere(kd.group(1)) == normalisiere(neu.revision_von) and neu.kundenbestellnummer:
+            bemerkung = bemerkung[: kd.start(1)] + neu.kundenbestellnummer.strip() + bemerkung[kd.end(1) :]
+        ersetzt.append(f"Kundenbestellung {neu.revision_von.strip()}")
+    if ersetzt:
+        vermerk = f"Revised Order, ersetzt {' / '.join(ersetzt)}"
+        bemerkung = f"{bemerkung}{BEMERKUNG_TRENNER}{vermerk}" if bemerkung else vermerk
+        logger.info("Fixtermin %s / %s am %s: %s", vorhanden.lieferant_kurz, vorhanden.kunde_kurz, vorhanden.liefertag.strftime("%d.%m.%Y"), vermerk)
+    return bemerkung
 
 
 # ---------------------------------------------------------------------------
@@ -509,6 +545,7 @@ class FixterminRegister:
             abgeholt=_als_bool(self._wert(zeile, "abgeholt")),
             bemerkung=bemerkung,
             bestellnummer=teile["bestellnummer"],
+            kundenbestellnummer=teile["kundenbestellnummer"],
             ab_nummer=teile["ab_nummer"],
             spedition=teile["spedition"],
             tracking_referenz=teile["tracking_referenz"],
@@ -535,16 +572,20 @@ class FixterminRegister:
 
     @staticmethod
     def _nummern_passen(a: Fixtermin, b: Fixtermin) -> tuple[bool, bool]:
-        """``(treffer, konflikt)`` für Bestellnummer/AB-Nummer: gleich = Treffer, beide gesetzt und
-        verschieden = Konflikt."""
+        """``(treffer, konflikt)`` für Bestell-, AB- und Kundenbestellnummer: gleich = Treffer, beide gesetzt
+        und verschieden = Konflikt. Eine Revised Order (``b.revision_von``) trifft die Zeile der ersetzten
+        Kundenbestellnummer; eine gleiche Kundenbestellnummer ist ein Treffer, auch wenn Cde und AB neu sind."""
         treffer = konflikt = False
-        for feld in ("bestellnummer", "ab_nummer"):
+        for feld in ("bestellnummer", "ab_nummer", "kundenbestellnummer"):
             x, y = (getattr(a, feld) or "").strip(), (getattr(b, feld) or "").strip()
             if x and y:
-                if x == y:
+                if normalisiere(x) == normalisiere(y):
                     treffer = True
-                else:
+                elif not (feld == "kundenbestellnummer" and b.revision_von):
                     konflikt = True
+        ersetzt = (b.revision_von or "").strip()
+        if ersetzt and normalisiere(ersetzt) == normalisiere((a.kundenbestellnummer or "").strip()):
+            treffer = True
         return treffer, konflikt
 
     def finde(self, fixtermin: Fixtermin) -> Fixtermin | None:
@@ -665,7 +706,7 @@ class FixterminRegister:
         for feld in BESTAETIGUNGSFELDER.values():
             if getattr(neu, feld) and not getattr(vorhanden, feld):
                 werte[feld] = True
-        bemerkung = bemerkung_zusammenfuegen(vorhanden.bemerkung, neu)
+        bemerkung = bemerkung_zusammenfuegen(_ersetze_nummern(vorhanden, neu), neu)
         if bemerkung != (vorhanden.bemerkung or ""):
             werte["bemerkung"] = bemerkung
         if werte:
@@ -684,6 +725,7 @@ class FixterminRegister:
                 "abgeholt": neu.abgeholt or vorhanden.abgeholt,
                 "bemerkung": bemerkung or None,
                 "bestellnummer": neu.bestellnummer or vorhanden.bestellnummer,
+                "kundenbestellnummer": neu.kundenbestellnummer or vorhanden.kundenbestellnummer,
                 "ab_nummer": neu.ab_nummer or vorhanden.ab_nummer,
                 "spedition": neu.spedition or vorhanden.spedition,
                 "tracking_referenz": neu.tracking_referenz or vorhanden.tracking_referenz,
@@ -838,6 +880,7 @@ def fixtermin_aus_paket(
         if ergebnis.verkauf is not None and ergebnis.verkauf.belegnummer:
             ab_nummer = ergebnis.verkauf.belegnummer
     spedition = (paket.belegfelder.spedition or "").strip() or None
+    revision_von = (paket.revision_von or roh.revision_von or "").strip() or None if paket.revision_wirksam else None
     return Fixtermin(
         firma_id=paket.firma_id,
         lieferant_kurz=lieferant_kurz,
@@ -849,4 +892,5 @@ def fixtermin_aus_paket(
         ab_nummer=ab_nummer,
         spedition=spedition,
         quelle=roh.quelldatei.name,
+        revision_von=revision_von,
     )

@@ -151,21 +151,30 @@ def test_stichtag_reihenfolge():
 
 def test_zielordner_mit_provision_fuer_agentur(settings: Settings):
     paket = _paket("weinstrasse_agentur")
-    assert zielordner_vorschlag(paket, settings) == "Aufträge mit Provision/Musterhandel/2026"
+    assert zielordner_vorschlag(paket, settings) == "Aufträge mit Provision"
 
 
 def test_zielordner_ohne_provision_sonst(settings: Settings):
-    assert zielordner_vorschlag(_paket("wik_fh_seh"), settings) == "Aufträge ohne Provision/Musterhandel/2026"
-    assert zielordner_vorschlag(_paket("wik_leh"), settings).startswith("Aufträge ohne Provision/")
+    assert zielordner_vorschlag(_paket("wik_fh_seh"), settings) == "Aufträge ohne Provision"
+    assert zielordner_vorschlag(_paket("wik_leh"), settings) == "Aufträge ohne Provision"
 
 
-def test_zielordner_konfigurierbar_und_jahr(settings: Settings):
-    settings.dossier.firmen_mit_provision = ["wik_fh_seh"]
-    settings.dossier.ablage_mit_provision = "Ablage A"
+def test_zielordner_folgt_der_ablage_konfiguration_und_jahr(settings: Settings):
+    """Regression (Review Befund 6): Der Vorschlag im Deckblatt folgt AblageKonfig (firmen_mit_provision,
+    Ordnernamen, struktur) – nicht mehr den eigenen Feldern im Abschnitt dossier."""
+    from auftragsautomat.ablage import zielordner
+
+    settings.ablage.firmen_mit_provision = ["weinstrasse_agentur", "wik_fh_seh"]
+    settings.ablage.ordner_mit_provision = "Ablage A"
+    settings.dossier.firmen_mit_provision = []  # veraltet, ohne Wirkung
     paket = _paket("wik_fh_seh", datum=None)
+    assert zielordner_vorschlag(paket, settings) == "Ablage A" == zielordner(paket, settings)
+    settings.ablage.struktur = "{provision}/{kunde}/{jahr}"
     # ohne Belegdatum zählt der Liefertag (06.11.2026)
     assert zielordner_vorschlag(paket, settings) == "Ablage A/Musterhandel/2026"
     assert zielordner_vorschlag(paket, settings, datum=date(2027, 2, 1)) == "Ablage A/Musterhandel/2027"
+    settings.ablage.struktur = "{provision}/{gibtsnicht}"
+    assert zielordner_vorschlag(paket, settings) == "Ablage A"
 
 
 # ---------------------------------------------------------------------------

@@ -51,18 +51,42 @@ def _sendung(status: SendungStatus, quelle: str = "mail", **felder) -> Sendung:
 # ---------------------------------------------------------------- bewerte
 
 
-def test_szenario_a_zwoelf_werktage_ohne_bestaetigungen_gelb_mit_nachfragen():
+def test_szenario_a_zwoelf_werktage_ohne_bestaetigungen_gelb_noch_ohne_nachfragen():
+    """Regression (Review Befund 13): 12 Werktage vor dem Fixtermin sind beide Schwellen (10/5) noch nicht erreicht:
+    gelb mit Frist, aber noch kein Entwurf."""
     ampel, grund, massnahmen = bewerte(_ft(), None, HEUTE, konfig=KONFIG)
-    assert ampel == "gelb"
-    assert [m.typ for m in massnahmen] == ["nachfrage_lieferant", "nachfrage_spedition"]
+    assert ampel == "gelb" and massnahmen == []
     assert "Frist 28.10.2026, 10 Werktage" in grund and "Frist 04.11.2026, 5 Werktage" in grund
-    assert all(isinstance(m, Massnahme) and m.begruendung for m in massnahmen)
+
+
+@pytest.mark.parametrize(
+    ("liefertag", "werktage", "erwartet"),
+    [
+        (date(2026, 11, 10), 11, []),  # Schwelle Lieferant + 1
+        (date(2026, 11, 9), 10, ["nachfrage_lieferant"]),  # Schwelle Lieferant
+        (date(2026, 11, 6), 9, ["nachfrage_lieferant"]),  # Schwelle Lieferant - 1
+        (date(2026, 11, 3), 6, ["nachfrage_lieferant"]),  # Schwelle Spedition + 1
+        (date(2026, 11, 2), 5, ["nachfrage_lieferant", "nachfrage_spedition"]),  # Schwelle Spedition
+        (date(2026, 10, 30), 4, ["nachfrage_lieferant", "nachfrage_spedition"]),  # Schwelle Spedition - 1
+    ],
+)
+def test_nachfragen_erst_ab_der_schwelle(liefertag: date, werktage: int, erwartet: list[str]):
+    """Regression (Review Befund 13): nachfrage_lieferant_werktage / nachfrage_spedition_werktage wirken auf die
+    Maßnahmen (AUSBAUSTUFE_2 2.6: ab 10 bzw. 5 Werktagen vor dem Fixtermin), nicht nur auf den Fristtext."""
+    b = bewerte(_ft(liefertag=liefertag), None, HEUTE, konfig=KONFIG)
+    assert b.werktage_bis == werktage and b.typen == erwartet
+    if not erwartet:
+        assert b.ampel == "gelb"
+    # andere Schwellen ändern die Maßnahmen, nicht nur den Text
+    spaet = UeberwachungKonfig(nachfrage_lieferant_werktage=3, nachfrage_spedition_werktage=2)
+    assert bewerte(_ft(liefertag=date(2026, 11, 2)), None, HEUTE, konfig=spaet).typen == []
 
 
 def test_bewertung_ist_objekt_mit_werktagen_und_befunden():
-    b = bewerte(_ft(), None, HEUTE, konfig=KONFIG)
-    assert isinstance(b, Bewertung) and b.werktage_bis == 12 and b.hat("nachfrage_lieferant")
+    b = bewerte(_ft(liefertag=date(2026, 11, 2)), None, HEUTE, konfig=KONFIG)
+    assert isinstance(b, Bewertung) and b.werktage_bis == 5 and b.hat("nachfrage_lieferant")
     assert b.typen == ["nachfrage_lieferant", "nachfrage_spedition"] and len(b.befunde) == 2
+    assert all(isinstance(m, Massnahme) and m.begruendung for m in b.massnahmen)
     assert tuple(b) == (b.ampel, b.grund, b.massnahmen)
 
 
@@ -79,18 +103,19 @@ def test_weniger_als_fuenf_werktage_ohne_bestaetigung_rot():
 
 
 def test_nur_spedition_offen_wenn_lieferant_bestaetigt():
-    ampel, _, massnahmen = bewerte(_ft(lieferant_bestaetigt=True), None, HEUTE, konfig=KONFIG)
+    ampel, _, massnahmen = bewerte(_ft(lieferant_bestaetigt=True, liefertag=date(2026, 11, 2)), None, HEUTE, konfig=KONFIG)
     assert ampel == "gelb" and [m.typ for m in massnahmen] == ["nachfrage_spedition"]
 
 
 def test_auftrag_von_heute_noch_keine_nachfrage():
-    ampel, grund, massnahmen = bewerte(_ft(auftragsdatum=HEUTE), None, HEUTE, konfig=KONFIG)
+    faellig = date(2026, 11, 2)  # beide Schwellen erreicht
+    ampel, grund, massnahmen = bewerte(_ft(auftragsdatum=HEUTE, liefertag=faellig), None, HEUTE, konfig=KONFIG)
     assert ampel == "gelb" and massnahmen == []
     assert "Nachfrage frühestens nach 1 Werktag" in grund
     # ohne Auftragsdatum: sofort
-    assert bewerte(_ft(auftragsdatum=None), None, HEUTE, konfig=KONFIG).typen == ["nachfrage_lieferant", "nachfrage_spedition"]
+    assert bewerte(_ft(auftragsdatum=None, liefertag=faellig), None, HEUTE, konfig=KONFIG).typen == ["nachfrage_lieferant", "nachfrage_spedition"]
     # mindest_alter 0: sofort
-    assert bewerte(_ft(auftragsdatum=HEUTE), None, HEUTE, konfig=KONFIG, regelwerk=Regelwerk(mindest_alter_werktage=0)).hat("nachfrage_lieferant")
+    assert bewerte(_ft(auftragsdatum=HEUTE, liefertag=faellig), None, HEUTE, konfig=KONFIG, regelwerk=Regelwerk(mindest_alter_werktage=0)).hat("nachfrage_lieferant")
 
 
 def test_selbstabholung_erwartet_keine_speditionsbestaetigung():

@@ -39,7 +39,15 @@ from datetime import date
 from pathlib import Path
 from string import Formatter
 
-from auftragsautomat.benennung import bereinige, kurzname_kunde, kurzname_lieferant, name_fuer_paket
+from auftragsautomat.benennung import (
+    AUFTRAGSKOPIE_KUERZEL,
+    bereinige,
+    entferne_verbotene_woerter,
+    kurzname_kunde,
+    kurzname_lieferant,
+    name_fuer_paket,
+    pruefe_auftragskopie_name,
+)
 from auftragsautomat.config import DateiRefKonfig, Settings
 from auftragsautomat.m365.basis import DateiBackend
 from auftragsautomat.models import DOKUMENTKUERZEL, AblageErgebnis, Belegpaket, BuchungsErgebnis
@@ -51,6 +59,7 @@ __all__ = [
     "AblageFehler",
     "AblageQuelle",
     "ablage_ref",
+    "basis_kuerzel",
     "freier_name",
     "lege_ab",
     "platzhalter_werte",
@@ -185,9 +194,42 @@ def freier_name(backend: DateiBackend, ref: DateiRefKonfig, ordner: str, name: s
     raise AblageFehler(f"Kein freier Dateiname für '{name}' in '{ordner or '/'}' (bis ' ({MAX_KOLLISIONEN})' belegt).")
 
 
+#: Schlüssel weiterer Weingüter in ``BuchungsErgebnis.pdfs``: "Cde (2)", "Speditionsauftrag (3)" …
+_WEITERES_WEINGUT_RE = re.compile(r"^(?P<kuerzel>.+?) \((?P<nummer>\d+)\)$")
+
+
+def basis_kuerzel(schluessel: str) -> tuple[str, int | None]:
+    """Dokumentkürzel und Weingut-Nummer eines Schlüssels aus ``BuchungsErgebnis.pdfs``:
+    ``"Cde"`` -> ``("Cde", None)``, ``"Cde (2)"`` -> ``("Cde", 2)`` (Bestellung an das zweite Weingut)."""
+    treffer = _WEITERES_WEINGUT_RE.match(schluessel)
+    if treffer is not None and treffer.group("kuerzel") in DOKUMENTKUERZEL:
+        return treffer.group("kuerzel"), int(treffer.group("nummer"))
+    return schluessel, None
+
+
 def _zielname(kuerzel: str, pfad: Path, paket: Belegpaket, settings: Settings, datum: date) -> str:
+    """Zielname (siehe :func:`_zielname_roh`); für die Auftragskopie verbindlich ohne verbotene Wörter
+    (``pruefe_auftragskopie_name``, Geschäftsregel 18) – auch beim Rückfall auf den Quellnamen."""
+    name = _zielname_roh(kuerzel, pfad, paket, settings, datum)
+    if basis_kuerzel(kuerzel)[0] in AUFTRAGSKOPIE_KUERZEL and pruefe_auftragskopie_name(name, settings):
+        bereinigt = entferne_verbotene_woerter(Path(name).stem, settings) or kuerzel
+        logger.warning("Ablage: verbotene Wörter aus dem Namen der Auftragskopie entfernt: %s -> %s", name, bereinigt + Path(name).suffix)
+        name = bereinigt + Path(name).suffix
+    return name
+
+
+def _zielname_roh(kuerzel: str, pfad: Path, paket: Belegpaket, settings: Settings, datum: date) -> str:
     """Zielname laut Titulierung (``name_fuer_paket``); bei unbekanntem Kürzel oder Paket ohne Firma
-    der bereinigte Dateiname der Quelle (mit Hinweis im Log)."""
+    der bereinigte Dateiname der Quelle (mit Hinweis im Log).
+
+    PDFs weiterer Weingüter (Schlüssel ``"Cde (2)"`` usw.) hat ``lexware.buchen`` bereits mit dem Teilpaket
+    des jeweiligen Weinguts benannt (Lieferant im Namen); ihr Name bleibt erhalten – ``name_fuer_paket`` mit
+    dem Gesamtpaket würde den Hauptlieferanten einsetzen.
+    """
+    basis, weingut = basis_kuerzel(kuerzel)
+    if weingut is not None:
+        logger.info("Ablage: %s ist die Datei des %d. Weinguts – Name aus lexware/ bleibt: %s", kuerzel, weingut, pfad.name)
+        return bereinige(pfad.name, settings) or pfad.name
     if kuerzel in DOKUMENTKUERZEL and paket.firma_id:
         try:
             return name_fuer_paket(kuerzel, paket, settings, datum=datum, endung=pfad.suffix)
@@ -231,9 +273,10 @@ def quellen(
         liste.append(
             AblageQuelle(KUERZEL_KUNDENBESTELLUNG, pfad, _zielname(KUERZEL_KUNDENBESTELLUNG, pfad, paket, settings, stichtag))
         )
-    for kuerzel, pfad in ergebnis.pdfs.items():
+    for schluessel, pfad in ergebnis.pdfs.items():
         pfad = Path(pfad)
-        liste.append(AblageQuelle(kuerzel, pfad, _zielname(kuerzel, pfad, paket, settings, stichtag)))
+        kuerzel, _ = basis_kuerzel(schluessel)
+        liste.append(AblageQuelle(kuerzel, pfad, _zielname(schluessel, pfad, paket, settings, stichtag)))
     return liste
 
 

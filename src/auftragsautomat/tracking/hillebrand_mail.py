@@ -48,6 +48,7 @@ from auftragsautomat.tracking.basis import (
     parse_datum_mit_bezug,
     status_aus_meilensteinen,
     vereinige_meilensteine,
+    zeit_schluessel,
 )
 
 logger = logging.getLogger(__name__)
@@ -361,7 +362,7 @@ def _zeitpunkt(datum: date | None, sonst: datetime) -> datetime:
 def meilensteine_aus_ereignissen(ereignisse: Iterable[MailEreignis], konfig: HillebrandKonfig) -> list[Meilenstein]:
     """Mail-Ereignisse -> Meilensteine (chronologisch, Doppelte entfernt)."""
     meilensteine: list[Meilenstein] = []
-    for e in sorted(ereignisse, key=lambda x: x.empfangen):
+    for e in sorted(ereignisse, key=lambda x: zeit_schluessel(x.empfangen)):
         if e.typ == Ereignistyp.SPEDITION_BESTAETIGUNG:
             meilensteine.append(
                 Meilenstein(
@@ -438,7 +439,7 @@ class MailQuelle:
             if (referenz is not None and normalisiere_referenz(e.referenz) == referenz)
             or (kundenref is not None and _norm_kundenref(e.kundenreferenz) == kundenref)
         ]
-        treffer.sort(key=lambda e: e.empfangen)
+        treffer.sort(key=lambda e: zeit_schluessel(e.empfangen))
         return treffer
 
     def aktualisiere(self, sendung: Sendung) -> Sendung:

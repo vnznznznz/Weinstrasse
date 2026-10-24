@@ -190,3 +190,23 @@ def test_dauerbetrieb_erkennt_neue_datei(settings: Settings):
     assert not t.is_alive()
     assert verarbeitet == [pdf]
     assert ergebnis == [1]
+
+
+def test_rabattlisten_ordner_wird_nicht_als_auftrag_verarbeitet(settings: Settings):
+    """Regression (Integration Stufe 2): Hochgeladene Rabattlisten liegen in eingang/rabatte
+    (rabatte.rabatt_pdf_ordner); der Watcher verarbeitete sie früher wie Kundenaufträge."""
+    assert settings.rabatte.rabatt_pdf_ordner == settings.eingang_ordner / "rabatte"
+    auftrag = _kopiere_pdf(settings.eingang_ordner / "wik_leh")
+    _kopiere_pdf(settings.rabatte.rabatt_pdf_ordner, "rabattliste_herbst.pdf")
+    verarbeitet: list[Path] = []
+
+    anzahl = watcher.starte_watch(settings, verarbeitet.append, einmalig=True, stabil_sekunden=0.05)
+
+    assert anzahl == 1 and verarbeitet == [auftrag]
+    assert watcher.ausgeschlossene_ordner(settings) == [settings.rabatte.rabatt_pdf_ordner]
+    # auch der laufende Watcher (watchdog-Handler) meldet Dateien im Rabattlisten-Ordner nicht
+    warteschlange: queue.Queue[Path] = queue.Queue()
+    handler = watcher.EingangsHandler(warteschlange, ausschliessen=watcher.ausgeschlossene_ordner(settings))
+    handler.on_created(FileCreatedEvent(str(settings.rabatte.rabatt_pdf_ordner / "neu.pdf")))
+    handler.on_created(FileCreatedEvent(str(settings.eingang_ordner / "neu.pdf")))
+    assert [warteschlange.get_nowait()] == [settings.eingang_ordner / "neu.pdf"] and warteschlange.empty()

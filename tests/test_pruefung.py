@@ -516,6 +516,110 @@ def test_dublette_kundenbestellnummer(stammdaten: Stammdaten, settings: Settings
     assert paket.blockiert is True
 
 
+def test_revised_order_ersetzte_bestellung_ist_info_statt_fehler(stammdaten: Stammdaten, settings: Settings):
+    """Regression (Integration Stufe 2, Geschäftsregel 15): Eine Revised Order mit derselben Bestellnummer wie
+    die ersetzte Bestellung meldet die alte AB schon in der Prüfung als Info – sonst wäre das Paket in der
+    Freigabe blockiert (Buchen-Knopf gesperrt), obwohl buchen() die Revision zulässt."""
+    paket = _paket(stammdaten, _roh(bestellnummer="B-4711", ist_revision=True))
+    pruefe(paket, stammdaten, settings)
+    hinweis = _hinweis(paket, Pruefcode.DUBLETTE)
+    assert hinweis.schweregrad == Schweregrad.INFO
+    assert hinweis.text.startswith("Revised Order: ersetzt AB-Beleg AB-2026-0101")
+    assert hinweis.details["revision"] == "ersetzt"
+    assert not paket.blockiert
+    # andere Nummer als die ersetzte (revision_von) bleibt eine echte Dublette
+    paket = _paket(stammdaten, _roh(bestellnummer="B-4711", ist_revision=True, revision_von="B-0815"))
+    pruefe(paket, stammdaten, settings)
+    assert _hinweis(paket, Pruefcode.DUBLETTE).schweregrad == Schweregrad.FEHLER
+    assert paket.blockiert
+
+
+def _mit_belegen(stammdaten: Stammdaten, *belege: Beleg) -> Stammdaten:
+    """Kopie des Stamms mit zusätzlichen Belegen (der geladene Stamm ist prozessweit gecacht)."""
+    return Stammdaten(
+        stammdaten.firma_id, stammdaten.artikel, stammdaten.kunden, stammdaten.lieferanten, [*stammdaten.belege, *belege]
+    )
+
+
+def test_revised_order_ohne_revision_von_mehrere_treffer_bleiben_fehler(stammdaten: Stammdaten, settings: Settings):
+    """Regression (Review Befund 1): Ohne abweichendes revision_von darf eine Revised Order nicht jede Dublette
+    mit derselben Bestellnummer abstufen – liegt neben dem Original (AB-2026-0101) schon eine gebuchte
+    Revision (AB-2026-0190), ist unklar, was ersetzt wird; beide bleiben FEHLER (Geschäftsregel 5)."""
+    daten = _mit_belegen(
+        stammdaten,
+        Beleg(firma_id="wik_leh", belegart=Belegart.AUFTRAGSBESTAETIGUNG, belegnummer="AB-2026-0190",
+              kundenbestellnummer="B-4711", partnernummer="3441", datum=date(2026, 10, 2)),
+    )
+    paket = _paket(daten, _roh(bestellnummer="B-4711", ist_revision=True, datum=date(2026, 10, 20)))
+    pruefe(paket, daten, settings)
+    dubletten = [h for h in paket.hinweise if h.code == Pruefcode.DUBLETTE]
+    assert len(dubletten) == 2
+    assert all(h.schweregrad == Schweregrad.FEHLER for h in dubletten)
+    assert all("Revised Order nicht als Ersatz gewertet" in h.text for h in dubletten)
+    assert paket.blockiert
+    # ein ausdrückliches, abweichendes revision_von stuft gezielt nur das Original ab
+    paket = _paket(daten, _roh(bestellnummer="B-4711", ist_revision=True, revision_von="AB-2026-0101"))
+    pruefe(paket, daten, settings)
+    grade = {h.details["belegnummer"]: h.schweregrad for h in paket.hinweise if h.code == Pruefcode.DUBLETTE}
+    assert grade == {"AB-2026-0101": Schweregrad.INFO, "AB-2026-0190": Schweregrad.FEHLER}
+    assert paket.blockiert
+
+
+def test_revised_order_bereits_gebuchte_revision_ist_dublette(stammdaten: Stammdaten, settings: Settings):
+    """Regression (Review Befund 1): Ein einzelner Treffer, der nicht älter als die Revised Order ist (dieselbe
+    PDF ein zweites Mal), ist nicht die ersetzte Bestellung, sondern eine Dublette."""
+    paket = _paket(stammdaten, _roh(bestellnummer="B-4711", ist_revision=True, datum=date(2026, 9, 15)))
+    pruefe(paket, stammdaten, settings)
+    hinweis = _hinweis(paket, Pruefcode.DUBLETTE)
+    assert hinweis.schweregrad == Schweregrad.FEHLER and "nicht älter als die Revised Order" in hinweis.text
+    assert paket.blockiert
+    # Original vor dem Dokumentdatum: weiterhin Info (Geschäftsregel 15)
+    paket = _paket(stammdaten, _roh(bestellnummer="B-4711", ist_revision=True, datum=date(2026, 9, 20)))
+    pruefe(paket, stammdaten, settings)
+    assert _hinweis(paket, Pruefcode.DUBLETTE).schweregrad == Schweregrad.INFO
+    assert not paket.blockiert
+
+
+def test_revised_order_vom_anwender_verneint(stammdaten: Stammdaten, settings: Settings):
+    """Regression (Review Befund 1): Die Freigabe kann eine fälschlich erkannte Revision zurücknehmen."""
+    paket = _paket(stammdaten, _roh(bestellnummer="B-4711", ist_revision=True), ist_revision=True)
+    paket.revision_bestaetigt = False
+    assert paket.revision_wirksam is False
+    pruefe(paket, stammdaten, settings)
+    assert _hinweis(paket, Pruefcode.DUBLETTE).schweregrad == Schweregrad.FEHLER
+    assert paket.blockiert
+
+
+@pytest.mark.parametrize(
+    ("roh_felder", "blockiert"),
+    [
+        ({"menge": Decimal(10), "einheit": "Kolli"}, True),  # Lagerbestellung in Kolli ohne Inhalt
+        ({"menge": Decimal(10), "einheit": "KOA"}, True),
+        ({"menge": Decimal(10), "einheit": "Kt."}, True),
+        ({"menge": Decimal(10), "einheit": "VE", "menge_ve": Decimal(10)}, True),  # eigene VE-Spalte ohne Inhalt
+        ({"menge": Decimal(60), "einheit": "Fl", "menge_ve": Decimal(10), "ve_inhalt": Decimal(6)}, False),
+        ({"menge": Decimal(60), "einheit": "Fl"}, False),
+        ({"menge": Decimal(6), "einheit": "OHK"}, False),  # Holzkiste ist ein eigener Artikel
+    ],
+)
+def test_gebinde_menge_ohne_ve_inhalt_blockiert(stammdaten: Stammdaten, settings: Settings, roh_felder: dict, blockiert: bool):
+    """Regression (Review Befund 8): Eine Menge in Kolli/KOA/Kt bzw. als VE-Anzahl ohne Inhalt je VE darf nicht
+    als Flaschenmenge gebucht werden (10 Kolli wären 10 Flaschen statt 60) – blockierender MENGE_FEHLT."""
+    roh = _roh()
+    roh.positionen[0] = RohPosition(laufnr=1, bezeichnung="Gloria Secco Frizzante", preis=Decimal("6.90"), **roh_felder)
+    paket = _paket(stammdaten, roh)
+    pruefe(paket, stammdaten, settings)
+    treffer = [h for h in paket.positionen[0].hinweise if h.code == Pruefcode.MENGE_FEHLT]
+    assert bool(treffer) is blockiert
+    if blockiert:
+        assert treffer[0].schweregrad == Schweregrad.FEHLER and "Inhalt je VE unbekannt" in treffer[0].text
+        assert paket.blockiert
+        # der Anwender korrigiert die Menge in Flaschen -> nicht mehr blockiert
+        paket.positionen[0].menge = Decimal(60)
+        pruefe(paket, stammdaten, settings)
+        assert not [h for h in paket.positionen[0].hinweise if h.code == Pruefcode.MENGE_FEHLT]
+
+
 def test_dublette_normalisiert(stammdaten: Stammdaten, settings: Settings):
     paket = _paket(stammdaten, _roh(bestellnummer="b 4711"))
     assert len(pruefe_dubletten(paket, stammdaten)) == 1

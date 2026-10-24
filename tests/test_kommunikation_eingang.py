@@ -146,6 +146,34 @@ def test_bestaetigung_mit_kontaktaenderung_und_terminaenderung_als_nebenereignis
     assert alle[2].text_auszug and "new e-mail address" in alle[2].text_auszug
 
 
+def test_bestaetigung_mit_terminverschiebung_liefert_kein_verladedatum():
+    """Regression (Review Befund 9): Die Verschiebung ist ein eigenes Ereignis, kein Verladedatum."""
+    text = "Hiermit bestätigen wir Ihre Bestellung Nr. WIK-2026-0100. Der Liefertermin wird verschoben auf den 20.11.2026."
+    alle = klassifiziere_alle(_eigene("Bestellbestätigung", text), spedition_regeln=REGELN)
+    assert [e.typ for e in alle] == [Ereignistyp.LIEFERANT_BESTAETIGUNG, Ereignistyp.TERMINAENDERUNG]
+    assert alle[0].neues_datum is None and alle[0].kundenreferenz == "WIK-2026-0100"
+    assert alle[1].neues_datum == date(2026, 11, 20)
+
+
+@pytest.mark.parametrize(
+    ("betreff", "text", "typ"),
+    [
+        ("Conferma d'ordine 4711", "Conferma d'ordine 4711: la merce è pronta per il ritiro il 15 ottobre 2026.", Ereignistyp.LIEFERANT_BESTAETIGUNG),
+        ("Order confirmation 4711", "We confirm your order no. 4711. Loading date: 15/10/2026.", Ereignistyp.LIEFERANT_BESTAETIGUNG),
+        ("Info 4711", "Der Liefertermin wird verschoben auf den 15. Oktober 2026.", Ereignistyp.TERMINAENDERUNG),
+        ("Info 4711", "Neuer Liefertermin: 15 Oktober 2026", Ereignistyp.TERMINAENDERUNG),
+        ("Confirmation de commande", "Nous confirmons votre commande n° 4711. Chargement prévu le 15 octobre 2026.", Ereignistyp.LIEFERANT_BESTAETIGUNG),
+        ("Confirmación de pedido 4711", "Confirmamos su pedido 4711. Fecha de carga: 15 de octubre de 2026.", Ereignistyp.LIEFERANT_BESTAETIGUNG),
+        ("Info 4711", "Nuova data di consegna: 15/10/2026", Ereignistyp.TERMINAENDERUNG),
+    ],
+)
+def test_datum_in_mails_mehrsprachig_und_mit_schraegstrich(betreff: str, text: str, typ: Ereignistyp):
+    """Regression (Review Befund 15): deutsche/italienische/französische/spanische Monatsnamen, "15. Oktober 2026"
+    und TT/MM/JJJJ (bei italienischen Weingütern üblich) werden als Datum erkannt."""
+    e = klassifiziere(_eigene(betreff, text), spedition_regeln=REGELN)
+    assert e is not None and e.typ == typ and e.neues_datum == date(2026, 10, 15)
+
+
 def test_terminaenderung_ohne_datum_nur_marker_und_kurzdatum_mit_jahr_aus_empfang():
     e = klassifiziere(_eigene("Lieferverzögerung Bestellung 4714", "Die Lieferung verschiebt sich leider um eine Woche."), spedition_regeln=REGELN)
     assert e is not None and e.typ == Ereignistyp.TERMINAENDERUNG and e.neues_datum is None and e.konfidenz == pytest.approx(0.5)

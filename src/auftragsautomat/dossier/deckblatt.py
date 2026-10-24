@@ -306,7 +306,7 @@ def _kopfdaten(dossier: Dossier, paket: Belegpaket | None, settings: Settings | 
                 ("Quelldatei", roh.quelldatei.name),
             ]
         )
-        if paket is not None and (paket.ist_revision or roh.ist_revision):
+        if paket is not None and paket.revision_wirksam:
             zeilen.append(("Revised Order", f"ersetzt {roh.revision_von or paket.revision_von or 'eine frühere Bestellung'}"))
     return zeilen
 

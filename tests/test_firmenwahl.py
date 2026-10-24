@@ -494,7 +494,10 @@ def test_ordner_vor_gedaechtnis(settings: Settings, aliase: AliasTabellen):
 
 
 def test_gedaechtnis_vor_alias_und_katalog(settings: Settings, aliase: AliasTabellen):
-    gedaechtnis = Firmengedaechtnis([_regel("HEGMANN", None, "woe_leh", kundengruppe=Kundengruppe.KETTE)])
+    # Kette: wiedererkannt über den gelernten Namen laut Dokument, nicht tolerant über den Matchcode (Befund 4)
+    gedaechtnis = Firmengedaechtnis(
+        [_regel("HEGMANN", None, "woe_leh", kundengruppe=Kundengruppe.KETTE, kunde_texte=["Weinmarkt Kirchhellen"])]
+    )
     roh = _roh(settings, kunde_text="Weinmarkt Kirchhellen GmbH & Co. KG")  # Alias sagt wik_leh
     ergebnis = ermittle_firma(roh, settings, aliase, stammdaten_lader=_kein_lader, gedaechtnis=gedaechtnis)
     assert (ergebnis.firma_id, ergebnis.quelle) == ("woe_leh", QUELLE_GEDAECHTNIS)
@@ -719,6 +722,67 @@ def test_pipeline_fragen_merken_und_wiederfinden(settings: Settings, gedaechtnis
     # anderer Lieferant desselben Kunden: Regel gilt nur für Bollina -> wieder fragen
     anders = _roh(settings, "region2.pdf", kunde_text=REGION_KUNDE, lieferant_text="Cantine Colosi")
     assert erstelle_belegpaket(anders, settings).firma_id is None
+
+
+def test_gedaechtnis_findet_regel_ueber_dokumentnamen_statt_matchcode(settings: Settings, aliase: AliasTabellen, gedaechtnis_datei: Path):
+    """Regression (Integration Stufe 2, Szenario Firmenwahl): Kunde und Lieferant wurden in der gewählten Firma
+    über den Stamm zugeordnet, die Regel trägt deshalb die Matchcodes ("KELLEREI"/"QUINTA"). Beim nächsten
+    Auftrag ist die Firma noch unbekannt; das Dokument nennt nur "Musterkellerei Nord GmbH" und das Weingut nur in
+    der Ladeadresse/den Positionen. Früher wurde die Regel nicht gefunden und das Tool fragte erneut."""
+    positionen = [RohPosition(laufnr=1, bezeichnung="Quinta Beispiel Vinho Verde DOC 0,75l", menge=Decimal(6), preis=Decimal("1.25"))]
+    roh = _roh(settings, "lager.pdf", kunde_text="Musterkellerei Nord GmbH", ladeadresse="Quinta Beispiel Lda., Rua do Vinho 10, 4900 Viana do Castelo", positionen=positionen)
+    paket = Belegpaket(
+        roh=roh,
+        firma_id="woe_leh",
+        firma_merken=True,
+        kundengruppe=Kundengruppe.REGION,
+        kunde=KundeZuordnung(kunde=Kunde(firma_id="woe_leh", kundennummer="3100", name="Musterkellerei Nord GmbH", matchcode="KELLEREI"), status=MatchStatus.SICHER),
+        lieferant=LieferantZuordnung(lieferant=Lieferant(firma_id="woe_leh", lieferantennummer="210", name="Quinta Beispiel Lda.", matchcode="QUINTA"), status=MatchStatus.SICHER),
+    )
+    regel = merke_firma(paket, settings, benutzer="Frau Beispiel")
+    assert (regel.kunde_kurz, regel.lieferant_kurz) == ("KELLEREI", "QUINTA")
+    assert regel.kunde_texte == ["Musterkellerei Nord GmbH"] and regel.lieferant_texte == ["Quinta Beispiel Lda."]
+    gedaechtnis = Firmengedaechtnis.lade(gedaechtnis_datei)
+    assert gedaechtnis.regeln[0].kunde_texte == ["Musterkellerei Nord GmbH"]  # YAML-Roundtrip
+
+    zweiter = _roh(settings, "lager2.pdf", kunde_text="Musterkellerei Nord GmbH", positionen=positionen)
+    ergebnis = ermittle_firma(zweiter, settings, aliase, stammdaten_lader=_kein_lader, gedaechtnis=gedaechtnis)
+    assert (ergebnis.firma_id, ergebnis.quelle) == ("woe_leh", QUELLE_GEDAECHTNIS)
+    assert [h.code for h in ergebnis.hinweise] == [Pruefcode.FIRMA_GELERNT]
+    # anderer Lieferant desselben Kunden: die Regel gilt nur für Quinta -> nicht aus dem Gedächtnis
+    anderer = _roh(
+        settings, "lager3.pdf", kunde_text="Musterkellerei Nord GmbH",
+        positionen=[RohPosition(laufnr=1, bezeichnung="Bollina Gavi di Gavi DOCG 2023", menge=Decimal(6), preis=Decimal("12.50"))],
+    )
+    assert ermittle_firma(anderer, settings, aliase, stammdaten_lader=_kein_lader, gedaechtnis=gedaechtnis).quelle != QUELLE_GEDAECHTNIS
+
+
+def test_gedaechtnis_region_regel_gilt_nicht_fuer_andere_region_derselben_kette(settings: Settings, aliase: AliasTabellen):
+    """Regression (Review Befund 4): Eine Antwort für die Einkaufsregion Rhein-Ruhr (Matchcode nur 'EDEKA') darf
+    nicht tolerant über den Matchcode auf 'EDEKA Minden-Hannover' übergehen – dort muss das Tool fragen
+    (Geschäftsregel 17). Auch ohne gespeicherte Kundengruppe, weil der Katalog die Bestellung als Region einstuft."""
+    bollina = [RohPosition(laufnr=1, bezeichnung="Bollina Gavi di Gavi DOCG 2023", menge=Decimal(12), preis=Decimal("12.50"))]
+    regel = _regel("EDEKA", "Bollina", "woe_leh", kunde_texte=["Edeka Zentrale Rhein-Ruhr"])
+    gedaechtnis = Firmengedaechtnis([regel])
+    minden = _roh(settings, "minden.pdf", kunde_text="EDEKA Minden-Hannover Zentraleinkauf", positionen=bollina)
+    ergebnis = ermittle_firma(minden, settings, aliase, stammdaten_lader=_kein_lader, gedaechtnis=gedaechtnis)
+    assert ergebnis.quelle != QUELLE_GEDAECHTNIS and ergebnis.firma_id is None
+    assert ergebnis.kundengruppe == Kundengruppe.REGION
+    assert not _hinweise(ergebnis, Pruefcode.FIRMA_GELERNT)
+    # dieselbe Region (gelernter Name steht vollständig im Dokument): weiterhin aus dem Gedächtnis
+    rhein_ruhr = _roh(settings, "rr.pdf", kunde_text="Edeka Zentrale Rhein-Ruhr GmbH", positionen=bollina)
+    ergebnis = ermittle_firma(rhein_ruhr, settings, aliase, stammdaten_lader=_kein_lader, gedaechtnis=gedaechtnis)
+    assert (ergebnis.firma_id, ergebnis.quelle) == ("woe_leh", QUELLE_GEDAECHTNIS)
+    # Regel mit Kundengruppe Region: auch die direkte Suche nicht tolerant über den Matchcode
+    region = Firmengedaechtnis([_regel("EDEKA", None, "woe_leh", kundengruppe=Kundengruppe.REGION)])
+    assert region.finde("EDEKA Minden-Hannover Zentraleinkauf") is None
+    assert region.finde("EDEKA").firma_id == "woe_leh"  # exakt gilt
+    # tolerante Stufe per Einstellung abschaltbar
+    settings.firmenwahl.gedaechtnis_tolerant = False
+    datei = settings.firmenwahl.gedaechtnis_datei
+    Firmengedaechtnis([_regel("MENRATH", None, "wik_leh")]).speichere(datei)
+    aus = Firmengedaechtnis.aus_settings(settings)
+    assert aus.tolerant is False and aus.finde("Weinhaus Menrath") is None and aus.finde("Menrath").firma_id == "wik_leh"
 
 
 def test_pipeline_manuelle_firma_traegt_kundengruppe(settings: Settings):

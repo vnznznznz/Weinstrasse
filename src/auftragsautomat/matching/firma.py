@@ -389,6 +389,18 @@ def _lieferanten_texte(roh: RohBestellung, aliase: AliasTabellen) -> list[str]:
     return list(dict.fromkeys(texte))
 
 
+def _lieferanten_texte_gedaechtnis(roh: RohBestellung, lieferanten_texte: list[str]) -> list[str]:
+    """Lieferantentexte für die Suche im Firmen-Gedächtnis: wie :func:`_lieferanten_texte`, zusätzlich die
+    Ladeadresse (Abholadresse beim Weingut) und die Positionstexte – LEH-Bestellungen nennen das Weingut oft
+    nur dort ("Quinta Beispiel Vinho Verde …"). Eine Regel mit Lieferant greift trotzdem nur, wenn auch der
+    Kunde passt."""
+    texte = list(lieferanten_texte)
+    if roh.ladeadresse and roh.ladeadresse.strip():
+        texte.append(roh.ladeadresse)
+    texte.extend(p.bezeichnung for p in roh.positionen if not p.durchgestrichen and p.bezeichnung and p.bezeichnung.strip())
+    return list(dict.fromkeys(texte))
+
+
 def hinweis_gelernt(regel: Firmenregel) -> Pruefhinweis:
     """``Pruefhinweis(FIRMA_GELERNT, INFO)`` zu einer Regel aus dem Firmen-Gedächtnis."""
     gelernt_am = regel.gelernt_am.strftime("%d.%m.%Y %H:%M") if regel.gelernt_am else ""
@@ -413,11 +425,17 @@ def hinweis_gelernt(regel: Firmenregel) -> Pruefhinweis:
 
 
 def _firma_aus_gedaechtnis(
-    gedaechtnis: Firmengedaechtnis, kunden_texte: list[str], lieferanten_texte: list[str], settings: Settings
+    gedaechtnis: Firmengedaechtnis,
+    kunden_texte: list[str],
+    lieferanten_texte: list[str],
+    settings: Settings,
+    *,
+    streng: bool = False,
 ) -> Firmenregel | None:
+    """Gelernte Regel; ``streng`` (Katalog sagt "fragen"): nicht tolerant über den Matchcode (Geschäftsregel 17)."""
     if not len(gedaechtnis) or not kunden_texte:
         return None
-    regel = gedaechtnis.finde_fuer_texte(kunden_texte, lieferanten_texte)
+    regel = gedaechtnis.finde_fuer_texte(kunden_texte, lieferanten_texte, streng=streng)
     if regel is None:
         return None
     if regel.firma_id not in settings.firmen:
@@ -534,6 +552,7 @@ def ermittle_firma(
     gedaechtnis = gedaechtnis if gedaechtnis is not None else Firmengedaechtnis.aus_settings(settings)
     kunden_texte = _kunden_texte(roh, aliase)
     lieferanten_texte = _lieferanten_texte(roh, aliase)
+    gedaechtnis_lieferanten = _lieferanten_texte_gedaechtnis(roh, lieferanten_texte)
 
     # 1. Eingangsordner (Gegenprobe nur mit dem Kunden-Alias: Lieferanten liegen oft in mehreren Mandanten)
     firma_ordner = firma_aus_ordner(quelldatei, settings)
@@ -567,7 +586,9 @@ def ermittle_firma(
 
     # 1b. Firmen-Gedächtnis (gelernte Antwort schlägt Alias und Katalog)
     if wahl.gedaechtnis_vor_katalog:
-        regel = _firma_aus_gedaechtnis(gedaechtnis, kunden_texte, lieferanten_texte, settings)
+        regel = _firma_aus_gedaechtnis(
+            gedaechtnis, kunden_texte, gedaechtnis_lieferanten, settings, streng=klassifikation.entscheidung == "fragen"
+        )
         if regel is not None:
             hinweise.append(hinweis_gelernt(regel))
             if regel.firma_id not in kandidaten:
@@ -606,7 +627,9 @@ def ermittle_firma(
         kandidaten.extend(f for f in firmen_katalog if f not in kandidaten)
         if len(firmen_katalog) >= 2:
             if not wahl.gedaechtnis_vor_katalog:
-                regel = _firma_aus_gedaechtnis(gedaechtnis, kunden_texte, lieferanten_texte, settings)
+                regel = _firma_aus_gedaechtnis(
+                    gedaechtnis, kunden_texte, gedaechtnis_lieferanten, settings, streng=klassifikation.entscheidung == "fragen"
+                )
                 if regel is not None:
                     hinweise.append(hinweis_gelernt(regel))
                     if regel.firma_id not in kandidaten:

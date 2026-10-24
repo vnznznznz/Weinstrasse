@@ -181,14 +181,14 @@ Betreff steht, sind **nicht belegbar** → Abschnitt 4 und Checkliste.
 shipmentReference | blNumber | containerNumber`; die Suche wird als Parameter `searchterm` an
 den Tracking-Dienst übergeben.
 
-**Annahme:** Die Hillebrand-Bestätigung "Our Ref: DEMB43262[jobDEM36983721]" enthält zwei
-Nummern. `DEMB43262` ist vermutlich die Akten-/Sendungsreferenz (Typ "File") und
-`jobDEM36983721` die interne Job-Nummer. Welche der beiden (und ob die Kundenreferenz "Your
+**Annahme:** Die Hillebrand-Bestätigung "Our Ref: DEMB00000[jobDEM00000000]" enthält zwei
+Nummern. `DEMB00000` ist vermutlich die Akten-/Sendungsreferenz (Typ "File") und
+`jobDEM00000000` die interne Job-Nummer. Welche der beiden (und ob die Kundenreferenz "Your
 Ref") in Portal, Public Tracking und API trifft, ist nicht belegt.
 
 **Prüfaufgabe:** Im eingeloggten Portal sowie unter
-`https://my.hillebrandgori.com/public-tracking/<Wert>` nacheinander `DEMB43262`,
-`DEM36983721`, `jobDEM36983721` und die eigene Kundenreferenz eingeben; notieren, welcher Wert
+`https://my.hillebrandgori.com/public-tracking/<Wert>` nacheinander `DEMB00000`,
+`DEM00000000`, `jobDEM00000000` und die eigene Kundenreferenz eingeben; notieren, welcher Wert
 die Sendung findet. Dieser Wert wird `Sendung.referenz` im Modul `tracking/`.
 
 ### 1.4 Öffentliche Track&Trace-Seite ohne Login
@@ -212,8 +212,8 @@ die Sendung findet. Dieser Wert wird `Sendung.referenz` im Modul `tracking/`.
 keine Dokumente, keine Benachrichtigungen ohne Konto). Ob sie für Lkw-Sendungen innerhalb
 Europas (kein Container, keine B/L) über die Sendungsreferenz etwas findet, ist offen.
 
-**Prüfaufgabe:** Im normalen Browser `https://my.hillebrandgori.com/public-tracking/DEMB43262`
-aufrufen, Screenshot; dann dieselbe URL mit `jobDEM36983721`.
+**Prüfaufgabe:** Im normalen Browser `https://my.hillebrandgori.com/public-tracking/DEMB00000`
+aufrufen, Screenshot; dann dieselbe URL mit `jobDEM00000000`.
 
 ### 1.5 Mobile App
 
@@ -585,7 +585,7 @@ personenbezogene Daten).
 **Verifiziert:**
 
 * Einziges belegtes Muster ist die vom Anwender beobachtete Auftragsbestätigung:
-  Betreff `Auftragsbestätigung; Your Ref: <Kundenreferenz>; Our Ref: DEMB43262[jobDEM36983721]`,
+  Betreff `Auftragsbestätigung; Your Ref: <Kundenreferenz>; Our Ref: DEMB00000[jobDEM00000000]`,
   Text mit Lieferzeitfenster "laut Transporeon". Absender-Postfächer: `def-order@hillebrandgori.com`
   (Aufträge), `def-info@hillebrandgori.com` (Nachfragen) – aus `AUSBAUSTUFE_2.md`.
 * Das Portal verschickt auf Wunsch je Meilenstein Benachrichtigungen (In-App, E-Mail, SMS),
@@ -658,7 +658,7 @@ Konkrete Umsetzung in `AUSBAUSTUFE_2.md`:
 1. [ ] `https://my.hillebrandgori.com/` im normalen Chrome öffnen, einloggen, notieren: zweiter
    Faktor ja/nein, welcher; Screenshot Login-Seite.
 2. [ ] Nach 1 Tag und nach 7 Tagen prüfen: noch eingeloggt? (Sitzungsdauer)
-3. [ ] Im Portal nacheinander suchen: `DEMB43262`, `DEM36983721`, `jobDEM36983721`, eigene
+3. [ ] Im Portal nacheinander suchen: `DEMB00000`, `DEM00000000`, `jobDEM00000000`, eigene
    Kundenreferenz → welcher Wert findet die Sendung? Screenshot der Detailseite mit Timeline.
 4. [ ] `https://my.hillebrandgori.com/public-tracking/<der gefundene Wert>` ohne Login (anderes
    Browserprofil oder Inkognito) aufrufen → Treffer ja/nein, Screenshot.

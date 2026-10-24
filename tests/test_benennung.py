@@ -468,6 +468,8 @@ def test_verbotene_woerter_aus_settings_und_dedupliziert(settings: Settings):
 
 
 def test_kopie_name_mit_verbotenem_wort_warnt(settings: Settings, caplog: pytest.LogCaptureFixture):
+    """Regression (Review Befund 5): verbotene Wörter werden aus dem Namen der Auftragskopie entfernt (statt nur
+    zu warnen), damit PDF, Ablage und Dossier denselben zulässigen Namen tragen."""
     with caplog.at_level(logging.WARNING, logger="auftragsautomat.benennung"):
         name = dateiname(
             "Kopie",
@@ -479,7 +481,8 @@ def test_kopie_name_mit_verbotenem_wort_warnt(settings: Settings, caplog: pytest
             datum=DATUM,
             settings=settings,
         )
-    assert pruefe_auftragskopie_name(name, settings) == ["Auftragsbestätigung"]
+    assert pruefe_auftragskopie_name(name, settings) == []
+    assert name == "Weingut Beispiel – WIK – 4711 – Kopie – 24.10.2026.pdf"
     assert any("verbotene Wörter" in r.getMessage() for r in caplog.records)
     caplog.clear()
     with caplog.at_level(logging.WARNING, logger="auftragsautomat.benennung"):
@@ -494,6 +497,22 @@ def test_kopie_name_mit_verbotenem_wort_warnt(settings: Settings, caplog: pytest
             settings=settings,
         )
     assert not caplog.records  # nur die Auftragskopie wird geprüft
+
+
+def test_name_fuer_paket_kopie_ohne_verbotene_woerter(settings: Settings):
+    """Regression (Review Befund 5): Kurznamen mit verbotenen Wörtern (Matchcode, kurznamen.yaml) ergeben für
+    'Kopie'/'Neu Kopie' einen zulässigen Namen; die übrigen Kürzel bleiben unverändert."""
+    paket = _paket(
+        "wik_leh", kunde=_kunde(matchcode="Verbindlich Weinhandel"), lieferant=_lieferant(matchcode="AUFTRAGSBESTAETIGUNG"), bestellnummer="4711"
+    )
+    kopie = name_fuer_paket("Kopie", paket, settings, datum=DATUM)
+    assert pruefe_auftragskopie_name(kopie, settings) == []
+    assert kopie == "Unbekannt – WIK – 4711 – Kopie – 24.10.2026.pdf"
+    paket.ist_revision = True
+    assert pruefe_auftragskopie_name(name_fuer_paket("Kopie", paket, settings, datum=DATUM), settings) == []
+    ws = _paket("weinstrasse_agentur", kunde=_kunde(matchcode="Weinhandel Verbindlich"), lieferant=_lieferant())
+    assert name_fuer_paket("Kopie", ws, settings, datum=DATUM) == "Beispielgut – Weinhandel – Kopie – 24.10.2026.pdf"
+    assert "Verbindlich" in name_fuer_paket("Cde", ws, settings, datum=DATUM)
 
 
 def test_normalisiere():

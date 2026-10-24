@@ -6,7 +6,7 @@ Modul `m365/` mit den Backends `graph.py`, `lokal.py`, `fake.py`; Nutzer `termin
 Umgebung des Anwenders: Windows-PC, Microsoft 365 (Exchange Online, OneDrive/SharePoint, Outlook Desktop),
 Google Chrome, Python 3.11+. Zu schreibende Datei: `Fixterminüberwachung.xlsx` (SharePoint
 `Buchhaltung/General/Aufträge/`, wird von mehreren Kollegen in Excel bearbeitet). Entwürfe im Postfach
-`j.duenschede@…`.
+`<anwender>@<firma>.de`.
 
 Kennzeichnung in diesem Dokument:
 
@@ -440,7 +440,7 @@ mitsenden – im Test festlegen (Checkliste C3).
   'client_secret'“.
 * [V] Die PowerShell-SDK-Doku beschreibt genau diese Registrierung („Public client/native“, `http://localhost`,
   WAM-URI) als Weg, „to isolate and limit the consent permissions“, und ergänzt: Enterprise App → **Assignment
-  required? = Yes** und nur bestimmte Benutzer zuweisen. Das ist für unseren Zweck sinnvoll (nur `j.duenschede`).
+  required? = Yes** und nur bestimmte Benutzer zuweisen. Das ist für unseren Zweck sinnvoll (nur `<anwender>`).
 
 ### 2.2 Benötigte delegierte Berechtigungen und Admin-Consent
 
@@ -563,7 +563,7 @@ def hole_token(interaktiv_erlaubt: bool = True, device_code: bool = False) -> st
             print(flow["message"]); sys.stdout.flush()
             result = app.acquire_token_by_device_flow(flow)
         else:
-            result = app.acquire_token_interactive(SCOPES, login_hint="j.duenschede@weinstrasseadolph.de")
+            result = app.acquire_token_interactive(SCOPES, login_hint="<anwender>@<firma>.de")
     if "access_token" not in result:
         raise RuntimeError(f"{result.get('error')}: {result.get('error_description')} ({result.get('correlation_id')})")
     return result["access_token"]
@@ -1013,7 +1013,7 @@ def schreibe_zellen_com(pfad_lokal: str, blatt: str, adresse: str, werte: list[l
 ## 6. Empfehlung: Graph vs. COM für unseren Fall
 
 **Ausgangslage:** `Fixterminüberwachung.xlsx` wird von mehreren Kollegen in Excel bearbeitet (Co-Authoring über
-SharePoint). Entwürfe sollen im Postfach `j.duenschede@…` entstehen; der tägliche Lauf soll Bestätigungen aus
+SharePoint). Entwürfe sollen im Postfach `<anwender>@<firma>.de` entstehen; der tägliche Lauf soll Bestätigungen aus
 eingehenden Mails erkennen, möglichst unbeaufsichtigt (Aufgabenplanung).
 
 | Kriterium | Graph (empfohlen) | COM (lokal) |
@@ -1060,7 +1060,7 @@ eingehenden Mails erkennen, möglichst unbeaufsichtigt (Aufgabenplanung).
   `Mail.ReadWrite`, `Mail.Read`, `offline_access` (optional `Mail.Read.Shared`). Beim ersten Login prüfen, ob die
   Zustimmung durchgeht; bei „Need admin approval“ Admin-Consent durch den Admin (oder Freigabe über den
   Admin-Consent-Workflow) einholen.
-* A4. Enterprise applications → die neue App → Properties → „Assignment required“ = Yes und nur `j.duenschede`
+* A4. Enterprise applications → die neue App → Properties → „Assignment required“ = Yes und nur `<anwender>`
   zuweisen (Empfehlung aus der PowerShell-Doku; verhindert Nutzung durch andere).
 * A5. Nach dem ersten Login: PC-Neustart, dann `auftragsautomat ueberwachen` ohne Browser-Fenster ausführen; prüfen,
   dass der Silent-Token greift. Nach ~1 Woche erneut prüfen (Refresh-Token-/Conditional-Access-Verhalten des Tenants).

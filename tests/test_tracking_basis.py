@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -24,6 +24,7 @@ from auftragsautomat.tracking.basis import (
     status_aus_meilensteinen,
     status_mit_puenktlichkeit,
     vereinige_meilensteine,
+    zeit_schluessel,
 )
 
 REPO_KONFIG = Path(__file__).resolve().parents[1] / "config" / "tracking_hillebrand.yaml"
@@ -266,6 +267,20 @@ def test_vereinige_meilensteine() -> None:
     b = [_m("shpsupdepcnf", tag=22), _m("shpcusarrpln", True, 27), Meilenstein(code="ohne", text="x")]
     ergebnis = vereinige_meilensteine(a, b)
     assert [m.code for m in ergebnis] == ["ohne", "shprdy", "shpsupdepcnf", "shpcusarrpln"]
+
+
+def test_vereinige_meilensteine_mit_und_ohne_zeitzone() -> None:
+    """Regression: Graph/.eml liefern Zeitpunkte mit Zeitzone, Datumsangaben aus Texten sind zeitzonenlos.
+
+    Früher warf das Sortieren gegen ``datetime.min`` einen TypeError (die Mail-Quelle meldete nur "unbekannt")."""
+    mit_tz = Meilenstein(code="bestaetigung", text="b", zeitpunkt=datetime(2026, 10, 20, 9, 20, tzinfo=UTC))
+    ohne_tz = Meilenstein(code="shpcusarrpln", text="geplant", zeitpunkt=datetime(2026, 11, 9), geplant=True)
+    ohne_zeit = Meilenstein(code="ohne", text="x")
+    ergebnis = vereinige_meilensteine([ohne_tz], [mit_tz, ohne_zeit])
+    assert [m.code for m in ergebnis] == ["ohne", "bestaetigung", "shpcusarrpln"]
+    assert zeit_schluessel(None) == datetime.min
+    assert zeit_schluessel(datetime(2026, 11, 9)) == datetime(2026, 11, 9)
+    assert zeit_schluessel(mit_tz.zeitpunkt).tzinfo is None
 
 
 def test_protokoll_laufzeitpruefung() -> None:

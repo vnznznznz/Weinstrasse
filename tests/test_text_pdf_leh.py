@@ -323,6 +323,21 @@ def test_ve_aus_tabelle_mit_vpe_und_gebinde(extraktor: TextPdfExtraktor, tmp_pat
     assert p3.hinweis == "4 Kt à 6 Fl"
 
 
+def test_kolli_ohne_inhalt_wird_nicht_freigabefaehig(extraktor: TextPdfExtraktor, tmp_path: Path, settings):
+    """Regression (Review Befund 8): '10 Kolli' ohne Inhalt je VE wird nicht als 10 Flaschen freigegeben."""
+    from auftragsautomat.matching.pipeline import erstelle_belegpaket
+
+    position = text_pdf._baue_position(bezeichnung="Gavi di Gavi 2023 0,75 l", menge="10", einheit="KOA", rohtext="r")
+    assert (position.menge, position.einheit, position.ve_inhalt) == (Decimal("10"), "KOA", None)
+    text = "Bestellung\nBestell-Nr. 4711\nPos Art.-Nr. Bezeichnung Menge Preis\n1 1643 Gavi di Gavi DOCG 2023 0,75 l 10 Kolli 6,90\n"
+    roh = extraktor.extrahiere_text(text, tmp_path / "kolli.pdf")
+    kolli = [p for p in roh.positionen if p.menge == Decimal("10")]
+    assert kolli and kolli[0].einheit == "Kolli" and kolli[0].ve_inhalt is None and kolli[0].menge_ve is None
+    paket = erstelle_belegpaket(roh, settings, firma_id="wik_leh")
+    assert paket.blockiert
+    assert any(h.code == Pruefcode.MENGE_FEHLT and "Inhalt je VE unbekannt" in h.text for h in paket.alle_hinweise)
+
+
 def test_gebinde_in_mengenzelle_bleibt_kompatibel():
     position = text_pdf._baue_position(bezeichnung="Gavi 2023", menge="12 x 6", preis="12,50", rohtext="r")
     assert position is not None
@@ -436,6 +451,12 @@ def test_finde_aktionshinweis(zeilen: list[str], erwartet: str | None):
         (["replaces order 4711"], "4711", True),
         (["Bestellung B-5002"], None, False),
         (["Revisionsstand 3"], None, False),
+        # Regression (Review Befund 1): Alltagsfloskeln sind keine Revised Order
+        (["Please do not change order quantities"], None, False),
+        (["revised prices apply from 1 November"], None, False),
+        (["Purchase Order (REVISED)"], None, True),
+        (["PO 4500001 - REVISED"], None, True),
+        (["Change Order No. 3"], None, True),
     ],
 )
 def test_finde_revision(zeilen: list[str], revision_von: str | None, ist: bool):

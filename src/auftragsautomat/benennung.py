@@ -204,6 +204,55 @@ def _baue_name(teile: list[_Teil], settings: Settings, endung: str) -> str:
     return name
 
 
+_UMLAUT_RUECK = {"ae": "ä", "oe": "ö", "ue": "ü", "ss": "ß"}
+
+
+def _wort_muster(wort: str) -> re.Pattern[str] | None:
+    """Suchmuster für ein verbotenes Wort: Groß-/Kleinschreibung egal, Umlaut oder Umschreibung (ä/ae …)."""
+    norm = normalisiere(wort)
+    if not norm:
+        return None
+    teile: list[str] = []
+    i = 0
+    while i < len(norm):
+        zwei = norm[i : i + 2]
+        if zwei in _UMLAUT_RUECK:
+            teile.append(f"(?:{zwei}|{_UMLAUT_RUECK[zwei]})")
+            i += 2
+        elif norm[i] == " ":
+            teile.append(r"\s+")
+            i += 1
+        else:
+            teile.append(re.escape(norm[i]))
+            i += 1
+    return re.compile("".join(teile), re.IGNORECASE)
+
+
+def entferne_verbotene_woerter(text: str, settings: Settings) -> str:
+    """Entfernt die verbotenen Wörter der Auftragskopie (``kommunikation.verbotene_woerter_auftragskopie``,
+    Vergleich wie :func:`pruefe_auftragskopie_name`) aus ``text`` und räumt Leerzeichen und doppelte Trenner
+    auf. Liefert ggf. einen leeren Text (der Aufrufer setzt dann einen Ersatz)."""
+    ergebnis = text
+    for wort in settings.kommunikation.verbotene_woerter_auftragskopie:
+        muster = _wort_muster(wort)
+        if muster is not None:
+            ergebnis = muster.sub("", ergebnis)
+    if ergebnis == text:
+        return text
+    trenner = settings.benennung.trenner.strip()
+    if trenner:
+        ergebnis = re.sub(rf"(?:\s*{re.escape(trenner)}\s*){{2,}}", f" {trenner} ", ergebnis)
+    ergebnis = _MEHRFACH_LEERZEICHEN.sub(" ", ergebnis).strip(" -–_,;")
+    return ergebnis
+
+
+def _ohne_verbotene_woerter(text: str, ersatz_text: str, settings: Settings) -> str:
+    bereinigt = entferne_verbotene_woerter(text, settings)
+    if bereinigt != text:
+        logger.warning("Auftragskopie: verbotene Wörter aus dem Namensteil '%s' entfernt (Geschäftsregel 18)", text)
+    return bereinigt or ersatz_text
+
+
 def _warne_bei_verbotenen_woertern(kuerzel: str, name: str, settings: Settings) -> None:
     if kuerzel not in AUFTRAGSKOPIE_KUERZEL:
         return
@@ -245,21 +294,30 @@ def dateiname(
 
     ``kuerzel`` muss ein Schlüssel von ``DOKUMENTKUERZEL`` sein, sonst ``ValueError``.
     ``datum`` = ``None`` -> heute. ``endung`` ohne Punkt wird ergänzt, ``""`` = keine Endung
-    (z. B. für Dossier-Ordner). Für "Kopie"/"Neu Kopie" wird der Name zusätzlich gegen die
-    verbotenen Wörter geprüft (nur Warnung im Log; verbindlich prüft der Aufrufer mit
-    :func:`pruefe_auftragskopie_name`).
+    (z. B. für Dossier-Ordner). Für "Kopie"/"Neu Kopie" werden verbotene Wörter
+    (``kommunikation.verbotene_woerter_auftragskopie``) aus den Namensteilen entfernt
+    (:func:`entferne_verbotene_woerter`, Warnung im Log), damit PDF, Ablage, Dossier und Mail-Anhang
+    denselben zulässigen Namen tragen; der Aufrufer prüft zusätzlich mit :func:`pruefe_auftragskopie_name`.
     """
     kuerzel = _pruefe_kuerzel(kuerzel)
     ersatz = settings.benennung.ersatzzeichen
     lieferant_kurz = _kurz(lieferant, ersatz)
     kunde_kurz = _kurz(kunde, ersatz)
     datum_str = datum_text(datum, settings)
+    kopie = kuerzel in AUFTRAGSKOPIE_KUERZEL
+    if kopie:
+        lieferant_kurz = _ohne_verbotene_woerter(lieferant_kurz, UNBEKANNT, settings)
+        kunde_name = _ohne_verbotene_woerter(kunde_kurz, UNBEKANNT, settings)
+    else:
+        kunde_name = kunde_kurz
 
     teile: list[_Teil]
     if ist_agentur(firma):
-        teile = [_Teil(lieferant_kurz, kuerzbar=True), _Teil(kunde_kurz, kuerzbar=True)]
+        teile = [_Teil(lieferant_kurz, kuerzbar=True), _Teil(kunde_name, kuerzbar=True)]
         if mit_auftragsnummer(kunde, settings) or mit_auftragsnummer(kunde_kurz, settings):
             nummer = _nummer(auftragsnummer, ersatz)
+            if nummer is not None and kopie:
+                nummer = _ohne_verbotene_woerter(nummer, OHNE_NUMMER, settings)
             if nummer is None:
                 logger.warning(
                     "Kunde '%s' wird mit Auftragsnummer benannt, die Kundenbestellnummer fehlt aber – "
@@ -282,6 +340,8 @@ def dateiname(
                 OHNE_NUMMER,
             )
             nummer = OHNE_NUMMER
+        elif kopie:
+            nummer = _ohne_verbotene_woerter(nummer, OHNE_NUMMER, settings)
         teile = [
             _Teil(lieferant_kurz, kuerzbar=True),
             _Teil(_kurz(firma.kurz, ersatz)),
@@ -383,7 +443,7 @@ def name_fuer_paket(
     """
     kuerzel = _pruefe_kuerzel(kuerzel)
     firma = _firma_fuer(paket, settings)
-    if (paket.ist_revision or paket.roh.ist_revision) and kuerzel in REVISIONS_KUERZEL:
+    if paket.revision_wirksam and kuerzel in REVISIONS_KUERZEL:
         kuerzel = REVISIONS_KUERZEL[kuerzel]
 
     lieferant = kurzname_lieferant(paket)

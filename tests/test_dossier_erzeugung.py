@@ -221,7 +221,7 @@ def test_erstellt_dossier_mit_allen_dateien(verwaltung: DossierVerwaltung, wurze
     assert dossier.bestellnummer == "BE-1001" and dossier.ab_nummer == "AB-2002"
     assert dossier.fixtermin == date(2026, 11, 6)
     assert dossier.spedition == "Spedition Muster"
-    assert dossier.vorgeschlagener_zielordner == "Aufträge ohne Provision/Musterhandel/2026"
+    assert dossier.vorgeschlagener_zielordner == "Aufträge ohne Provision"  # wie die Ablage (ablage.struktur)
     assert dossier.erstellt_am == T1 and dossier.aktualisiert_am == T1
 
     # Checkliste und offene Punkte
@@ -306,6 +306,28 @@ def test_vorhandenes_dossier_wird_ueber_nummern_wiedergefunden(verwaltung: Dossi
     assert any(d.typ == "auftragskopie" for d in zweiter.dateien)
 
 
+def test_oc_nachtrag_ohne_ergebnis_behaelt_den_stichtag(verwaltung: DossierVerwaltung, wurzel: Path, tmp_path: Path):
+    """Regression (Review Befund 10): Der Oc-Nachtrag (Überwachungslauf, ohne Buchungsergebnis) benennt mit dem
+    Buchungsdatum des Dossiers (24.10.), nicht mit dem Belegdatum (20.10.) – keine zweite Kd-Datei, Oc passend.
+    Ein vorgegebenes Dossier wird auch ohne Kundenbestellnummer fortgeschrieben."""
+    paket = _paket(tmp_path)
+    erstes = verwaltung.erstelle_oder_aktualisiere(paket, _ergebnis(paket), lexware_pdfs=_lexware_pdfs(tmp_path, "Cde"))
+    assert erstes.stichtag == date(2026, 10, 24)
+    oc = _pdf(tmp_path / "mail" / "conferma.pdf", "Bestaetigung Weingut")
+    nachtrag = verwaltung.erstelle_oder_aktualisiere(paket, None, lexware_pdfs={"Oc": oc})
+    assert nachtrag.name == erstes.name
+    namen = [p.name for p in (wurzel / erstes.name).iterdir()]
+    assert not [n for n in namen if "20.10.2026" in n]
+    assert [n for n in namen if n.startswith("01_Kundenbestellung_")] == ["01_Kundenbestellung_Beispielgut – WIK – 4711 – Kd – 24.10.2026.pdf"]
+    assert any(n.startswith("08_") and n.endswith("Oc – 24.10.2026.pdf") for n in namen)
+    # ohne Kundenbestellnummer und ohne Ergebnis: das vorgegebene Dossier wird fortgeschrieben, kein neues angelegt
+    ohne_nr = paket.model_copy(deep=True)
+    ohne_nr.roh.bestellnummer = None
+    zweites_oc = _pdf(tmp_path / "mail" / "conferma2.pdf", "Bestaetigung Weingut 2")
+    weiter = verwaltung.erstelle_oder_aktualisiere(ohne_nr, None, lexware_pdfs={"Oc": zweites_oc}, dossier=nachtrag)
+    assert weiter.name == erstes.name and len([p for p in wurzel.iterdir() if p.is_dir()]) == 1
+
+
 def test_revision_benennt_neu_und_neu_kopie(verwaltung: DossierVerwaltung, wurzel: Path, tmp_path: Path):
     paket = _paket(tmp_path, ist_revision=True)
     dossier = verwaltung.erstelle_oder_aktualisiere(paket, _ergebnis(paket), lexware_pdfs=_lexware_pdfs(tmp_path, "Cde", "Kopie"))
@@ -321,7 +343,7 @@ def test_weinstrasse_agentur_mit_angebot_und_provision(verwaltung: DossierVerwal
     dossier = verwaltung.erstelle_oder_aktualisiere(paket, _ergebnis(paket, einkauf=None, angebot="AN-3003"), lexware_pdfs=_lexware_pdfs(tmp_path, "Cde", "Kopie", "Speditionsauftrag"))
     assert dossier.name == "Beispielgut-WS-Musterhandel-4711-24.10.2026"
     assert dossier.bestellnummer == "AN-3003"
-    assert dossier.vorgeschlagener_zielordner == "Aufträge mit Provision/Musterhandel/2026"
+    assert dossier.vorgeschlagener_zielordner == "Aufträge mit Provision"  # wie die Ablage (ablage.struktur)
     dateien = _dateien(wurzel / dossier.name)
     assert any(d.startswith("02_Bestellung_Beispielgut – Musterhandel – Cde – ") for d in dateien)
 
@@ -425,6 +447,26 @@ def test_entwurf_aus_eml_datei_wird_kopiert(verwaltung: DossierVerwaltung, wurze
     kopie = wurzel / ORDNERNAME / MAIL_ORDNER / "20261024_090500_bestellung_weingut.eml"
     assert kopie.read_bytes() == quelle.read_bytes()
     assert next(d for d in dossier.dateien if d.typ == "mail").quelle == "entwurf:bestellung_weingut:x.eml"
+
+
+def test_zwei_entwuerfe_gleichen_typs_und_gleicher_groesse_bleiben_beide(verwaltung: DossierVerwaltung, wurzel: Path, tmp_path: Path, uhr: dict[str, datetime]):
+    """Regression (Integration Stufe 2): Bestellungen an zwei Weingüter entstehen in derselben Sekunde und haben
+    denselben technischen Namen ``06_Mails/<zeit>_bestellung_weingut.eml`` – bei gleicher Größe wurde die zweite
+    früher als "bereits vorhanden" übersprungen. Jetzt entscheidet der Inhalt; ein zweiter Lauf bleibt idempotent."""
+    erste = _eml(tmp_path / "entwuerfe" / "a.eml", typ="bestellung_weingut")
+    zweite = _eml(tmp_path / "entwuerfe" / "b.eml", typ="bestellung_weingut")
+    zweite.write_bytes(erste.read_bytes().replace(b"Your Ref: 4711", b"Your Ref: 4712"))
+    assert erste.stat().st_size == zweite.stat().st_size and erste.read_bytes() != zweite.read_bytes()
+    entwuerfe = [_entwurf(EntwurfTyp.BESTELLUNG_WEINGUT, speicherort=str(erste)), _entwurf(EntwurfTyp.BESTELLUNG_WEINGUT, speicherort=str(zweite))]
+    paket = _paket(tmp_path)
+    dossier = verwaltung.erstelle_oder_aktualisiere(paket, _ergebnis(paket), entwuerfe=entwuerfe)
+    mails = sorted(d.name for d in dossier.dateien if d.typ == "mail")
+    assert mails == [f"{MAIL_ORDNER}/20261024_090500_bestellung_weingut.eml", f"{MAIL_ORDNER}/20261024_090500_bestellung_weingut_2.eml"]
+    assert (wurzel / ORDNERNAME / mails[1]).read_bytes() == zweite.read_bytes()
+    uhr["jetzt"] = T2
+    wieder = verwaltung.erstelle_oder_aktualisiere(paket, _ergebnis(paket), entwuerfe=entwuerfe)
+    assert sorted(d.name for d in wieder.dateien if d.typ == "mail") == mails
+    assert len(list((wurzel / ORDNERNAME / MAIL_ORDNER).iterdir())) == 2
 
 
 def test_entwurf_mit_graph_id_wird_als_eml_gebaut(verwaltung: DossierVerwaltung, wurzel: Path, tmp_path: Path):

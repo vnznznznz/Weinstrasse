@@ -168,9 +168,11 @@ def upload_speichern_und_pruefen(
     """Hochgeladene Datei in den Eingang legen (``eingang.speichere_upload``) und sofort verarbeiten
     (``watcher.verarbeite_standard``: extrahieren, prüfen, Paket speichern – nie buchen).
 
-    ``firma_id`` (Vorgabe aus der Seitenleiste) bestimmt den Firmen-Unterordner; weicht die ermittelte
-    Firma davon ab, wird das Paket über :func:`setze_firma` auf die Vorgabe gesetzt. Verstöße gegen
-    Typ/Größe ergeben :class:`UploadAbgelehnt`.
+    ``firma_id`` (ausdrückliche Auswahl im Upload-Bereich, ``None`` = automatisch ermitteln) bestimmt den
+    Firmen-Unterordner. Die Firma wird nie still erzwungen: weicht die Vorgabe von der Firma ab, die das
+    Tool ohne Vorgabe ermitteln würde (oder von der Firma des Pakets), bekommt das Paket einen blockierenden
+    ``FIRMA_UNKLAR``-Hinweis mit beiden Kandidaten (Auswahl in der Freigabe, Geschäftsregeln 1 und 17).
+    Verstöße gegen Typ/Größe ergeben :class:`UploadAbgelehnt`.
     """
     datei = speichere_upload(dateiname, inhalt, settings, firma_id=firma_id)
     ordner = Path(paket_ordner) if paket_ordner is not None else zustand.paket_ordner(settings)
@@ -179,11 +181,46 @@ def upload_speichern_und_pruefen(
     if geladen is None:
         raise RuntimeError(f"Paket zu {datei.name} wurde nach der Verarbeitung nicht gefunden (Ordner {ordner}).")
     paket, pfad = geladen
-    if firma_id and paket.firma_id != firma_id:
-        logger.info("Upload %s: Firma %s laut Vorgabe statt %s", datei.name, firma_id, paket.firma_id or "-")
-        paket = setze_firma(paket, firma_id, settings)
-        pfad = zustand.speichere_paket(paket, ordner, dateiname=pfad.name)
+    if firma_id:
+        hinweis = _firmen_abweichung(paket, firma_id, settings)
+        if hinweis is not None:
+            logger.warning("Upload %s: %s", datei.name, hinweis.text)
+            paket.hinweise.append(hinweis)
+            pfad = zustand.speichere_paket(paket, ordner, dateiname=pfad.name)
     return UploadErgebnis(datei=datei, paket=paket, paket_pfad=pfad)
+
+
+def _firmen_abweichung(paket: Belegpaket, vorgabe: str, settings: Settings) -> Pruefhinweis | None:
+    """``FIRMA_UNKLAR`` (FEHLER), wenn die Upload-Vorgabe nicht zur Firmenermittlung ohne Vorgabe passt."""
+    from auftragsautomat.matching.aliase import AliasTabellen
+    from auftragsautomat.matching.firma import ermittle_firma
+    from auftragsautomat.matching.pruefung import QUELLE_UPLOAD_VORGABE
+
+    # Ermittlung wie ohne Vorgabe: Dateiname ohne Firmen-Unterordner
+    ermittelt = ermittle_firma(
+        paket.roh, settings, AliasTabellen.lade(settings.alias_ordner), datei=Path(Path(paket.roh.quelldatei).name)
+    )
+    kandidaten = [vorgabe]
+    if paket.firma_id and paket.firma_id != vorgabe:
+        kandidaten.append(paket.firma_id)
+    if ermittelt.firma_id:
+        if ermittelt.firma_id != vorgabe:
+            kandidaten.append(ermittelt.firma_id)
+    elif ermittelt.kandidaten and vorgabe not in ermittelt.kandidaten:
+        kandidaten.extend(ermittelt.kandidaten)  # Katalog "fragen": die Vorgabe ist keine der möglichen Firmen
+    kandidaten = list(dict.fromkeys(k for k in kandidaten if k))
+    if len(kandidaten) < 2:
+        return None
+    andere = ", ".join(kandidaten[1:])
+    return Pruefhinweis(
+        code=Pruefcode.FIRMA_UNKLAR,
+        schweregrad=Schweregrad.FEHLER,
+        text=(
+            f"Firma beim Upload vorgegeben ({vorgabe}), das Dokument spricht für {andere} – "
+            "bitte Firma wählen; ohne eindeutige Firma keine Buchung"
+        ),
+        details={"kandidaten": ", ".join(kandidaten), "vorgabe": vorgabe, "quelle": QUELLE_UPLOAD_VORGABE},
+    )
 
 
 def zeige_upload(settings: Settings, kontext: UiKontext) -> bool:
@@ -200,11 +237,21 @@ def zeige_upload(settings: Settings, kontext: UiKontext) -> bool:
         key="upload_datei",
         help=f"Die Datei wird in den Eingang ({settings.eingang.ordner_name}) gelegt und sofort geprüft; gebucht wird erst nach Freigabe.",
     )
+    # Eigene Auswahl (nicht die Firma des gerade geöffneten Pakets): Standard ist die automatische Ermittlung.
+    firmen = ["", *settings.firmen]
+    st.selectbox(
+        "Firma für den Upload",
+        firmen,
+        index=0,
+        key="upload_firma",
+        format_func=lambda v: f"{v} – {settings.firmen[v].name}" if v in settings.firmen else "automatisch ermitteln",
+        help="Nur wählen, wenn die Firma sicher feststeht; weicht das Dokument davon ab, muss die Firma in der Freigabe bestätigt werden.",
+    )
     if st.button("Hochladen & prüfen", key="upload_verarbeiten", disabled=datei is None, width="stretch"):
         if datei is None:
             kontext.melde("warning", "Bitte zuerst eine Datei auswählen.")
             return True
-        firma_id = st.session_state.get("firma") or None
+        firma_id = st.session_state.get("upload_firma") or None
         try:
             with st.spinner(f"Speichere und prüfe {datei.name} …"):
                 ergebnis = upload_speichern_und_pruefen(datei.name, datei.getvalue(), settings, firma_id=firma_id)
@@ -502,7 +549,7 @@ def terminaenderung_uebernehmen(
     neu = register.verschiebe(aenderung.fixtermin, aenderung.neues_datum, aenderung.grund)
     aenderung.uebernommen = True
     if dry_run and hasattr(backends.excel, "vorschau_csv"):
-        backends.excel.vorschau_csv(Path(settings.log_ordner) / nachbereitung.VORSCHAU_CSV)
+        backends.excel.vorschau_csv(Path(settings.log_ordner) / nachbereitung.VORSCHAU_CSV, anhaengen=True)
     logger.info("Terminänderung übernommen (%s): %s -> %s", "Dry Run" if dry_run else "scharf", aenderung.fixtermin.liefertag, neu.liefertag)
     return neu
 

@@ -41,6 +41,7 @@ from auftragsautomat.tracking.basis import (
     mit_hinweis,
     normalisiere_referenz,
     status_aus_meilensteinen,
+    zeit_schluessel,
 )
 
 logger = logging.getLogger(__name__)
@@ -461,7 +462,7 @@ class ApiQuelle:
             m = _meilenstein_aus_ereignis(daten["lastEvent"], self._konfig)
             if m is not None:
                 meilensteine.append(m)
-        meilensteine.sort(key=lambda m: (m.zeitpunkt or datetime.min, m.geplant))
+        meilensteine.sort(key=lambda m: (zeit_schluessel(m.zeitpunkt), m.geplant))
 
         status = status_aus_meilensteinen(
             meilensteine, self._konfig, puenktlich=puenktlich, basis=status_api or SendungStatus.UNBEKANNT

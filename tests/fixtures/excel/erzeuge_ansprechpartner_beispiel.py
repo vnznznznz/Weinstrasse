@@ -102,27 +102,42 @@ def _schreibe(ws: Any, zeilen: list[list[Any]]) -> None:
         ws.append(zeile if zeile else [None])
 
 
-def erzeuge(ziel: Path = ZIEL) -> Path:
-    """Schreibt die Beispiel-Kontaktliste nach ``ziel`` und liefert den Pfad."""
+def erzeuge(
+    ziel: Path = ZIEL,
+    *,
+    lieferanten: list[list[Any]] | None = None,
+    speditionen: list[list[Any]] | None = None,
+    tabellen: list[tuple[str, str]] | None = None,
+    kunden: list[list[Any]] | None = None,
+) -> Path:
+    """Schreibt die Beispiel-Kontaktliste nach ``ziel`` und liefert den Pfad.
+
+    Ohne Argumente entsteht die Fixture; Tests können eigene Zeilen je Blatt (und die Tabellenobjekte der
+    Speditionen als ``(Name, Bereich)``) übergeben und die Datei in tmp schreiben.
+    """
+    lieferanten = LIEFERANTEN if lieferanten is None else lieferanten
+    speditionen_zeilen = SPEDITIONEN if speditionen is None else speditionen
+    tabellen = [("tbl_Spedition_Hillebrand", "A4:D8"), ("tbl_Spedition_Beispiel_Logistik", "A10:D12")] if tabellen is None else tabellen
+    kunden_zeilen = KUNDEN if kunden is None else kunden
     mappe = Workbook()
     uebersicht = mappe.active
     uebersicht.title = "Übersicht"
     uebersicht.append(["Übersicht"])
     uebersicht.append(["Diese Mappe enthält die Ansprechpartner für Lieferanten, Speditionen und Kunden."])
 
-    lieferanten = mappe.create_sheet("Lieferanten")
-    _schreibe(lieferanten, LIEFERANTEN)
+    blatt_lieferanten = mappe.create_sheet("Lieferanten")
+    _schreibe(blatt_lieferanten, lieferanten)
 
     speditionen = mappe.create_sheet("Speditionen")
-    _schreibe(speditionen, SPEDITIONEN)
+    _schreibe(speditionen, speditionen_zeilen)
     stil = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True)
-    for name, ref in (("tbl_Spedition_Hillebrand", "A4:D8"), ("tbl_Spedition_Beispiel_Logistik", "A10:D12")):
+    for name, ref in tabellen:
         tabelle = Table(displayName=name, ref=ref)
         tabelle.tableStyleInfo = stil
         speditionen.add_table(tabelle)
 
-    kunden = mappe.create_sheet("Kunden")
-    _schreibe(kunden, KUNDEN)
+    blatt_kunden = mappe.create_sheet("Kunden")
+    _schreibe(blatt_kunden, kunden_zeilen)
 
     ziel = Path(ziel)
     ziel.parent.mkdir(parents=True, exist_ok=True)

@@ -9,7 +9,7 @@ geplant) und die Protokollspalten. Alle Daten sind synthetisch (Firma Beispiel, 
 from __future__ import annotations
 
 import csv
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -19,7 +19,7 @@ from auftragsautomat import benennung
 from auftragsautomat.config import Settings
 from auftragsautomat.lexware import buchen
 from auftragsautomat.lexware.basis import nachbemerkung_einkauf, pdf_zielpfad
-from auftragsautomat.lexware.buchen import buche
+from auftragsautomat.lexware.buchen import buche as _buche
 from auftragsautomat.lexware.dry_run import VORSCHAU_ENDUNG
 from auftragsautomat.models import (
     Artikel,
@@ -46,7 +46,15 @@ from auftragsautomat.stammdaten.basis import Stammdaten
 
 WIK = "wik_leh"
 WS = "weinstrasse_agentur"
-HEUTE = date.today()
+#: Fester Buchungszeitpunkt (Review Befund 17): Dateinamen, Archivjahr und Protokoll hängen nicht an der Wanduhr.
+JETZT = datetime(2026, 10, 21, 10, 0)
+HEUTE = JETZT.date()
+
+
+def buche(*args, **kwargs):
+    """``buchen.buche`` mit fester Uhr (``jetzt``), damit die Tests über Mitternacht stabil bleiben."""
+    kwargs.setdefault("jetzt", lambda: JETZT)
+    return _buche(*args, **kwargs)
 
 
 @pytest.fixture(autouse=True)
@@ -497,6 +505,57 @@ def test_revision_vorhandener_dubletten_hinweis_wird_abgestuft(settings: Setting
     assert paket.blockiert
     ergebnis = buche(paket, settings, dry_run=False, schreiber=ProzessSchreiber(settings, WIK), stammdaten=stammdaten)
     assert ergebnis.erfolgreich, ergebnis.warnungen
+
+
+def test_auftragskopie_pdf_name_ohne_verbotene_woerter(settings: Settings):
+    """Regression (Review Befund 5): Enthält ein Kurzname ein verbotenes Wort, wird die Kopie-PDF unter einem
+    zulässigen Namen ausgegeben (mit Hinweis), nicht unter dem unzulässigen."""
+    from auftragsautomat.benennung import pruefe_auftragskopie_name
+
+    paket = _paket(settings, WIK, lieferschein=False)
+    paket.lieferant.lieferant.matchcode = "Muster Verbindlich"
+    ergebnis = buche(paket, settings, dry_run=False, schreiber=ProzessSchreiber(settings, WIK), stammdaten=_stammdaten(WIK))
+    assert ergebnis.erfolgreich, ergebnis.warnungen
+    assert Path(ergebnis.pdfs["Kopie"]).name == f"Muster – WIK – B-0001 – Kopie – {_datum(settings)}.pdf"
+    assert pruefe_auftragskopie_name(Path(ergebnis.pdfs["Kopie"]).name, settings) == []
+    assert "Verbindlich" in Path(ergebnis.pdfs["Cde"]).name
+    assert any("aus dem Namen der Auftragskopie entfernt" in w for w in ergebnis.warnungen)
+
+
+@pytest.mark.parametrize(
+    ("zeitpunkt", "jahr", "datum"),
+    [(datetime(2026, 12, 31, 23, 59, 59), "2026", "31.12.2026"), (datetime(2027, 1, 1, 0, 0, 3), "2027", "01.01.2027")],
+)
+def test_buchung_am_jahreswechsel_mit_fester_uhr(settings: Settings, zeitpunkt: datetime, jahr: str, datum: str):
+    """Regression (Review Befund 17): buche() liest die Uhr über ``jetzt`` – Archivjahr und Datum im Dateinamen
+    folgen dem Buchungszeitpunkt (testbar über Jahreswechsel und Mitternacht)."""
+    paket = _paket(settings, WIK, lieferschein=False)
+    ergebnis = _buche(
+        paket, settings, dry_run=False, schreiber=ProzessSchreiber(settings, WIK), stammdaten=_stammdaten(WIK), jetzt=lambda: zeitpunkt
+    )
+    assert ergebnis.erfolgreich, ergebnis.warnungen
+    assert ergebnis.zeitpunkt == zeitpunkt
+    assert ergebnis.archiv is not None and ergebnis.archiv.parent.name == jahr
+    assert Path(ergebnis.pdfs["Cde"]).name.endswith(f" – {datum}.pdf")
+
+
+def test_lieferschein_nachziehen_mit_fester_uhr(settings: Settings):
+    zeitpunkt = datetime(2026, 12, 31, 23, 59, 59)
+    paket = _paket(settings, WIK, lieferschein=True)
+    ergebnis = buchen.lieferschein_nachziehen(
+        paket, "AB-2026-0042", settings, dry_run=False, schreiber=ProzessSchreiber(settings, WIK), jetzt=lambda: zeitpunkt
+    )
+    assert ergebnis.zeitpunkt == zeitpunkt
+
+
+def test_archiviere_jahr_aus_der_uhr(settings: Settings, tmp_path: Path):
+    from auftragsautomat.protokoll import archiviere
+
+    datei = tmp_path / "eingang" / "x.pdf"
+    datei.parent.mkdir(parents=True, exist_ok=True)
+    datei.write_bytes(b"%PDF")
+    ziel = archiviere(datei, settings, WIK, jetzt=lambda: datetime(2027, 1, 1, 0, 0, 1))
+    assert ziel.parent.name == "2027"
 
 
 def test_keine_revision_dublette_bleibt_fehler(settings: Settings):

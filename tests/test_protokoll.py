@@ -456,8 +456,8 @@ def test_archiviere_verschiebt_in_firma_und_jahr(settings: Settings):
 def test_archiviere_standardjahr_ist_aktuelles_jahr(settings: Settings):
     quelle = settings.eingang_ordner / "x.pdf"
     quelle.write_bytes(b"1")
-    ziel = archiviere(quelle, settings, FIRMA_ID)
-    assert ziel.parent.name == f"{date.today().year}"
+    ziel = archiviere(quelle, settings, FIRMA_ID, jetzt=lambda: datetime(2027, 1, 1, 0, 0, 3))  # Uhr injiziert
+    assert ziel.parent.name == "2027"
 
 
 def test_archiviere_ueberschreibt_nie(settings: Settings):

@@ -332,7 +332,7 @@ class Entwurfsfabrik:
         """
         paket = self._paket_mit_firma(paket)
         pfad = anhaenge.get(kuerzel)
-        if pfad is None and kuerzel in benennung.REVISIONS_KUERZEL and (paket.ist_revision or paket.roh.ist_revision):
+        if pfad is None and kuerzel in benennung.REVISIONS_KUERZEL and paket.revision_wirksam:
             pfad = anhaenge.get(benennung.REVISIONS_KUERZEL[kuerzel])
         endung = Path(pfad).suffix if pfad is not None and Path(pfad).suffix else ".pdf"
         try:
@@ -446,11 +446,11 @@ class Entwurfsfabrik:
             "anhang_name": anhang.name if anhang else None,
             "hinweis": "Revised order – this order replaces our previous order"
             + (f" {paket.revision_von or paket.roh.revision_von}." if (paket.revision_von or paket.roh.revision_von) else ".")
-            if (paket.ist_revision or paket.roh.ist_revision)
+            if paket.revision_wirksam
             else None,
         }
         betreff = f"New order {bestellnummer} – {kunde}" if bestellnummer else f"New order – {kunde}"
-        if paket.ist_revision or paket.roh.ist_revision:
+        if paket.revision_wirksam:
             betreff = "Revised order" + betreff[len("New order") :]
         return self._entwurf(
             EntwurfTyp.BESTELLUNG_WEINGUT,
@@ -468,7 +468,7 @@ class Entwurfsfabrik:
                 kunde=kunde,
                 lieferant=_lieferant_name(paket),
                 firma_id=self.firma.id,
-                kuerzel="Neu" if (paket.ist_revision or paket.roh.ist_revision) else "Cde",
+                kuerzel="Neu" if paket.revision_wirksam else "Cde",
             ),
             hinweise=hinweise,
         )
@@ -502,7 +502,7 @@ class Entwurfsfabrik:
             "spedition": self._spedition(paket, fixtermin),
             "gesamtmenge": paket.gesamtmenge,
             "positionen": _positionen(paket),
-            "hinweis": "Diese Kopie ersetzt die frühere Fassung Ihres Auftrags." if (paket.ist_revision or paket.roh.ist_revision) else None,
+            "hinweis": "Diese Kopie ersetzt die frühere Fassung Ihres Auftrags." if paket.revision_wirksam else None,
         }
         betreff = f"Ihre Bestellung {nummer} – Auftragskopie zur Information" if nummer else "Ihre Bestellung – Auftragskopie zur Information"
         return self._entwurf(
@@ -521,7 +521,7 @@ class Entwurfsfabrik:
                 kunde=kunde,
                 lieferant=_lieferant_name(paket),
                 firma_id=self.firma.id,
-                kuerzel="Neu Kopie" if (paket.ist_revision or paket.roh.ist_revision) else "Kopie",
+                kuerzel="Neu Kopie" if paket.revision_wirksam else "Kopie",
             ),
             hinweise=hinweise,
         )
@@ -656,12 +656,30 @@ class Entwurfsfabrik:
             hinweise=hinweise,
         )
 
+    @staticmethod
+    def _weingut_pdfs(pdfs: Mapping[str, Path], nummer: int) -> dict[str, Path]:
+        """PDFs des ``nummer``-ten Weinguts (ab 2): Schlüssel "Cde (2)", "Speditionsauftrag (2)" … aus
+        ``BuchungsErgebnis.pdfs`` unter den Basis-Kürzeln "Cde"/"Speditionsauftrag"."""
+        return {k: Path(pdfs[f"{k} ({nummer})"]) for k in ("Cde", "Speditionsauftrag") if f"{k} ({nummer})" in pdfs}
+
+    @staticmethod
+    def _ergebnis_fuer_weingut(ergebnis: BuchungsErgebnis | None, nummer: int) -> BuchungsErgebnis | None:
+        """Kopie des Buchungsergebnisses, in der ``einkauf`` die Bestellung des ``nummer``-ten Weinguts ist
+        (Bestellnummer im Betreff "New order …")."""
+        if ergebnis is None:
+            return None
+        weitere = ergebnis.einkauf_weitere
+        einkauf = weitere[nummer - 2] if 0 <= nummer - 2 < len(weitere) else None
+        return ergebnis.model_copy(update={"einkauf": einkauf, "einkauf_weitere": [], "pdfs": {}})
+
     def fuer_buchung(
         self,
         paket: Belegpaket,
         ergebnis: BuchungsErgebnis | None,
         fixtermin: Fixtermin | None,
         anhaenge: Mapping[str, Path] | None = None,
+        *,
+        weitere_weingueter: Iterable[Belegpaket] = (),
     ) -> list[EmailEntwurf]:
         """Alle Entwürfe zu einer Buchung in Sendereihenfolge: [Bestellung ans Weingut] -> Auftragskopie an den
         Kunden -> [Speditionsauftrag] -> [Lieferschein].
@@ -669,6 +687,11 @@ class Entwurfsfabrik:
         ``anhaenge`` (Dokumentkürzel -> PDF) ergänzt ``ergebnis.pdfs``. Die Auftragskopie wird nur erzeugt,
         wenn :func:`pruefe_auftragskopie` keine verbotenen Wörter findet; sonst Hinweis in
         ``self.hinweise`` und ``ergebnis.warnungen``.
+
+        ``weitere_weingueter``: Teilpakete der weiteren Weingüter einer Bestellung mit Positionen mehrerer
+        Weingüter (``lexware.buchen.einkaufs_teilpakete`` ohne das Hauptweingut, in Buchungsreihenfolge). Jedes
+        Weingut bekommt seine eigene Bestellung (PDF "Cde (2)" …) und die Spedition je Abholung einen eigenen
+        Speditionsauftrag (PDF "Speditionsauftrag (2)" …) – Geschäftsregel 2.
         """
         self.hinweise = []
         pdfs: dict[str, Path] = {}
@@ -678,8 +701,13 @@ class Entwurfsfabrik:
         entwuerfe: list[EmailEntwurf] = []
 
         bestellung_noetig = paket.einkauf_erforderlich and self.firma.einkauf_bestellung
+        weitere = list(weitere_weingueter) if bestellung_noetig else []
         if bestellung_noetig or self.bestellung_ohne_einkauf:
             entwuerfe.append(self.bestellung_weingut(paket, ergebnis, fixtermin, pdfs))
+            for nummer, teil in enumerate(weitere, start=2):
+                entwuerfe.append(
+                    self.bestellung_weingut(teil, self._ergebnis_fuer_weingut(ergebnis, nummer), fixtermin, self._weingut_pdfs(pdfs, nummer))
+                )
         else:
             logger.info("Firma %s: keine Bestellung ans Weingut (keine Einkauf-Bestellung).", self.firma.id)
 
@@ -700,6 +728,12 @@ class Entwurfsfabrik:
         sped = self.spedition_auftrag(paket, ergebnis, fixtermin, pdfs)
         if sped is not None:
             entwuerfe.append(sped)
+            for nummer, teil in enumerate(weitere, start=2):
+                weitere_sped = self.spedition_auftrag(
+                    teil, self._ergebnis_fuer_weingut(ergebnis, nummer), fixtermin, self._weingut_pdfs(pdfs, nummer)
+                )
+                if weitere_sped is not None:
+                    entwuerfe.append(weitere_sped)
 
         if paket.lieferschein_erstellen and self.firma.lieferschein_erlaubt:
             entwuerfe.append(self.lieferschein(paket, ergebnis, fixtermin, pdfs))

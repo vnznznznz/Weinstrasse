@@ -367,11 +367,21 @@ _LIEFERBEDINGUNG_FREI = re.compile(
 
 # --- Revised Order ----------------------------------------------------------------------------
 _REVISION_MUSTER = re.compile(
-    r"\b(?:revised\s+order|revised|revisione\s+ordine|änderung(?:en)?\s+(?:zur|der)\s+bestellung|bestelländerung"
-    r"|bestellungsänderung|geänderte\s+bestellung|korrektur\s+(?:der|zur)\s+bestellung|korrigierte\s+bestellung"
-    r"|ersetzt\s+(?:die\s+|unsere\s+|ihre\s+)?bestellung|ersatz\s+für\s+(?:die\s+)?bestellung"
-    r"|storno\s*(?:\+|und|&|/)\s*neu|order\s+change|change\s+order|amended\s+order|replaces\s+(?:our\s+|the\s+)?order"
+    r"\b(?:revised\s+(?:purchase\s+)?order|revised\s+po|revisione\s+ordine|änderung(?:en)?\s+(?:zur|der)\s+bestellung"
+    r"|bestelländerung|bestellungsänderung|geänderte\s+bestellung|korrektur\s+(?:der|zur)\s+bestellung"
+    r"|korrigierte\s+bestellung|ersetzt\s+(?:die\s+|unsere\s+|ihre\s+)?bestellung|ersatz\s+für\s+(?:die\s+)?bestellung"
+    r"|storno\s*(?:\+|und|&|/)\s*neu|amended\s+order|replaces\s+(?:our\s+|the\s+)?order"
     r"|neufassung\s+der\s+bestellung)\b",
+    re.I,
+)
+# Mehrdeutige Wörter nur in eindeutiger Stellung: "REVISED" allein bzw. als Stempel "(REVISED)", "Order 4711 –
+# revised", "Change Order No. 3" / "Change order:" oder als Überschrift – nicht "revised prices" oder
+# "Please do not change order quantities" (sonst würde eine normale Bestellung als Revision gewertet).
+_REVISION_STELLUNG = re.compile(
+    r"^\W*(?:revised|change\s+order|order\s+change)\W*$"
+    r"|\(\s*revised\s*\)"
+    r"|\b(?:order|po|bestellung)\s*(?:no\.?|nr\.?|#)?\s*[\w\-/]*\d[\w\-/]*\s*[-–:(]?\s*revised\b"
+    r"|\b(?:change\s+order|order\s+change)\s*(?:no\b|nr\b|number\b|#|:)",
     re.I,
 )
 _REVISION_VON = re.compile(
@@ -481,7 +491,7 @@ def finde_revision(zeilen: list[str | None]) -> RevisionTreffer | None:
             nummer = von.group("nummer").rstrip(".,;:")
             return RevisionTreffer(rohtext=s[: von.end()][-120:], revision_von=nummer or None)
         if treffer is None:
-            fund = _REVISION_MUSTER.search(s)
+            fund = _REVISION_MUSTER.search(s) or _REVISION_STELLUNG.search(s)
             if fund:
                 treffer = RevisionTreffer(rohtext=fund.group(0), revision_von=None)
     return treffer
@@ -1023,6 +1033,8 @@ def _baue_position(
             menge_wert = zahlen.glatt(ve_anzahl * inhalt)
             einheit_norm = "Fl"
             ve_hinweis = f"{ve_anzahl} {gebinde} à {inhalt} Fl"
+        # sonst bleibt die Menge die Anzahl Gebinde (Einheit Kolli/KOA/Kt): matching.pruefung blockiert die
+        # Position (MENGE_FEHLT), bis die Flaschenmenge geklärt ist – nie Kolli als Flaschen buchen
     if ve_anzahl is None:
         inhalt = None  # ohne VE-Anzahl ist ein Inhalt bedeutungslos
     hinweis_text = _hinweis_anhaengen(hinweis_text, ve_hinweis)

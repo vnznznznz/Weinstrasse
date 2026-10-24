@@ -3,11 +3,11 @@
 :func:`bewerte` beurteilt einen Fixtermin (Zeile der Fixterminüberwachung) zusammen mit dem
 Tracking-Stand der Sendung und liefert Ampel, Begründung und die fälligen Maßnahmen:
 
-* Lieferant hat nicht bestätigt -> ``nachfrage_lieferant`` (gelb; rot, wenn weniger als
-  ``rot_unter_werktagen`` Werktage bis zum Fixtermin bleiben). Die Frist "Bestätigung spätestens
-  ``nachfrage_lieferant_werktage`` Werktage vor dem Fixtermin" steht in der Begründung; ist sie
-  überschritten, heißt es "überfällig".
-* Spedition hat nicht bestätigt -> ``nachfrage_spedition`` (analog mit ``nachfrage_spedition_werktage``).
+* Lieferant hat nicht bestätigt -> ab ``nachfrage_lieferant_werktage`` Werktagen vor dem Fixtermin
+  ``nachfrage_lieferant`` (gelb; rot, wenn weniger als ``rot_unter_werktagen`` Werktage bis zum Fixtermin
+  bleiben); vorher nur gelb ohne Entwurf. Die Frist steht in der Begründung; ist sie überschritten, heißt
+  es "überfällig".
+* Spedition hat nicht bestätigt -> ``nachfrage_spedition`` (analog ab ``nachfrage_spedition_werktage``).
 * Verladedatum erreicht, aber nicht abgeholt -> ``status_spedition`` + ``tracking``.
 * Fixtermin heute oder morgen -> ``erinnerung``.
 * Fixtermin überschritten und nicht zugestellt -> rot; zugestellt -> grau; alles bestätigt und
@@ -373,11 +373,15 @@ def bewerte(
     if not abgeholt:
         alt_genug = _alt_genug(fixtermin, tag, r, bl)
         dringend: Ampel = "rot" if werktage_bis < r.rot_unter_werktagen else "gelb"
+        # Nachfragen erst ab der Schwelle (x Werktage vor dem Fixtermin, settings.ueberwachung.nachfrage_*_werktage);
+        # vorher nur gelb ohne Entwurf (docs/AUSBAUSTUFE_2.md 2.6)
         if not fixtermin.lieferant_bestaetigt:
             frist = kalender.addiere_werktage(fixtermin.liefertag, -k.nachfrage_lieferant_werktage, bl)
             vorlage = t.lieferant_ueberfaellig if tag > frist else t.lieferant_offen
             grund = _text(vorlage, frist=_datum(frist), werktage=k.nachfrage_lieferant_werktage)
-            if alt_genug:
+            if tag < frist:
+                befund("gelb", grund)
+            elif alt_genug:
                 befund(dringend, grund, Massnahme("nachfrage_lieferant", grund))
             else:
                 zusatz = _text(t.noch_zu_frisch, auftragsdatum=_datum(fixtermin.auftragsdatum), werktage=r.mindest_alter_werktage)
@@ -388,6 +392,8 @@ def bewerte(
             grund = _text(vorlage, frist=_datum(frist), werktage=k.nachfrage_spedition_werktage)
             if any(m.typ == "status_spedition" for m in massnahmen):
                 befund(dringend, grund)  # die Statusanfrage deckt die Nachfrage mit ab
+            elif tag < frist:
+                befund("gelb", grund)
             elif alt_genug:
                 befund(dringend, grund, Massnahme("nachfrage_spedition", grund))
             else:

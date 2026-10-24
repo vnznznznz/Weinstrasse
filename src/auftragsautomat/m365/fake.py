@@ -222,13 +222,19 @@ class FakeExcelBackend:
 
     # -- Vorschau --------------------------------------------------------------------
 
-    def vorschau_csv(self, pfad: Path) -> Path:
-        """Schreibt alle protokollierten Zelländerungen als CSV (UTF-8 mit BOM, ``;``) – eine Zeile je Zelle."""
+    def vorschau_csv(self, pfad: Path, *, anhaengen: bool = False) -> Path:
+        """Schreibt alle protokollierten Zelländerungen als CSV (UTF-8 mit BOM, ``;``) – eine Zeile je Zelle.
+
+        Mit ``anhaengen`` werden die Zeilen an eine vorhandene Vorschau angehängt (ohne zweite Kopfzeile), damit
+        mehrere Dry-Run-Buchungen nacheinander ihre Vorschau behalten.
+        """
         pfad = Path(pfad)
         pfad.parent.mkdir(parents=True, exist_ok=True)
-        with pfad.open("w", encoding="utf-8-sig", newline="") as f:
+        weiter = anhaengen and pfad.is_file() and pfad.stat().st_size > 0
+        with pfad.open("a" if weiter else "w", encoding="utf-8" if weiter else "utf-8-sig", newline="") as f:
             schreiber = csv.writer(f, delimiter=";")
-            schreiber.writerow(["Zeitpunkt", "Datei", "Blatt", "Zelle", "Wert", "Zahlenformat"])
+            if not weiter:
+                schreiber.writerow(["Zeitpunkt", "Datei", "Blatt", "Zelle", "Wert", "Zahlenformat"])
             for zugriff in self.schreibprotokoll:
                 for zelle, wert, fmt in zugriff.zellen:
                     schreiber.writerow([zugriff.zeitpunkt.isoformat(timespec="seconds"), zugriff.datei, zugriff.blatt, zelle, _csv_wert(wert), fmt or ""])

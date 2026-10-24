@@ -418,18 +418,51 @@ def test_fehlende_optionale_spalte_warnt_und_schreibt_rest(caplog: pytest.LogCap
     assert ergebnis.zeile == 5 and excel.schreibprotokoll[-1].adresse == "D5:J5"
 
 
+def test_revised_order_aktualisiert_die_vorhandene_zeile(register: FixterminRegister):
+    """Regression (Review Befund 11): Eine Revised Order (Cde und AB neu, gleiche Kundenbestellnummer) aktualisiert
+    die vorhandene Zeile, statt einen zweiten Slot für dieselbe Lieferung zu belegen; die neuen Nummern stehen
+    vorn, die ersetzten als Vermerk."""
+    erst = register.trage_ein(_fixtermin("Cide", "Spar", FR, bestellnummer="WIK-100", ab_nummer="AB-200", kundenbestellnummer="K1"))
+    assert erst.zeile == 21
+    neu = register.trage_ein(_fixtermin("Cide", "Spar", FR, bestellnummer="WIK-101", ab_nummer="AB-201", kundenbestellnummer="K1"))
+    assert neu.zeile == 21
+    register.lade(erneut=True)
+    assert [e.zeile for e in register.eintraege(FR, FR)] == [21]
+    eintrag = register.eintrag(21)
+    assert eintrag is not None and eintrag.bestellnummer == "WIK-101" and eintrag.kundenbestellnummer == "K1"
+    assert "ersetzt Bestellung WIK-100" in (eintrag.bemerkung or "")
+    # Revision mit eigener neuer Kundenbestellnummer: über revision_von die ersetzte Zeile
+    ersatz = register.trage_ein(
+        _fixtermin("Cide", "Spar", FR, bestellnummer="WIK-102", kundenbestellnummer="K2", revision_von="K1")
+    )
+    assert ersatz.zeile == 21
+    register.lade(erneut=True)
+    eintrag = register.eintrag(21)
+    assert eintrag is not None and eintrag.bestellnummer == "WIK-102" and eintrag.kundenbestellnummer == "K2"
+    # eine andere Bestellung desselben Kunden am selben Tag bleibt ein eigener Eintrag
+    andere = register.trage_ein(_fixtermin("Cide", "Spar", FR, bestellnummer="WIK-300", kundenbestellnummer="K9"))
+    assert andere.zeile == 22
+
+
 # ---------------------------------------------------------------- Bemerkung
 
 
 def test_bemerkung_teile():
     assert bemerkung_teile("Best.-Nr 20260001, AB 30260001, Spedition Beispiel") == {
         "bestellnummer": "20260001", "ab_nummer": "30260001", "spedition": "Spedition Beispiel", "tracking_referenz": None,
+        "kundenbestellnummer": None,
     }
     teile = bemerkung_teile("verschoben von 12.05.2026: Abholung ab 10 Uhr | Best-Nr: 4711, Spedition Beispiel | Ref. DEMB00000")
-    assert teile == {"bestellnummer": "4711", "ab_nummer": None, "spedition": "Spedition Beispiel", "tracking_referenz": "DEMB00000"}
+    assert teile == {
+        "bestellnummer": "4711", "ab_nummer": None, "spedition": "Spedition Beispiel", "tracking_referenz": "DEMB00000",
+        "kundenbestellnummer": None,
+    }
+    assert bemerkung_teile("Best.-Nr 1, AB 2, Spedition Beispiel, Kd-Nr B-4711")["kundenbestellnummer"] == "B-4711"
     assert bemerkung_teile("Kunde wünscht Vormittag, Spedition Beispiel")["spedition"] is None  # ohne Nummer keine Spedition
     assert bemerkung_teile("AB 1, Best.-Nr 2 | AB 3")["ab_nummer"] == "1"  # erste Fundstelle gewinnt
-    assert bemerkung_teile(None) == bemerkung_teile("") == {"bestellnummer": None, "ab_nummer": None, "spedition": None, "tracking_referenz": None}
+    assert bemerkung_teile(None) == bemerkung_teile("") == {
+        "bestellnummer": None, "ab_nummer": None, "spedition": None, "tracking_referenz": None, "kundenbestellnummer": None,
+    }
 
 
 def test_bemerkung_zusammenfuegen():
@@ -523,7 +556,7 @@ def test_dry_run_vorschau_csv_und_datei_unveraendert(settings: Settings, registe
     zeilen = vorschau.read_text(encoding="utf-8-sig").splitlines()
     assert zeilen[0] == "Zeitpunkt;Datei;Blatt;Zelle;Wert;Zahlenformat"
     assert any(";D12;Beispielgut;" in z for z in zeilen) and any(";F12;04.05.2026;" in z for z in zeilen)
-    assert any(";K12;Best.-Nr 20260009, AB 30260009, Spedition Beispiel;" in z for z in zeilen)
+    assert any(";K12;Best.-Nr 20260009, AB 30260009, Spedition Beispiel, Kd-Nr B-4711;" in z for z in zeilen)
     assert any(";H12;WAHR;" in z for z in zeilen)
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() == vorher  # die .xlsx wird nie beschrieben
 

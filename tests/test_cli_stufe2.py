@@ -227,6 +227,25 @@ def test_buchen_dann_ablegen_nutzt_gespeichertes_ergebnis(cli_settings: Settings
     assert "Cde" in ergebnis.output and "Kopie" in ergebnis.output
 
 
+def test_ablegen_mischt_keine_hausmuster_pdfs_ins_ergebnis(cli_settings: Settings):
+    """Regression (Review Befund 3): 'ablegen' legt nach Hausmuster gefundene Dateien nicht unter dem Namen
+    des Auftrags ab, sondern nennt sie nur als Vorschlag; das gespeicherte Ergebnis bleibt unverändert."""
+    from auftragsautomat.benennung import name_fuer_paket
+
+    pfad = _paket_json(cli_settings)
+    assert runner.invoke(cli.app, ["buchen", str(pfad)]).exit_code == 0
+    vorher = nbm.lade_nachbereitung(pfad, cli_settings).ergebnis.pdfs
+    ordner = Path(cli_settings.lexware.pdf_ausgabe_ordner)
+    ordner.mkdir(parents=True, exist_ok=True)
+    fremd = ordner / name_fuer_paket("Kopie", zustand.lade_paket(pfad), cli_settings, datum=date(2026, 5, 4))
+    fremd.write_bytes(b"%PDF-1.4 andere Datei")
+    ergebnis = runner.invoke(cli.app, ["ablegen", str(pfad)])
+    assert ergebnis.exit_code == 0, ergebnis.output
+    assert "Vorschlag (nicht abgelegt): PDF Kopie" in ergebnis.output
+    assert nbm.lade_nachbereitung(pfad, cli_settings).ergebnis.pdfs == vorher
+    assert all(Path(p) != fremd for p in vorher.values())
+
+
 def test_benennen(cli_settings: Settings):
     pfad = _paket_json(cli_settings)
     ergebnis = runner.invoke(cli.app, ["benennen", str(pfad), "--kuerzel", "Cde", "--datum", "06.05.2026"])

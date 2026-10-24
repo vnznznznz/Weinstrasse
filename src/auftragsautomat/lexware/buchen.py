@@ -223,51 +223,24 @@ def waehle_schreiber(
 
 def ist_revision(paket: Belegpaket) -> bool:
     """Revised Order laut Freigabe (``paket.ist_revision``) oder Extraktion (``roh.ist_revision``)."""
-    return bool(paket.ist_revision or paket.roh.ist_revision)
+    from auftragsautomat.matching.pruefung import ist_revision as _ist_revision
+
+    return _ist_revision(paket)
 
 
 def revision_nummern(paket: Belegpaket) -> set[str]:
-    """Normalisierte Nummern der ersetzten Bestellung: ``revision_von`` (Paket, sonst Dokument); fehlt sie,
-    die eigene Kundenbestellnummer/Belegnummer (eine Revised Order trägt meist dieselbe Nummer).
-    Leer, wenn das Paket keine Revision ist."""
-    from auftragsautomat.matching.pruefung import normalisiere_belegnummer
+    """Normalisierte Nummern der ersetzten Bestellung (siehe :func:`matching.pruefung.revision_nummern`)."""
+    from auftragsautomat.matching.pruefung import revision_nummern as _revision_nummern
 
-    if not ist_revision(paket):
-        return set()
-    quelle = (paket.revision_von or paket.roh.revision_von or "").strip()
-    if quelle:
-        return {normalisiere_belegnummer(quelle)} - {""}
-    # TODO-PRUEFEN: ob Revised Orders der Kunden (z. B. LEH) immer dieselbe Bestellnummer tragen; sonst muss
-    # die Extraktion revision_von liefern.
-    return {normalisiere_belegnummer(n) for n in (paket.roh.bestellnummer, paket.roh.belegnummer) if n} - {""}
+    return _revision_nummern(paket)
 
 
 def _revision_dubletten_abstufen(paket: Belegpaket, hinweise: list[Pruefhinweis], warnungen: list[str]) -> list[Pruefhinweis]:
     """DUBLETTE-Treffer zur ersetzten Bestellung auf INFO abstufen (in place); liefert die verbleibenden FEHLER."""
-    from auftragsautomat.matching.pruefung import normalisiere_belegnummer
+    from auftragsautomat.matching.pruefung import revision_dubletten_abstufen
 
-    nummern = revision_nummern(paket)
-    if not nummern:
-        return [h for h in hinweise if h.schweregrad == Schweregrad.FEHLER]
-    verbleibend: list[Pruefhinweis] = []
-    for h in hinweise:
-        if h.code != Pruefcode.DUBLETTE or h.schweregrad != Schweregrad.FEHLER:
-            continue
-        kandidaten = {
-            normalisiere_belegnummer(h.details.get("belegnummer")),
-            normalisiere_belegnummer(h.details.get("kundenbestellnummer")),
-        } - {""}
-        if kandidaten & nummern:
-            h.schweregrad = Schweregrad.INFO
-            h.text = (
-                f"Revised Order: ersetzt {h.details.get('belegart') or 'den'}-Beleg {h.details.get('belegnummer') or '?'} "
-                f"(Cde und AB werden neu angelegt) – {h.text}"
-            )
-            h.details["revision"] = "ersetzt"
-            warnungen.append(h.text)
-            logger.info("Revised Order: Dubletten-Treffer %s als Info gewertet", h.details.get("belegnummer"))
-        else:
-            verbleibend.append(h)
+    verbleibend, texte = revision_dubletten_abstufen(paket, hinweise)
+    warnungen.extend(texte)
     return verbleibend
 
 
@@ -368,12 +341,23 @@ def _dateiname(kuerzel: str, paket: Belegpaket, settings: Settings, datum: date,
         warnungen.append(f"Dateiname für {kuerzel} nicht bestimmbar ({exc}); keine PDF")
         return None
     if kuerzel == KUERZEL_AUFTRAGSKOPIE:
-        verstoesse = benennung.pruefe_auftragskopie_name(name, settings)
-        if verstoesse:
+        teile = " ".join(
+            t for t in (benennung.kurzname_lieferant(paket), benennung.kurzname_kunde(paket), paket.roh.bestellnummer, paket.roh.belegnummer) if t
+        )
+        entfernt = benennung.pruefe_auftragskopie_name(teile, settings)
+        if entfernt:
             warnungen.append(
-                f"Name der Auftragskopie enthält verbotene Wörter ({', '.join(verstoesse)}): {name} – "
+                f"Verbotene Wörter ({', '.join(entfernt)}) aus dem Namen der Auftragskopie entfernt: {name} – "
                 "Kunden-/Lieferantenkurznamen prüfen (Geschäftsregel 18)"
             )
+        verstoesse = benennung.pruefe_auftragskopie_name(name, settings)
+        if verstoesse:
+            # verbindlich: eine Auftragskopie mit unzulässigem Namen wird nicht ausgegeben (Geschäftsregel 18)
+            warnungen.append(
+                f"Name der Auftragskopie enthält verbotene Wörter ({', '.join(verstoesse)}): {name} – keine PDF für "
+                f"{kuerzel}; Kunden-/Lieferantenkurznamen prüfen (Geschäftsregel 18)"
+            )
+            return None
     return name
 
 
@@ -528,7 +512,8 @@ def _protokollieren(paket: Belegpaket, ergebnis: BuchungsErgebnis, settings: Set
 def _archivieren(paket: Belegpaket, ergebnis: BuchungsErgebnis, settings: Settings) -> None:
     quelldatei = Path(paket.roh.quelldatei)
     try:
-        ziel = archiviere(quelldatei, settings, ergebnis.firma_id)
+        # Archivjahr = Jahr der Buchung (nicht der Wanduhr beim Verschieben)
+        ziel = archiviere(quelldatei, settings, ergebnis.firma_id, jahr=ergebnis.zeitpunkt.year)
     except FileNotFoundError:
         logger.warning("Quelldatei %s nicht gefunden, nichts archiviert", quelldatei)
         ergebnis.warnungen.append(f"Quelldatei {quelldatei} nicht gefunden, nichts archiviert")
@@ -734,15 +719,17 @@ def buche(
     dry_run: bool = True,
     schreiber: LexwareSchreiber | None = None,
     stammdaten: Stammdaten | None = None,
+    jetzt: Callable[[], datetime] | None = None,
 ) -> BuchungsErgebnis:
     """Bucht ein freigegebenes Belegpaket (Einkauf -> Angebot -> AB -> Lieferschein, PDFs) und protokolliert.
 
     ``dry_run=True`` (Standard) simuliert; scharf nur mit ``dry_run=False`` UND erreichbarem Lexware
     (bzw. übergebenem ``schreiber``). ``stammdaten`` dient der erneuten Dublettenprüfung; fehlt es,
-    werden die Stammdaten der Firma frisch geladen. Wirft keine Exceptions für fachliche Fehler –
-    alles steht im ``BuchungsErgebnis`` (``erfolgreich``, ``warnungen``, Teilergebnisse, ``pdfs``).
+    werden die Stammdaten der Firma frisch geladen. ``jetzt`` liefert den Zeitpunkt der Buchung
+    (Datum in den Dateinamen, Archivjahr, Protokoll; Standard ``datetime.now``). Wirft keine Exceptions für
+    fachliche Fehler – alles steht im ``BuchungsErgebnis`` (``erfolgreich``, ``warnungen``, Teilergebnisse, ``pdfs``).
     """
-    zeitpunkt = datetime.now()
+    zeitpunkt = (jetzt or datetime.now)()
     quelldatei = Path(paket.roh.quelldatei)
     revision = ist_revision(paket)
     logger.info(
@@ -891,6 +878,7 @@ def lieferschein_nachziehen(
     *,
     dry_run: bool = True,
     schreiber: LexwareSchreiber | None = None,
+    jetzt: Callable[[], datetime] | None = None,
 ) -> BuchungsErgebnis:
     """Legt nur den Lieferschein zu einer bereits vorhandenen AB an ("Auftrag weiterführen") und gibt ihn als PDF "Ls" aus.
 
@@ -899,8 +887,9 @@ def lieferschein_nachziehen(
     wie bei :func:`buche` (Freigabe, nicht blockiert, Firma/Kunde/Positionen, Mandantenschutz);
     ``paket.lieferschein_erstellen`` und ``Firma.lieferschein_erlaubt`` müssen gesetzt sein
     (Geschäftsregel 10/14). Es wird protokolliert, aber nie archiviert (die Quelldatei gehört zur Buchung der AB).
+    ``jetzt`` wie bei :func:`buche`.
     """
-    zeitpunkt = datetime.now()
+    zeitpunkt = (jetzt or datetime.now)()
     quelldatei = Path(paket.roh.quelldatei)
     ab_belegnummer = (ab_belegnummer or "").strip()
     logger.info(

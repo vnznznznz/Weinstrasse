@@ -334,6 +334,11 @@ class Firmenregel(BaseModel):
     gelernt_von: str | None = None
     quelle: Literal["freigabe", "katalog", "manuell"] = "freigabe"
     bemerkung: str | None = None
+    # Weitere Schreibweisen, unter denen die Regel wiedererkannt wird (die Firma ist beim nächsten Auftrag
+    # noch unbekannt, also gibt es noch keinen Matchcode): Kundenname laut Dokument/Stamm bzw.
+    # Lieferantenname laut Dokument/Stamm. Vergleich wie bei kunde_kurz/lieferant_kurz (normalisiert, als Wort).
+    kunde_texte: list[str] = Field(default_factory=list)
+    lieferant_texte: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -464,6 +469,9 @@ class Belegpaket(BaseModel):
     lieferschein_erstellen: bool = False  # nur nach Vorlage und Freigabe (und Firma.lieferschein_erlaubt)
     ist_revision: bool = False  # Revised Order: Bestellung + AB neu anlegen, Benennung "Neu" / "Neu Kopie"
     revision_von: str | None = None  # ersetzte Bestell-/Belegnummer
+    # Entscheidung des Anwenders in der Freigabe: None = Extraktion entscheidet (ist_revision/roh.ist_revision),
+    # True = als Revised Order bestätigt, False = keine Revised Order (übersteuert die Extraktion)
+    revision_bestaetigt: bool | None = None
     aktionen: list[AktionTreffer] = Field(default_factory=list)  # zutreffende Aktionen (Anzeige in der Freigabe)
     firma_merken: bool = False  # Freigabe: gewählte Firma für Kunde + Lieferant ins Firmen-Gedächtnis schreiben
     kundengruppe: Kundengruppe | None = None  # laut Katalog ermittelt
@@ -501,6 +509,13 @@ class Belegpaket(BaseModel):
 
     def aktive_positionen(self) -> list[PositionsZuordnung]:
         return [p for p in self.positionen if not p.uebersprungen]
+
+    @property
+    def revision_wirksam(self) -> bool:
+        """Revised Order: Entscheidung des Anwenders (``revision_bestaetigt``), sonst Paket oder Extraktion."""
+        if self.revision_bestaetigt is not None:
+            return self.revision_bestaetigt
+        return bool(self.ist_revision or self.roh.ist_revision)
 
 
 # ---------------------------------------------------------------------------
@@ -619,6 +634,8 @@ class Fixtermin(BaseModel):
     tracking_referenz: str | None = None
     zeile: int | None = None  # Excel-Zeile (1-basiert); None = noch nicht eingetragen
     quelle: str | None = None
+    # Revised Order: Kundenbestellnummer der ersetzten Bestellung (deren Zeile wird aktualisiert, nicht verdoppelt)
+    revision_von: str | None = None
 
 
 class SendungStatus(StrEnum):
@@ -809,6 +826,8 @@ class Dossier(BaseModel):
     vorgeschlagener_zielordner: str | None = None
     erstellt_am: datetime | None = None
     aktualisiert_am: datetime | None = None
+    # Datum in Ordner- und Belegnamen (Buchungsdatum); beim Fortschreiben ohne Buchungsergebnis wiederverwendet
+    stichtag: date | None = None
 
 
 Ampel = Literal["gruen", "gelb", "rot", "grau"]

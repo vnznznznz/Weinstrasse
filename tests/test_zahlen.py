@@ -36,6 +36,11 @@ from auftragsautomat.extraktion.zahlen import (
         ("-5,00", Decimal("-5.00")),
         ("5,00-", Decimal("-5.00")),
         ("(5,00)", Decimal("-5.00")),
+        # Regression (Review Befund 16): ",-" ist die Preisschreibweise für glatte Beträge, kein SAP-Minus
+        ("12,-", Decimal("12")),
+        ("12,- €", Decimal("12")),
+        ("1.000,-", Decimal("1000")),
+        ("12,– EUR", Decimal("12")),
         ("19 %", Decimal("19")),
         ("ca. 60 Fl", Decimal("60")),
         ("-", None),
@@ -52,6 +57,14 @@ def test_parse_dezimal(text, erwartet):
     assert ergebnis == erwartet
     if ergebnis is not None:
         assert isinstance(ergebnis, Decimal)
+
+
+def test_preis_mit_strich_in_der_position_ist_positiv():
+    """Regression (Review Befund 16): '12,-' in der Preisspalte darf keinen negativen Dokumentpreis ergeben."""
+    from auftragsautomat.extraktion.text_pdf import _baue_position
+
+    position = _baue_position(bezeichnung="Gavi di Gavi 2023 0,75 l", menge="12", preis="12,-", rohtext="r")
+    assert position is not None and position.preis == Decimal("12")
 
 
 def test_parse_dezimal_decimal_und_int_durchreichen():

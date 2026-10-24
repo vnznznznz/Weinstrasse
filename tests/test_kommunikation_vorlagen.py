@@ -143,6 +143,17 @@ def test_auftragskopie_ohne_verbotene_woerter(vorlagen: Vorlagen, kom_settings: 
         assert wort.casefold() not in html.casefold(), wort
 
 
+def test_auftragskopie_spedition_ohne_doppeltes_wort(vorlagen: Vorlagen):
+    """Regression (Integration Stufe 2): Speditionsnamen wie "Spedition Weinlogistik" ergaben im Text
+    "(Spedition Spedition Weinlogistik)"."""
+    for name in ("Spedition Weinlogistik", "spedition beispiel"):
+        html, text = vorlagen.rendere("auftragskopie_kunde", **_kontext(spedition=name))
+        assert f"({name})" in text and "Spedition Spedition" not in text and "spedition spedition" not in text.lower()
+        assert "Spedition Spedition" not in html
+    _, text = vorlagen.rendere("auftragskopie_kunde", **_kontext(spedition="Hillebrand"))
+    assert "(Spedition Hillebrand)" in text
+
+
 def test_spedition_auftrag_listet_abholung_lieferung_fixtermin(vorlagen: Vorlagen):
     html, text = vorlagen.rendere("spedition_auftrag", **_kontext(anrede="Guten Tag!", paletten="4 Paletten"))
     zeilen = text.split("\n")

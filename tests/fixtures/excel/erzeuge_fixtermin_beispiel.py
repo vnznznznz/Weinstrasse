@@ -93,7 +93,22 @@ def _text_formel(zelle, formel: str) -> None:
     zelle.data_type = "s"
 
 
-def erzeuge(ziel: Path = ZIEL) -> Path:
+def erzeuge(
+    ziel: Path = ZIEL,
+    *,
+    von: date | None = None,
+    bis: date | None = None,
+    eintraege: dict[date, list[Eintrag]] | None = None,
+    lieferanten: list[str] | None = None,
+    kunden: list[str] | None = None,
+) -> Path:
+    """Schreibt die Arbeitsmappe nach ``ziel``. Ohne Argumente entsteht die Fixture (KW 20–23/2026); Tests
+    können einen anderen Zeitraum, andere vorbelegte Slots und Dropdown-Listen übergeben (Datei in tmp)."""
+    von = von or VON
+    bis = bis or BIS
+    eintraege_je_tag = EINTRAEGE if eintraege is None else eintraege
+    lieferanten = LIEFERANTEN if lieferanten is None else lieferanten
+    kunden = KUNDEN if kunden is None else kunden
     wb = Workbook()
     ws = wb.active
     ws.title = BLATT
@@ -112,8 +127,8 @@ def erzeuge(ziel: Path = ZIEL) -> Path:
     ws.row_dimensions[KOPFZEILE].height = 32
 
     zeile = KOPFZEILE + 1
-    tag = VON
-    while tag <= BIS:
+    tag = von
+    while tag <= bis:
         if ist_wochenende(tag):
             tag += timedelta(days=1)
             continue
@@ -129,7 +144,7 @@ def erzeuge(ziel: Path = ZIEL) -> Path:
             tag += timedelta(days=1)
             continue
         anker = zeile + SLOTS - 1
-        eintraege = EINTRAEGE.get(tag, [])
+        eintraege = eintraege_je_tag.get(tag, [])
         for slot in range(SLOTS):
             z = zeile + slot
             if slot < SLOTS - 1:
@@ -168,9 +183,9 @@ def erzeuge(ziel: Path = ZIEL) -> Path:
     ws2 = wb.create_sheet(RESSOURCEN)
     ws2["A1"], ws2["B1"] = "Lieferanten", "Kunden"
     ws2["A1"].font = ws2["B1"].font = fett
-    for i, name in enumerate(LIEFERANTEN, start=2):
+    for i, name in enumerate(lieferanten, start=2):
         ws2.cell(row=i, column=1, value=name)
-    for i, name in enumerate(KUNDEN, start=2):
+    for i, name in enumerate(kunden, start=2):
         ws2.cell(row=i, column=2, value=name)
     ws2.column_dimensions["A"].width = ws2.column_dimensions["B"].width = 20
 

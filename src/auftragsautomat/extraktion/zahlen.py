@@ -61,8 +61,9 @@ def parse_dezimal(text: str | Decimal | int | None) -> Decimal | None:
 
     Erkennt Tausenderpunkte ("1.234,50"), englische Schreibweise ("1234.50",
     "1,234.50"), Währungszusätze ("6,90 EUR", "6,90 €", "€ 6,90"), Prozentzeichen
-    sowie negative Beträge ("-5,00", "5,00-", "(5,00)"). Leerwerte ("", "-",
-    None) ergeben ``None``; nicht lesbare Texte ebenfalls (mit Debug-Log).
+    sowie negative Beträge ("-5,00", "5,00-", "(5,00)"). Die Preisschreibweise ",-" für glatte
+    Beträge ("12,-", "1.000,- €") ist positiv (= ",00"), nur ein Minus hinter Nachkommastellen ist
+    das SAP-Minus. Leerwerte ("", "-", None) ergeben ``None``; nicht lesbare Texte ebenfalls (mit Debug-Log).
 
     Eine einzelne Punktgruppe mit genau drei Nachkommastellen ("1.234") wird als
     deutscher Tausenderpunkt gelesen, außer der Vorkommateil ist "0" ("0.375").
@@ -73,6 +74,8 @@ def parse_dezimal(text: str | Decimal | int | None) -> Decimal | None:
     Decimal('6.90')
     >>> parse_dezimal("-") is None
     True
+    >>> parse_dezimal("12,-"), parse_dezimal("5,00-")
+    (Decimal('12.00'), Decimal('-5.00'))
     """
     if text is None:
         return None
@@ -92,6 +95,8 @@ def parse_dezimal(text: str | Decimal | int | None) -> Decimal | None:
     s = _WAEHRUNG_MUSTER.sub(" ", roh)
     s = s.replace("%", " ").strip()
 
+    # "12,-" / "12,–" = glatter Betrag (12,00), kein SAP-Minus
+    s = re.sub(r",\s*[-–—]$", ",00", s)
     negativ = False
     if s.startswith("(") and s.endswith(")"):
         negativ = True

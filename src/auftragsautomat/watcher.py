@@ -18,6 +18,8 @@ Besonderheiten:
   Tests). Ohne ``einmalig`` läuft die Schleife bis ``Strg+C`` bzw. ``stop_ereignis``.
 * Fehler in ``verarbeite`` werden geloggt, die Datei wird als (fehlerhaft) verarbeitet gemerkt und
   der Watcher läuft weiter.
+* Der Upload-Ordner für Rabattlisten (``rabatte.rabatt_pdf_ordner``, Standard ``eingang/rabatte``) liegt
+  im Eingang, enthält aber keine Aufträge und wird übersprungen (wie in ``eingang.liste_eingang``).
 """
 
 from __future__ import annotations
@@ -41,6 +43,7 @@ __all__ = [
     "VERARBEITET_DATEINAME",
     "EingangsHandler",
     "Verarbeitungsliste",
+    "ausgeschlossene_ordner",
     "finde_eingangsdateien",
     "ist_fertig_geschrieben",
     "starte_watch",
@@ -75,12 +78,37 @@ def _ist_kandidat(pfad: Path) -> bool:
     return ist_unterstuetzt(pfad)
 
 
-def finde_eingangsdateien(ordner: Path) -> list[Path]:
-    """Alle unterstützten Dateien im Ordner (rekursiv), stabil sortiert."""
+def _liegt_unter(pfad: Path, ordner: Iterable[Path]) -> bool:
+    """True, wenn ``pfad`` in einem der ``ordner`` (oder darunter) liegt."""
+    try:
+        aufgeloest = pfad.resolve()
+    except OSError:
+        return False
+    for o in ordner:
+        try:
+            aufgeloest.relative_to(Path(o).resolve())
+        except (ValueError, OSError):
+            continue
+        return True
+    return False
+
+
+def ausgeschlossene_ordner(settings: Settings) -> list[Path]:
+    """Ordner im Eingang, die keine Aufträge enthalten: der Upload-Ordner für Rabattlisten
+    (``rabatte.rabatt_pdf_ordner``) – eine Rabattliste ist keine Bestellung."""
+    ordner = settings.rabatte.rabatt_pdf_ordner
+    return [Path(ordner)] if ordner else []
+
+
+def finde_eingangsdateien(ordner: Path, *, ausschliessen: Iterable[Path] = ()) -> list[Path]:
+    """Alle unterstützten Dateien im Ordner (rekursiv), stabil sortiert; ohne Dateien unter ``ausschliessen``."""
     ordner = Path(ordner)
     if not ordner.is_dir():
         return []
-    return sorted(p for p in ordner.rglob("*") if p.is_file() and _ist_kandidat(p))
+    ausschliessen = list(ausschliessen)
+    return sorted(
+        p for p in ordner.rglob("*") if p.is_file() and _ist_kandidat(p) and not _liegt_unter(p, ausschliessen)
+    )
 
 
 def _kann_geoeffnet_werden(datei: Path) -> bool:
@@ -227,13 +255,14 @@ class Verarbeitungsliste:
 class EingangsHandler(FileSystemEventHandler):
     """Reicht neue und hineinverschobene Dateien mit unterstützter Endung in eine Warteschlange."""
 
-    def __init__(self, warteschlange: queue.Queue[Path]) -> None:
+    def __init__(self, warteschlange: queue.Queue[Path], *, ausschliessen: Iterable[Path] = ()) -> None:
         super().__init__()
         self.warteschlange = warteschlange
+        self.ausschliessen = list(ausschliessen)
 
     def _melde(self, pfad_roh: str | bytes) -> None:
         pfad = Path(os.fsdecode(pfad_roh))
-        if _ist_kandidat(pfad):
+        if _ist_kandidat(pfad) and not _liegt_unter(pfad, self.ausschliessen):
             logger.debug("Watcher: neue Datei gemeldet: %s", pfad)
             self.warteschlange.put(pfad)
 
@@ -354,8 +383,9 @@ def starte_watch(
         ", ".join(sorted(UNTERSTUETZTE_ENDUNGEN)),
     )
 
+    ausschliessen = ausgeschlossene_ordner(settings)
     anzahl = _verarbeite_vorhandene(
-        finde_eingangsdateien(eingang),
+        finde_eingangsdateien(eingang, ausschliessen=ausschliessen),
         verarbeite,
         merkliste,
         stabil_sekunden=stabil_sekunden,
@@ -367,7 +397,7 @@ def starte_watch(
 
     warteschlange: queue.Queue[Path] = queue.Queue()
     beobachter = Observer()
-    beobachter.schedule(EingangsHandler(warteschlange), str(eingang), recursive=True)
+    beobachter.schedule(EingangsHandler(warteschlange, ausschliessen=ausschliessen), str(eingang), recursive=True)
     beobachter.start()
     logger.info("Watcher beobachtet %s – beenden mit Strg+C", eingang)
     try:

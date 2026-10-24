@@ -404,6 +404,24 @@ def test_mehrere_sichere_aktionen_werden_unsicher_hoechster_zuerst(settings: Set
     assert not paket.blockiert
 
 
+def test_sichere_und_unsichere_aktion_mit_anderem_satz_werden_unsicher(settings: Settings):
+    """Regression (Review Befund 14): Aktion A (September, 10 %, sicher) und Aktion B (Oktober, 25 %, nur über
+    Toleranztage) auf derselben Position – A darf nicht still angewendet werden; RABATT_UNSICHER nennt beide."""
+    settings.rabatte.toleranz_tage = 30
+    paket = _paket(settings)
+    a = _aktion("excel:Aktionen:2")
+    b = _aktion("excel:Aktionen:3", von=date(2026, 10, 1), bis=date(2026, 10, 31), rabatt_prozent=Decimal("25"))
+    treffer = _treffer(paket, settings, a, b)
+    pos1 = [t for t in treffer if t.position_laufnr == 1]
+    assert len(pos1) == 2 and all(not t.sicher for t in pos1)
+    assert all("excel:Aktionen:2 (10 %)" in t.grund and "excel:Aktionen:3 (25 %)" in t.grund for t in pos1)
+    paket = wende_an(paket, treffer, settings)
+    assert _position(paket, 1).rabatt_prozent is None and _position(paket, 1).rabatt_quelle is None
+    unsicher = [h for h in _codes(paket, Pruefcode.RABATT_UNSICHER) if h.position_laufnr == 1]
+    assert len(unsicher) == 1 and set(unsicher[0].details["kandidaten"].split(",")) == {"excel:Aktionen:2", "excel:Aktionen:3"}
+    assert not [h for h in _codes(paket, Pruefcode.RABATT_VORSCHLAG) if h.position_laufnr == 1]
+
+
 def test_mehrere_aktionen_mit_gleichem_rabatt_bleiben_sicher(settings: Settings):
     paket = _paket(settings)
     a = _aktion("excel:Aktionen:2")

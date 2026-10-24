@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 
 from auftragsautomat.config import Firma, Settings
@@ -72,19 +73,27 @@ __all__ = [
     "EINHEITEN_FLASCHEN",
     "EINHEITEN_GEBINDE",
     "PRUEF_CODES",
+    "QUELLE_UPLOAD_VORGABE",
     "LieferantenGruppe",
     "belegfelder_vorbelegen",
     "entferne_pruefhinweise",
     "gruppiere_nach_lieferant",
     "ist_pruefhinweis",
     "lieferant_der_position",
+    "ist_revision",
     "normalisiere_belegnummer",
     "pruefe",
     "pruefe_dubletten",
+    "revision_dubletten_abstufen",
+    "revision_nummern",
     "zusammenfassung_hinweise",
 ]
 
 logger = logging.getLogger(__name__)
+
+#: ``details["quelle"]`` eines FIRMA_UNKLAR-Hinweises aus dem Upload (Vorgabe widerspricht der Ermittlung); er bleibt
+#: bis zur Firmenwahl in der Freigabe (``setze_firma`` erzeugt ein neues Paket) und wird von :func:`pruefe` nicht entfernt.
+QUELLE_UPLOAD_VORGABE = "upload_vorgabe"
 
 #: Hinweis-Codes, die diese Prüfung erzeugt und vor jedem Lauf entfernt (Idempotenz).
 PRUEF_CODES: frozenset[Pruefcode] = frozenset(
@@ -158,6 +167,15 @@ EINHEITEN_GEBINDE: frozenset[str] = frozenset(
     }
 )
 
+#: Einheiten einer Positionsmenge, die Gebinde meinen (Kolli/KOA/Kt/VE …): ohne Inhalt je VE ist die
+#: Flaschenmenge unbekannt (docs/AUSBAUSTUFE_2.md Abschnitt 4). Holzkisten (HK/OHK) sind eigene Artikel.
+_POSITIONS_GEBINDE: frozenset[str] = (EINHEITEN_GEBINDE - {"ohk", "hk", "holzkiste", "holzkisten"}) | {
+    "kolli",
+    "koa",
+    "tray",
+    "pak",
+}
+
 _MAX_KANDIDATEN_TEXT = 5
 
 
@@ -208,13 +226,16 @@ def ist_pruefhinweis(hinweis: Pruefhinweis) -> bool:
     """``True``, wenn der Hinweis von :func:`pruefe` stammt (und vor einem neuen Lauf entfernt wird).
 
     Ausgenommen: ``PREIS_ABWEICHUNG`` mit INFO (Artikel-Matching, "Preis 0,00 im Dokument") und
-    ``FIRMA_UNKLAR`` mit WARNUNG (Firmen-Ermittlung: Ordner widerspricht Alias / Kandidaten).
+    ``FIRMA_UNKLAR`` mit WARNUNG (Firmen-Ermittlung: Ordner widerspricht Alias / Kandidaten) sowie
+    ``FIRMA_UNKLAR`` aus dem Upload (:data:`QUELLE_UPLOAD_VORGABE`, bleibt bis zur Firmenwahl).
     """
     if hinweis.code not in PRUEF_CODES:
         return False
     if hinweis.code == Pruefcode.PREIS_ABWEICHUNG and hinweis.schweregrad == Schweregrad.INFO:
         return False
     if hinweis.code == Pruefcode.FIRMA_UNKLAR and hinweis.schweregrad == Schweregrad.WARNUNG:
+        return False
+    if hinweis.code == Pruefcode.FIRMA_UNKLAR and hinweis.details.get("quelle") == QUELLE_UPLOAD_VORGABE:
         return False
     return True
 
@@ -566,6 +587,18 @@ def _pruefe_lieferant(paket: Belegpaket) -> list[Pruefhinweis]:
 # ---------------------------------------------------------------------------
 
 
+def _flaschenmenge_unbekannt(position: PositionsZuordnung) -> bool:
+    """Menge laut Dokument in einer Gebinde-Einheit (bzw. als VE-Anzahl) ohne Inhalt je VE, und der Anwender hat
+    sie noch nicht korrigiert: Lexware bekäme sonst die Anzahl Kolli als Flaschenmenge."""
+    roh = position.roh
+    if roh.ve_inhalt is not None:
+        return False
+    gebinde = _einheit_norm(roh.einheit) in _POSITIONS_GEBINDE or roh.menge_ve is not None
+    if not gebinde:
+        return False
+    return roh.menge is None or position.menge == roh.menge
+
+
 def _pruefe_position(
     position: PositionsZuordnung, paket: Belegpaket, toleranz: Decimal
 ) -> list[Pruefhinweis]:
@@ -583,6 +616,20 @@ def _pruefe_position(
                 f"Position {laufnr} '{bezeichnung}': Menge fehlt oder ist 0",
                 laufnr=laufnr,
                 menge=_menge(position.menge),
+            )
+        )
+    elif _flaschenmenge_unbekannt(position):
+        roh = position.roh
+        einheit = roh.einheit or "VE"
+        hinweise.append(
+            _hinweis(
+                Pruefcode.MENGE_FEHLT,
+                Schweregrad.FEHLER,
+                f"Position {laufnr} '{bezeichnung}': Menge {_menge(position.menge)} {einheit} (Gebinde), Inhalt je VE "
+                "unbekannt – Flaschenmenge bitte prüfen und in Flaschen korrigieren",
+                laufnr=laufnr,
+                menge=_menge(position.menge),
+                einheit=einheit,
             )
         )
 
@@ -841,12 +888,132 @@ def pruefe_dubletten(
                     kundenbestellnummer=beleg.kundenbestellnummer or "",
                     partnernummer=beleg.partnernummer or "",
                     dokument=treffer_feld,
+                    datum=beleg.datum.isoformat() if beleg.datum else "",
                 )
             )
     if eintragen:
         paket.hinweise = [h for h in paket.hinweise if h.code != Pruefcode.DUBLETTE]
         paket.hinweise.extend(hinweise)
     return hinweise
+
+
+# ---------------------------------------------------------------------------
+# Revised Order (docs/AUSBAUSTUFE_2.md 5.1.3, Geschäftsregel 15)
+# ---------------------------------------------------------------------------
+
+
+def ist_revision(paket: Belegpaket) -> bool:
+    """Revised Order: Entscheidung in der Freigabe (``paket.revision_bestaetigt``), sonst ``paket.ist_revision``
+    oder Extraktion (``roh.ist_revision``)."""
+    return paket.revision_wirksam
+
+
+def _eigene_nummern(paket: Belegpaket) -> set[str]:
+    return {normalisiere_belegnummer(n) for n in (paket.roh.bestellnummer, paket.roh.belegnummer) if n} - {""}
+
+
+def _ausdrueckliche_revision_von(paket: Belegpaket) -> str:
+    """Normalisiertes ``revision_von`` (Paket, sonst Dokument), nur wenn es sich von der eigenen Nummer unterscheidet."""
+    quelle = normalisiere_belegnummer((paket.revision_von or paket.roh.revision_von or "").strip())
+    return quelle if quelle and quelle not in _eigene_nummern(paket) else ""
+
+
+def revision_nummern(paket: Belegpaket) -> set[str]:
+    """Normalisierte Nummern der ersetzten Bestellung: ``revision_von`` (Paket, sonst Dokument); fehlt sie,
+    die eigene Kundenbestellnummer/Belegnummer (eine Revised Order trägt meist dieselbe Nummer).
+    Leer, wenn das Paket keine Revision ist."""
+    if not ist_revision(paket):
+        return set()
+    quelle = (paket.revision_von or paket.roh.revision_von or "").strip()
+    if quelle:
+        return {normalisiere_belegnummer(quelle)} - {""}
+    # TODO-PRUEFEN: ob Revised Orders der Kunden (z. B. LEH) immer dieselbe Bestellnummer tragen; sonst muss
+    # die Extraktion revision_von liefern.
+    return _eigene_nummern(paket)
+
+
+def _datum_aus(details: dict[str, str]) -> date | None:
+    try:
+        return date.fromisoformat(details.get("datum") or "")
+    except ValueError:
+        return None
+
+
+def _nicht_als_original(paket: Belegpaket, treffer: list[Pruefhinweis]) -> str | None:
+    """Grund, warum Treffer zur eigenen Nummer NICHT die ersetzte Bestellung sein können (sonst None).
+
+    Ohne ausdrückliches ``revision_von`` ist nur eine einzige frühere Bestellung zulässig: höchstens ein
+    Beleg je Belegart (Cde/AB des Originals) und keiner, der am oder nach dem Datum der Revised Order
+    angelegt wurde (das wäre eine bereits gebuchte Revision bzw. dieselbe Bestellung noch einmal).
+    """
+    je_art: dict[str, int] = {}
+    for h in treffer:
+        art = h.details.get("belegart") or "?"
+        je_art[art] = je_art.get(art, 0) + 1
+    mehrfach = sorted(art for art, anzahl in je_art.items() if anzahl > 1)
+    if mehrfach:
+        return f"mehrere vorhandene Belege derselben Art ({', '.join(mehrfach)}) – welcher ersetzt wird, ist unklar"
+    stichtag = paket.roh.datum
+    if stichtag is not None:
+        juenger = [h.details.get("belegnummer") or "?" for h in treffer if (d := _datum_aus(h.details)) and d >= stichtag]
+        if juenger:
+            return (
+                f"Beleg {', '.join(juenger)} ist nicht älter als die Revised Order vom {stichtag:%d.%m.%Y} "
+                "(bereits gebucht?)"
+            )
+    return None
+
+
+def revision_dubletten_abstufen(paket: Belegpaket, hinweise: list[Pruefhinweis]) -> tuple[list[Pruefhinweis], list[str]]:
+    """Revised Order: DUBLETTE-Treffer zur ersetzten Bestellung werden zur Info (in place, Text "Revised Order:
+    ersetzt …", ``details["revision"] = "ersetzt"``), denn Cde und AB werden neu angelegt.
+
+    Nennt das Paket ein ``revision_von``, das sich von der eigenen Nummer unterscheidet, werden genau die
+    Treffer zu dieser Nummer abgestuft. Sonst (Revision mit derselben Nummer) nur, wenn die Treffer eine einzige
+    ältere Bestellung bilden (höchstens ein Beleg je Belegart, älter als das Dokument); mehrere Treffer oder
+    jüngere Belege bleiben FEHLER (Geschäftsregel 5), der Text nennt den Grund.
+
+    Liefert ``(verbleibende FEHLER, Texte der abgestuften Hinweise)``. Ohne Revision bleiben alle Treffer FEHLER.
+    """
+    nummern = revision_nummern(paket)
+    if not nummern:
+        return [h for h in hinweise if h.schweregrad == Schweregrad.FEHLER], []
+    offen = [h for h in hinweise if h.code == Pruefcode.DUBLETTE and h.schweregrad == Schweregrad.FEHLER]
+    passend = [
+        h
+        for h in offen
+        if {
+            normalisiere_belegnummer(h.details.get("belegnummer")),
+            normalisiere_belegnummer(h.details.get("kundenbestellnummer")),
+        }
+        & nummern
+    ]
+    if passend and not _ausdrueckliche_revision_von(paket):
+        grund = _nicht_als_original(paket, passend)
+        if grund is not None:
+            for h in passend:
+                if h.details.get("revision") != "unklar":
+                    h.details["revision"] = "unklar"
+                    h.text += f" – Revised Order nicht als Ersatz gewertet: {grund}"
+            logger.warning("Revised Order: Dubletten bleiben FEHLER (%s)", grund)
+            passend = []
+    verbleibend: list[Pruefhinweis] = []
+    texte: list[str] = []
+    for h in hinweise:
+        if h.code != Pruefcode.DUBLETTE or h.schweregrad != Schweregrad.FEHLER:
+            continue
+        if any(h is p for p in passend):
+            h.schweregrad = Schweregrad.INFO
+            h.text = (
+                f"Revised Order: ersetzt {h.details.get('belegart') or 'den'}-Beleg {h.details.get('belegnummer') or '?'} "
+                f"(Cde und AB werden neu angelegt) – {h.text}"
+            )
+            h.details["revision"] = "ersetzt"
+            texte.append(h.text)
+            logger.info("Revised Order: Dubletten-Treffer %s als Info gewertet", h.details.get("belegnummer"))
+        else:
+            verbleibend.append(h)
+    return verbleibend, texte
 
 
 # ---------------------------------------------------------------------------
@@ -868,7 +1035,11 @@ def pruefe(paket: Belegpaket, stammdaten: Stammdaten | None, settings: Settings)
     paket.hinweise.extend(_pruefe_weitere_lieferanten(paket, stammdaten))
     _pruefe_positionen(paket, settings)
     paket.hinweise.extend(_pruefe_summenvermerke(paket))
-    paket.hinweise.extend(pruefe_dubletten(paket, stammdaten))
+    dubletten = pruefe_dubletten(paket, stammdaten)
+    # Revised Order: die ersetzte Bestellung ist keine Dublette, sondern wird ersetzt (Info statt Fehler),
+    # sonst wäre das Paket schon in der Freigabe blockiert (Geschäftsregel 15).
+    revision_dubletten_abstufen(paket, dubletten)
+    paket.hinweise.extend(dubletten)
     paket.hinweise.extend(_pruefe_belegfelder(paket))
 
     fehler = sum(1 for h in paket.alle_hinweise if h.schweregrad == Schweregrad.FEHLER)

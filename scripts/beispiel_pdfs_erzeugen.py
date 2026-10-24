@@ -224,7 +224,7 @@ def erzeuge_kundenbestellung_menrath(ziel: Path) -> Path:
         )
     )
     inhalt.append(Spacer(1, 6 * mm))
-    inhalt.append(Paragraph("Sehr geehrte Frau Adolph,", st["normal"]))
+    inhalt.append(Paragraph("Sehr geehrte Frau Beispiel,", st["normal"]))
     inhalt.append(Paragraph("wir bestellen hiermit zu den vereinbarten Konditionen:", st["normal"]))
     inhalt.append(Spacer(1, 4 * mm))
     inhalt.extend(

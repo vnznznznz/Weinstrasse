@@ -53,11 +53,14 @@ __all__ = [
 
 _AUSZUG_LAENGE = 300
 
+# Datumsformen in Mails: "27.10.", "27.10.2026", "2026-10-27", "27/10/2026" (IT/ES/FR), "27 October 2026",
+# "27. Oktober 2026", "27 ottobre 2026", "October 27, 2026" (Monatsnamen DE/EN/IT/FR/ES/PT, siehe _MONATE_MAIL)
 _DATUM = (
     r"(?P<datum>\d{1,2}\.\s?\d{1,2}\.(?:\s?\d{4}|\s?\d{2}(?!\d))?"
     r"|\d{4}-\d{2}-\d{2}"
-    r"|\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-zéû]{3,9}\.?\s+\d{4}"
-    r"|[A-Za-z]{3,9}\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})"
+    r"|\d{1,2}/\d{1,2}/(?:\d{4}|\d{2})(?!\d)"
+    r"|\d{1,2}(?:\.|st|nd|rd|th|er|º|°)?\s+(?:de\s+)?[^\W\d_]{3,10}\.?\s+(?:de\s+)?\d{4}"
+    r"|[^\W\d_]{3,10}\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})"
 )
 _ARTIKEL = r"(?:den\s+|dem\s+|the\s+|il\s+|el\s+|le\s+|on\s+|am\s+|il\s+giorno\s+)?"
 
@@ -137,9 +140,28 @@ _MONATE_EN: dict[str, int] = {
     "jun": 6, "june": 6, "jul": 7, "july": 7, "aug": 8, "august": 8, "sep": 9, "sept": 9, "september": 9,
     "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12,
 }  # fmt: skip
+#: Monatsnamen der Mails (EN, DE, IT, FR, ES, PT); der Modul-Docstring verspricht diese Sprachen.
+_MONATE_MAIL: dict[str, int] = _MONATE_EN | {
+    # Deutsch
+    "januar": 1, "jänner": 1, "februar": 2, "märz": 3, "maerz": 3, "mai": 5, "juni": 6, "juli": 7,
+    "okt": 10, "oktober": 10, "dez": 12, "dezember": 12,
+    # Italienisch
+    "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6, "luglio": 7, "agosto": 8,
+    "settembre": 9, "ottobre": 10, "dicembre": 12,
+    # Französisch
+    "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4, "juin": 6, "juillet": 7, "août": 8, "aout": 8,
+    "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
+    # Spanisch
+    "enero": 1, "febrero": 2, "abril": 4, "mayo": 5, "junio": 6, "julio": 7, "septiembre": 9, "setiembre": 9,
+    "octubre": 10, "noviembre": 11, "diciembre": 12,
+    # Portugiesisch
+    "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "maio": 5, "junho": 6, "julho": 7, "setembro": 9,
+    "outubro": 10, "novembro": 11, "dezembro": 12,
+}  # fmt: skip
 _KURZDATUM_RE = re.compile(r"^\s*(?P<t>\d{1,2})\.\s?(?P<m>\d{1,2})\.\s?(?P<j>\d{4}|\d{2})?\s*$")
 _EN_DATUM_RE = re.compile(
-    r"^\s*(?:(?P<t1>\d{1,2})(?:st|nd|rd|th)?\s+(?P<m1>[A-Za-z]{3,9})\.?\s+(?P<j1>\d{4})|(?P<m2>[A-Za-z]{3,9})\.?\s+(?P<t2>\d{1,2})(?:st|nd|rd|th)?,?\s+(?P<j2>\d{4}))\s*$",
+    r"^\s*(?:(?P<t1>\d{1,2})(?:\.|st|nd|rd|th|er|º|°)?\s+(?:de\s+)?(?P<m1>[^\W\d_]{3,10})\.?\s+(?:de\s+)?(?P<j1>\d{4})"
+    r"|(?P<m2>[^\W\d_]{3,10})\.?\s+(?P<t2>\d{1,2})(?:st|nd|rd|th)?,?\s+(?P<j2>\d{4}))\s*$",
     re.IGNORECASE,
 )
 
@@ -187,8 +209,10 @@ def _auszug(text: str, laenge: int = _AUSZUG_LAENGE) -> str | None:
 
 
 def _datum_mit_bezug(text: str | None, bezug: date | datetime | None) -> date | None:
-    """"27.10.", "27.10.2026", "27.10.26", "2026-10-27", "27 October 2026", "October 27, 2026".
-    Fehlt das Jahr, kommt es aus dem Empfangsdatum (Termin mehr als zwei Monate vor dem Empfang -> Folgejahr)."""
+    """"27.10.", "27.10.2026", "27.10.26", "2026-10-27", "27/10/2026", "27 October 2026", "27. Oktober 2026",
+    "27 ottobre 2026", "October 27, 2026" (Monatsnamen DE/EN/IT/FR/ES/PT). Fehlt das Jahr, kommt es aus dem
+    Empfangsdatum (Termin mehr als zwei Monate vor dem Empfang -> Folgejahr). Unbekannte Monatsnamen fallen auf
+    ``finde_datum`` zurück."""
     if not text:
         return None
     text = text.strip()
@@ -197,13 +221,12 @@ def _datum_mit_bezug(text: str | None, bezug: date | datetime | None) -> date | 
     treffer = _EN_DATUM_RE.match(text)
     if treffer:
         g = treffer.groupdict()
-        monat = _MONATE_EN.get((g["m1"] or g["m2"]).lower())
-        if monat is None:
-            return None
-        try:
-            return date(int(g["j1"] or g["j2"]), monat, int(g["t1"] or g["t2"]))
-        except ValueError:
-            return None
+        monat = _MONATE_MAIL.get((g["m1"] or g["m2"]).casefold())
+        if monat is not None:
+            try:
+                return date(int(g["j1"] or g["j2"]), monat, int(g["t1"] or g["t2"]))
+            except ValueError:
+                return None
     treffer = _KURZDATUM_RE.match(text)
     if treffer:
         tag, monat = int(treffer["t"]), int(treffer["m"])
@@ -410,12 +433,12 @@ def _lieferant_bestaetigung(mail: Mail, betreff: str, text: str, gruppe: Kontakt
     referenz = _gruppe(_suche(_BESTAETIGUNGS_NR_RE, betreff, text), "nr")
     if referenz is not None and referenz == kundenreferenz:
         referenz = None
+    # Nur ein ausdrückliches Verladedatum zählt; eine Terminverschiebung ("Liefertermin verschoben auf …") ist
+    # kein Verladedatum, sondern ein eigenes Ereignis (Terminaenderung, nur Vorschlag – Autonomie-Grenze).
     verladung = VERLADEDATUM_RE.search(text) or VERLADEDATUM_RE.search(betreff)
     neues_datum = _datum_aus_treffer(verladung, mail.kopf.empfangen)
     if neues_datum is None:
-        aenderung = TERMINAENDERUNG_RE.search(text)
-        neues_datum = _datum_aus_treffer(aenderung, mail.kopf.empfangen)
-        verladung = aenderung if neues_datum is not None else None
+        verladung = None
     if verladung is not None:
         auszug = _satz_um(verladung.string, verladung)
     else:
@@ -483,8 +506,10 @@ def klassifiziere_alle(
     kontaktliste: Any | None = None,
 ) -> list[MailEreignis]:
     """Alle Ereignisse einer Mail: zuerst das Hauptereignis (Spedition > Lieferantenbestätigung >
-    Terminänderung > Kontaktänderung), dann Nebenereignisse (Terminänderung mit Datum in einer
-    Bestätigung, Kontaktänderungs-Marker). Leer, wenn die Mail nichts Erkennbares enthält.
+    Terminänderung > Kontaktänderung), dann Nebenereignisse (Terminänderung in einer Bestätigung,
+    Kontaktänderungs-Marker). Eine Terminänderung in einer Lieferantenbestätigung ist immer ein eigenes
+    Ereignis (auch ohne Datum); bei einer Speditionsbestätigung entfällt sie nur, wenn deren Datum schon im
+    Hauptereignis steht (gleichartig: beide sind Terminvorschläge). Leer, wenn die Mail nichts Erkennbares enthält.
     ``kontaktliste`` (``Kontaktliste`` mit ``kontakt_fuer_email``) hebt die Konfidenz bekannter Absender und
     schließt Kunden-/Speditionsabsender als Lieferantenbestätigung aus."""
     betreff = (mail.kopf.betreff or "").strip()
@@ -507,13 +532,12 @@ def klassifiziere_alle(
     if haupt is None:
         return []
     ereignisse.append(haupt)
-    if (
-        termin is not None
-        and termin.neues_datum is not None
-        and haupt.typ != Ereignistyp.TERMINAENDERUNG
-        and termin.neues_datum != haupt.neues_datum  # dasselbe Datum steht schon im Hauptereignis
-    ):
-        ereignisse.append(termin)
+    if termin is not None and haupt.typ != Ereignistyp.TERMINAENDERUNG:
+        if haupt.typ == Ereignistyp.LIEFERANT_BESTAETIGUNG:
+            # Verladedatum (automatisch) und Terminverschiebung (nur Vorschlag) sind verschiedene Dinge
+            ereignisse.append(termin)
+        elif termin.neues_datum is not None and termin.neues_datum != haupt.neues_datum:
+            ereignisse.append(termin)  # Spedition: dasselbe Datum ist dort schon ein Terminvorschlag
     if kontakt is not None:
         ereignisse.append(kontakt)
     for e in ereignisse:

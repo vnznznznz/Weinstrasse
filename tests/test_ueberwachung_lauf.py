@@ -59,6 +59,8 @@ JETZT = datetime(2026, 10, 26, 7, 5).astimezone()
 VON, BIS = date(2026, 10, 19), date(2026, 11, 27)
 LIEFERANT, KUNDE = "Weingut Beispiel", "Beispielmarkt"
 BESTELLNUMMER = "WIK-2026-0100"
+#: Fixtermin 5 Werktage nach HEUTE: Nachfrage beim Lieferanten (Schwelle 10) und bei der Spedition (Schwelle 5) fällig
+FAELLIG = date(2026, 11, 2)
 
 #: (Lieferant, Kunde, Auftragsdatum, Verladedatum, Lief. best., Sped. best., Abgeholt, Bemerkung)
 Eintrag = tuple[str, str, date | None, date | None, bool, bool, bool, str]
@@ -216,7 +218,7 @@ class KaputteKette:
 
 
 def test_szenario_a_nachfrage_lieferant_als_eml_gelb(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))  # 12 Werktage
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))  # 5 Werktage: beide Schwellen erreicht
     lauf = umg.lauf()
     bericht = lauf.ausfuehren(dry_run=True)
 
@@ -224,8 +226,8 @@ def test_szenario_a_nachfrage_lieferant_als_eml_gelb(ue_settings: Settings, list
     assert bericht.zeitpunkt.date() == HEUTE and bericht.fehler == []
     assert len(bericht.punkte) == 1
     punkt = bericht.punkte[0]
-    assert punkt.ampel == "gelb" and punkt.fixtermin.liefertag == date(2026, 11, 11) and punkt.fixtermin.bestellnummer == BESTELLNUMMER
-    assert "Bestätigung des Lieferanten fehlt (Frist 28.10.2026" in punkt.grund
+    assert punkt.ampel == "gelb" and punkt.fixtermin.liefertag == FAELLIG and punkt.fixtermin.bestellnummer == BESTELLNUMMER
+    assert "Bestätigung des Lieferanten überfällig (Frist 19.10.2026" in punkt.grund and "Bestätigung der Spedition fehlt (Frist 26.10.2026" in punkt.grund
     assert any(a.startswith("Nachfrage Lieferant: Entwurf 'Order WIK-2026-0100 – Beispielmarkt: confirmation and loading date' an orders@weingut-beispiel.example.org") for a in punkt.aktionen)
     assert any(a.startswith("Nachfrage Spedition: Entwurf 'Statusanfrage – Weingut Beispiel / Beispielmarkt' an info@hillebrand.example.org") for a in punkt.aktionen)
 
@@ -237,7 +239,7 @@ def test_szenario_a_nachfrage_lieferant_als_eml_gelb(ue_settings: Settings, list
     nachricht = email.message_from_bytes(eml.read_bytes(), policy=email.policy.default)
     assert nachricht["X-Unsent"] == "1" and nachricht["To"] == "orders@weingut-beispiel.example.org"
     assert nachfragen[0].text_plain.startswith("Dear Ms Esempio,") and "WIK-2026-0100" in nachfragen[0].text_plain
-    assert "11.11.2026" in nachfragen[0].text_plain
+    assert "02.11.2026" in nachfragen[0].text_plain
 
     assert len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_SPEDITION)) == 1
     erinnerung = umg.entwuerfe(EntwurfTyp.ERINNERUNG_INTERN)
@@ -250,7 +252,7 @@ def test_szenario_a_nachfrage_lieferant_als_eml_gelb(ue_settings: Settings, list
 
 
 def test_szenario_a_scharf_schreibt_merkdatei_und_bericht(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))
     bericht = umg.lauf().ausfuehren(dry_run=False)
     merk = json.loads(ue_settings.ueberwachung.merkdatei.read_text(encoding="utf-8"))
     assert merk == {f"lieferant|{BESTELLNUMMER}": "2026-10-26", f"spedition|{BESTELLNUMMER}": "2026-10-26"}
@@ -319,6 +321,26 @@ def test_szenario_b_dry_run_schlaegt_nur_vor(ue_settings: Settings, liste: Konta
     assert punkt.ampel == "gelb" and len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_LIEFERANT)) == 1
 
 
+def test_dry_run_bewertet_wie_der_scharfe_lauf(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
+    """Regression (Integration Stufe 2): Sind Weingut und Spedition laut Posteingang bestätigt, setzt der scharfe
+    Lauf beide Häkchen und fragt nicht nach. Der Dry Run schrieb nichts, bewertete aber die unveränderte Zeile und
+    legte Nachfragen an Weingut und Spedition an, die der scharfe Lauf nie erzeugt hätte."""
+    mails = [_mail("spedition_bestaetigung"), _mail("lieferant_bestaetigung_en")]
+    scharf_umg = _umgebung(ue_settings, liste, tmp_path / "scharf", _tage(_eintrag(date(2026, 11, 9))), mails)
+    scharf = scharf_umg.lauf().ausfuehren(dry_run=False)
+    dry_umg = _umgebung(ue_settings, liste, tmp_path / "dry", _tage(_eintrag(date(2026, 11, 9))), mails)
+    dry = dry_umg.lauf().ausfuehren(dry_run=True)
+
+    assert dry_umg.excel.schreibprotokoll == []
+    punkt = dry.punkte[0]
+    assert not punkt.fixtermin.lieferant_bestaetigt and not punkt.fixtermin.spedition_bestaetigt  # Bericht zeigt die Excel
+    assert any("würde gesetzt" in a for a in punkt.aktionen)
+    assert punkt.ampel == scharf.punkte[0].ampel and punkt.grund == scharf.punkte[0].grund
+    for typ in (EntwurfTyp.NACHFRAGE_LIEFERANT, EntwurfTyp.NACHFRAGE_SPEDITION):
+        assert dry_umg.entwuerfe(typ) == [] and scharf_umg.entwuerfe(typ) == []
+    assert punkt.sendung is not None and punkt.sendung.referenz == "DEMB00000"
+
+
 def test_szenario_b_ohne_automatik_nur_vorschlag(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
     ue_settings.ueberwachung.bestaetigungen_automatisch_setzen = False
     umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 9))), [_mail("spedition_bestaetigung")])
@@ -338,6 +360,42 @@ def test_lieferantenbestaetigung_setzt_haekchen_und_verladedatum(ue_settings: Se
     assert zellen[f"H{ft.zeile}"] is True and zellen[f"G{ft.zeile}"] == date(2026, 11, 5)
     assert bericht.punkte[0].ampel == "gruen" and "Verladung am 05.11.2026" in bericht.punkte[0].grund
     assert umg.mail.entwuerfe == []
+
+
+def test_terminverschiebung_in_bestaetigung_ist_vorschlag_kein_verladedatum(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
+    """Regression (Review Befund 9): 'Liefertermin wird verschoben auf 20.11.' in einer Lieferantenbestätigung
+    ist kein Verladedatum. Das Häkchen wird gesetzt, die Terminänderung wird nur vorgeschlagen (Autonomie-Grenze),
+    die Spalte Verladedatum bleibt leer."""
+    kopf = MailKopf(
+        id="verschiebung-1", betreff="Bestellbestätigung", absender="orders@weingut-beispiel.example.org",
+        empfangen=datetime(2026, 10, 23, 9, 0).astimezone(),
+    )
+    text = "Hiermit bestätigen wir Ihre Bestellung Nr. WIK-2026-0100. Der Liefertermin wird verschoben auf den 20.11.2026."
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 9), bs=True)), [Mail(kopf=kopf, text=text)])
+    lauf = umg.lauf()
+    bericht = lauf.ausfuehren(dry_run=False)
+    ft = bericht.punkte[0].fixtermin
+    assert ft.lieferant_bestaetigt and ft.verladedatum is None
+    zellen = {z: w for zugriff in umg.excel.schreibprotokoll for z, w, _ in zugriff.zellen}
+    assert f"G{ft.zeile}" not in zellen
+    assert len(bericht.terminaenderungen) == 1
+    t = bericht.terminaenderungen[0]
+    assert t.neues_datum == date(2026, 11, 20) and not t.uebernommen and t.fixtermin.liefertag == date(2026, 11, 9)
+
+
+def test_verladedatum_nach_dem_fixtermin_wird_nicht_eingetragen(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
+    """Regression (Review Befund 9): Ein Verladedatum nach dem Fixtermin ist unplausibel und wird nur gemeldet."""
+    kopf = MailKopf(
+        id="verladung-spaet", betreff="Order confirmation WIK-2026-0100", absender="orders@weingut-beispiel.example.org",
+        empfangen=datetime(2026, 10, 23, 9, 0).astimezone(),
+    )
+    text = "We confirm your order no. WIK-2026-0100. Loading date: 12.11.2026."
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 9), bs=True)), [Mail(kopf=kopf, text=text)])
+    lauf = umg.lauf()
+    bericht = lauf.ausfuehren(dry_run=False)
+    ft = bericht.punkte[0].fixtermin
+    assert ft.lieferant_bestaetigt and ft.verladedatum is None
+    assert any("liegt nach dem Fixtermin" in h for h in lauf.hinweise)
 
 
 # ---------------------------------------------------------------- Szenario C
@@ -381,7 +439,7 @@ def test_szenario_c_automatisch_verschiebt_den_eintrag(ue_settings: Settings, li
 
 
 def test_szenario_d_drossel_verhindert_zweite_nachfrage_am_folgetag(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))
     erster = umg.lauf(heute=HEUTE).ausfuehren(dry_run=False)
     assert len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_LIEFERANT)) == 1 and len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_SPEDITION)) == 1
     assert [e.typ for e in erster.entwuerfe] == [EntwurfTyp.NACHFRAGE_LIEFERANT, EntwurfTyp.NACHFRAGE_SPEDITION, EntwurfTyp.ERINNERUNG_INTERN]
@@ -390,7 +448,7 @@ def test_szenario_d_drossel_verhindert_zweite_nachfrage_am_folgetag(ue_settings:
     assert len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_LIEFERANT)) == 1  # keine zweite Nachfrage
     assert len(umg.entwuerfe(EntwurfTyp.NACHFRAGE_SPEDITION)) == 1
     assert [e.typ for e in zweiter.entwuerfe] == [EntwurfTyp.ERINNERUNG_INTERN]
-    assert zweiter.punkte[0].ampel == "gelb"
+    assert zweiter.punkte[0].ampel == "rot"  # nur noch 4 Werktage bis zum Fixtermin, weiterhin unbestätigt
     assert any(a == "Nachfrage Lieferant gedrosselt (zuletzt 26.10.2026, erneut nach 2 Werktagen)" for a in zweiter.punkte[0].aktionen)
     assert any(a.startswith("Nachfrage Spedition gedrosselt") for a in zweiter.punkte[0].aktionen)
 
@@ -401,7 +459,7 @@ def test_szenario_d_drossel_verhindert_zweite_nachfrage_am_folgetag(ue_settings:
 
 
 def test_drossel_im_dry_run_nicht_gespeichert_aber_beachtet(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))
     umg.lauf().ausfuehren(dry_run=True)
     assert not ue_settings.ueberwachung.merkdatei.exists()
     drossel = Drossel(ue_settings.ueberwachung.merkdatei)
@@ -415,13 +473,13 @@ def test_drossel_im_dry_run_nicht_gespeichert_aber_beachtet(ue_settings: Setting
 
 
 def test_szenario_e_tracking_exception_landet_in_fehler_lauf_geht_weiter(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11)), _eintrag(date(2026, 11, 12), bl=True, bs=True, kunde="Weinhandlung Beispiel", bemerkung="Best.-Nr 4712, Hillebrand | Ref. DEMB00001")))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG), _eintrag(date(2026, 11, 12), bl=True, bs=True, kunde="Weinhandlung Beispiel", bemerkung="Best.-Nr 4712, Hillebrand | Ref. DEMB00001")))
     kette = KaputteKette()
     lauf = umg.lauf(kette=kette)
     bericht = lauf.ausfuehren(dry_run=True)
     assert kette.aufrufe == 2
     assert len(bericht.fehler) == 2
-    assert bericht.fehler[0].startswith("Tracking Weingut Beispiel / Beispielmarkt am 11.11.2026 (WIK-2026-0100): RuntimeError: Portal nicht erreichbar")
+    assert bericht.fehler[0].startswith("Tracking Weingut Beispiel / Beispielmarkt am 02.11.2026 (WIK-2026-0100): RuntimeError: Portal nicht erreichbar")
     assert bericht.fehler[1].startswith("Tracking Weingut Beispiel / Weinhandlung Beispiel am 12.11.2026 (DEMB00001): RuntimeError")
     assert len(bericht.punkte) == 2 and bericht.punkte[0].ampel == "gelb" and bericht.punkte[1].ampel == "gruen"
     assert all(p.sendung is not None and p.sendung.quelle == "keine" and "Tracking fehlgeschlagen" in p.sendung.hinweise[-1] for p in bericht.punkte)
@@ -537,7 +595,7 @@ def test_eml_aus_mail_deterministisch_mit_html_und_anhangshinweis():
 
 
 def test_lauf_mit_mail_backend_direkt_und_fabrik_funktion(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))
     aufrufe: list[str | None] = []
 
     def fabrik(firma_id: str | None) -> Entwurfsfabrik:
@@ -552,13 +610,13 @@ def test_lauf_mit_mail_backend_direkt_und_fabrik_funktion(ue_settings: Settings,
 
 
 def test_ueberwachen_aus_settings_schreibt_bericht(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):
-    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(date(2026, 11, 11))))
+    umg = _umgebung(ue_settings, liste, tmp_path, _tage(_eintrag(FAELLIG)))
     bericht, pfad = ueberwachen(ue_settings, dry_run=True, heute=HEUTE, backends=umg.backends, kontaktliste=liste, stammdaten={}, firma_id="wik_leh")
     assert pfad == ue_settings.ueberwachung.berichte_ordner / "ueberwachung_2026-10-26.md" and pfad.is_file()
     assert bericht.fehler == [] and bericht.punkte[0].ampel == "gelb" and len(bericht.entwuerfe) == 3
     assert lade_letzten_bericht(ue_settings.ueberwachung.berichte_ordner) == bericht
     text = pfad.read_text(encoding="utf-8")
-    assert "| GELB | 11.11.2026 | Weingut Beispiel | Beispielmarkt |" in text and "nachfrage_lieferant" in text
+    assert "| GELB | 02.11.2026 | Weingut Beispiel | Beispielmarkt |" in text and "nachfrage_lieferant" in text
 
 
 def test_aus_settings_ohne_firmen_meldet_klar(ue_settings: Settings, liste: Kontaktliste, tmp_path: Path):

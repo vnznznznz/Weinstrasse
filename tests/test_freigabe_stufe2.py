@@ -25,7 +25,7 @@ from auftragsautomat.freigabe import seiten_stufe2 as stufe2
 from auftragsautomat.lexware import nachbereitung as nbm
 from auftragsautomat.m365.fabrik import Backends
 from auftragsautomat.m365.fake import FakeDateiBackend, FakeExcelBackend, FakeMailBackend
-from auftragsautomat.matching.pipeline import erstelle_belegpaket
+from auftragsautomat.matching.pipeline import erstelle_belegpaket, pruefe_erneut
 from auftragsautomat.models import (
     Aktion,
     Belegpaket,
@@ -179,10 +179,24 @@ def test_upload_speichern_und_pruefen(ui_settings: Settings):
     assert ergebnis.paket.firma_id == "wik_leh" and ergebnis.paket.positionen
     assert ergebnis.paket_pfad.is_file() and ergebnis.paket_pfad.parent == zustand.paket_ordner(ui_settings)
     assert zustand.lade_paket(ergebnis.paket_pfad).roh.quelldatei == ergebnis.datei
-    # Firma-Vorgabe weicht von der ermittelten Firma ab -> setze_firma
+    assert not [h for h in ergebnis.paket.hinweise if h.code == Pruefcode.FIRMA_UNKLAR]
+    # Regression (Review Befund 2): Firma-Vorgabe weicht von der ermittelten Firma ab -> nie still erzwingen,
+    # sondern blockierender FIRMA_UNKLAR mit beiden Kandidaten (auch nach erneuter Prüfung)
     ui_settings.eingang.upload_in_firmen_unterordner = False
     anders = stufe2.upload_speichern_und_pruefen("zweite.pdf", PDF.read_bytes(), ui_settings, firma_id="wik_fh_seh")
-    assert anders.datei.parent == ui_settings.eingang_ordner and anders.paket.firma_id == "wik_fh_seh" and anders.paket.firma_quelle == "manuell"
+    assert anders.datei.parent == ui_settings.eingang_ordner and anders.paket.firma_id == "wik_leh"
+    assert anders.paket.firma_quelle != "manuell" and anders.paket.blockiert
+    wahl = stufe2.firmenwahl_kandidaten(anders.paket)
+    assert wahl is not None and wahl.blockiert and wahl.kandidaten == ["wik_fh_seh", "wik_leh"]
+    assert stufe2.firmenwahl_kandidaten(pruefe_erneut(anders.paket, ui_settings)) is not None
+    assert stufe2.firmenwahl_kandidaten(zustand.lade_paket(anders.paket_pfad)) is not None
+    gewaehlt = stufe2.firma_waehlen(anders.paket, "wik_leh", ui_settings, merken=False, benutzer=None)
+    assert stufe2.firmenwahl_kandidaten(gewaehlt) is None
+    # Vorgabe im Firmen-Unterordner, Dokument gehört aber zu einer anderen Firma: ebenfalls blockiert
+    ui_settings.eingang.upload_in_firmen_unterordner = True
+    falsch = stufe2.upload_speichern_und_pruefen("dritte.pdf", PDF.read_bytes(), ui_settings, firma_id="wik_fh_seh")
+    assert falsch.datei.parent.name == "wik_fh_seh" and falsch.paket.blockiert
+    assert stufe2.firmenwahl_kandidaten(falsch.paket).kandidaten == ["wik_fh_seh", "wik_leh"]
     with pytest.raises(UploadAbgelehnt):
         stufe2.upload_speichern_und_pruefen("virus.exe", b"x", ui_settings)
     with pytest.raises(UploadAbgelehnt):
@@ -374,11 +388,12 @@ def test_app_buchen_zeigt_nachbereitung_und_dossier_seite(projektheim: Path):
     assert any("Buchung erfolgreich" in s.value for s in at.success)
     assert any(s.value.startswith("Nachbereitung") for s in at.subheader)
     markdown = "\n".join(m.value for m in at.markdown)
-    assert "**Fixtermin:**" in markdown and "**Dossier:**" in markdown and "E-Mail-Entwürfe (3, nicht gesendet)" in markdown
+    # Kirchhellen hat Positionen zweier Weingüter (Cide, Colosi): je Weingut Bestellung + Speditionsauftrag -> 5 Entwürfe
+    assert "**Fixtermin:**" in markdown and "**Dossier:**" in markdown and "E-Mail-Entwürfe (5, nicht gesendet)" in markdown
     assert "Erzeugte Dateien (Namen laut Titulierung)" in markdown and "– Cde –" in markdown
     assert len(at.dataframe) >= 1  # Ablage-Tabelle (nur protokolliert)
     assert (projektheim / "logs" / "pakete" / "kundenbestellung_kirchhellen.nachbereitung.json").is_file()
-    assert len(list((projektheim / "logs" / "entwuerfe").glob("*.eml"))) == 3
+    assert len(list((projektheim / "logs" / "entwuerfe").glob("*.eml"))) == 5
     dossiers = [p for p in (projektheim / "logs" / "dossiers").iterdir() if p.is_dir()]
     assert len(dossiers) == 1 and (dossiers[0] / "00_Deckblatt.pdf").is_file()
     assert not at.error

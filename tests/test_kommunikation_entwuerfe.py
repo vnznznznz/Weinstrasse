@@ -211,6 +211,42 @@ def test_wik_drei_entwuerfe_mit_empfaengern_und_anhaengen(kom_settings: Settings
     assert sped.bezug["spedition"] == "Hillebrand" and sped.bezug["kuerzel"] == "Speditionsauftrag"
 
 
+def test_weitere_weingueter_bekommen_eigene_bestellung_und_speditionsauftrag(kom_settings: Settings, zuordner: Zuordner, tmp_path: Path):
+    """Regression (Integration Stufe 2, Geschäftsregel 2): Bei Positionen mehrerer Weingüter bucht lexware.buchen
+    je Weingut eine Einkauf-Bestellung (PDF "Cde (2)", "Speditionsauftrag (2)"); früher bekam nur das
+    Hauptweingut eine "New order"-Mail, das zweite Weingut erfuhr nichts von seiner Bestellung."""
+    paket = _paket()
+    teil = paket.model_copy(deep=True)
+    teil.lieferant = LieferantZuordnung(
+        lieferant=Lieferant(firma_id="wik_leh", lieferantennummer="160", name="Cantina Alpha", matchcode="ALPHA", land="IT"),
+        status=MatchStatus.SICHER,
+    )
+    teil.positionen = teil.positionen[1:]
+    teil.belegfelder.weingut = "Cantina Alpha"
+    cde2 = _pdf(tmp_path, f"ALPHA{T}WIK{T}4711{T}Cde{T}24.10.2026.pdf")
+    sped2 = _pdf(tmp_path, f"Hillebrand{T}Speditionsauftrag{T}ALPHA{T}4711{T}24.10.2026.pdf")
+    ergebnis = _ergebnis(pdfs={"Cde (2)": cde2, "Speditionsauftrag (2)": sped2})
+    ergebnis.einkauf_weitere = [Belegergebnis(belegart=Belegart.BESTELLUNG, belegnummer="BE-2026-0101", erfolgreich=True, dry_run=False, methode="ui_automation")]
+    fabrik = Entwurfsfabrik(kom_settings, zuordner, kom_settings.firma("wik_leh"))
+
+    entwuerfe = fabrik.fuer_buchung(paket, ergebnis, None, {}, weitere_weingueter=[teil])
+
+    assert [e.typ for e in entwuerfe] == [
+        EntwurfTyp.BESTELLUNG_WEINGUT, EntwurfTyp.BESTELLUNG_WEINGUT, EntwurfTyp.AUFTRAGSKOPIE_KUNDE,
+        EntwurfTyp.SPEDITION_AUFTRAG, EntwurfTyp.SPEDITION_AUFTRAG,
+    ]
+    haupt, zweite = entwuerfe[0], entwuerfe[1]
+    assert haupt.betreff == "New order BE-2026-0100 – Beispielmarkt Nord GmbH"
+    assert zweite.betreff == "New order BE-2026-0101 – Beispielmarkt Nord GmbH"
+    assert zweite.bezug["lieferant"] == "Cantina Alpha" and [a.name for a in zweite.anhaenge] == [cde2.name]
+    assert zweite.an == ["ordini@cantine-abc.example.org"]  # Orders-Kontakt "Cantina Alpha & …" aus der Kontaktliste
+    sped_zwei = entwuerfe[4]
+    assert sped_zwei.betreff == "Neuer Auftrag Beispielmarkt Nord GmbH – Abholung Cantina Alpha"
+    assert [a.name for a in sped_zwei.anhaenge] == [sped2.name]
+    # ohne weitere Weingüter bleibt alles wie bisher
+    assert len(fabrik.fuer_buchung(paket, _ergebnis(), None, {})) == 3
+
+
 def test_agentur_ohne_bestellung_ans_weingut(kom_settings: Settings, zuordner: Zuordner):
     fabrik = Entwurfsfabrik(kom_settings, zuordner, kom_settings.firma("weinstrasse_agentur"))
     paket = _paket("weinstrasse_agentur", spedition="Hillebrand")
@@ -341,14 +377,19 @@ def test_fuer_buchung_erzeugt_keine_auftragskopie_mit_verbotenen_woertern_in_der
     assert len(Entwurfsfabrik(kom_settings, zuordner, kom_settings.firma("wik_leh")).fuer_buchung(_paket(), _ergebnis(), None, {})) == 3
 
 
-def test_fuer_buchung_lehnt_auftragskopie_mit_verbotenem_anhangsnamen_ab(kom_settings: Settings, zuordner: Zuordner, tmp_path: Path):
-    # WS-Schema trägt den Kundenkurznamen im Dateinamen; ein Kurzname mit verbotenem Wort blockiert die Kopie
+def test_fuer_buchung_auftragskopie_nie_mit_verbotenem_anhangsnamen(kom_settings: Settings, zuordner: Zuordner, tmp_path: Path):
+    # WS-Schema trägt den Kundenkurznamen im Dateinamen. Seit Review Befund 5 entfernt die Benennung verbotene
+    # Wörter aus dem Namen der Auftragskopie: eine Lexware-PDF mit dem alten (unzulässigen) Namen wird nur unter
+    # dem zulässigen Titulierungsnamen angehängt, nie unter ihrem eigenen.
     paket = _paket("weinstrasse_agentur", spedition="Selbstabholung")
     paket.kunde.kunde.matchcode = "VERBINDLICH"
     kopie = _pdf(tmp_path, f"BEISPIEL{T}VERBINDLICH{T}Kopie{T}24.10.2026.pdf")
     fabrik = Entwurfsfabrik(kom_settings, zuordner, kom_settings.firma("weinstrasse_agentur"))
     entwuerfe = fabrik.fuer_buchung(paket, _ergebnis("weinstrasse_agentur"), None, {"Kopie": kopie})
-    assert entwuerfe == [] and fabrik.hinweise and "verbindlich" in fabrik.hinweise[0]
+    kopien = [e for e in entwuerfe if e.typ == EntwurfTyp.AUFTRAGSKOPIE_KUNDE]
+    assert len(kopien) == 1 and kopien[0].anhaenge
+    assert pruefe_auftragskopie(kopien[0], kom_settings) == []
+    assert all("VERBINDLICH" not in Path(a).name.upper() for a in kopien[0].anhaenge)
 
 
 # ---------------------------------------------------------------- Nachfragen / Erinnerung

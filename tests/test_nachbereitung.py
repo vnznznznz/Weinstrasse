@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -238,6 +239,34 @@ def test_nachbereiten_dry_run_komplett(nb_settings: Settings, tmp_path: Path):
     assert "Fixtermin 15.05.2026 (Zeile 21, Vorschau)" in nb.kurzfassung and "3 Entwürfe (3 gespeichert)" in nb.kurzfassung
 
 
+def test_hausmuster_findet_keine_fremden_aelteren_pdfs(nb_settings: Settings):
+    """Regression (Review Befund 3): Bei der Weinstrasse Agentur enthält der Name keine Bestellnummer
+    ('Lieferant – Kunde – Kürzel – Datum'); die Kopie eines älteren Auftrags desselben Kunden darf weder
+    gefunden noch an Mail, Dossier oder Ablage gehängt werden. Ältere Dateien als die Buchung zählen nie."""
+    ordner = Path(nb_settings.lexware.pdf_ausgabe_ordner)
+    ws = _paket(nb_settings)
+    ws.firma_id = "weinstrasse_agentur"
+    ws.roh.bestellnummer = "NEU-2222"
+    alt = ws.model_copy(deep=True)
+    alt.roh.bestellnummer = "ALT-1111"
+    alte_kopie = _echte_pdfs(alt, nb_settings, ordner, datum=date(2026, 3, 2))["Kopie"]
+    assert "ALT-1111" not in alte_kopie.name  # WS-Name ohne Nummer
+    assert nbm.finde_lexware_pdfs(ws, nb_settings) == {}
+
+    nb = nbm.nachbereiten(ws, _ergebnis(ws, nb_settings), nb_settings)
+    assert not any("nach Hausmuster gefunden" in h for h in nb.hinweise)
+    assert all(alte_kopie.name not in [Path(a).name for a in e.anhaenge] for e in nb.entwuerfe)
+
+    # WIK mit Bestellnummer im Namen: gefunden, aber nur, wenn die Datei nicht älter als die Buchung ist
+    wik = _paket(nb_settings)
+    pdfs = _echte_pdfs(wik, nb_settings, ordner, datum=date(2026, 5, 5))
+    assert nbm.finde_lexware_pdfs(wik, nb_settings) == pdfs
+    vorher = datetime(2026, 5, 1, 8, 0).timestamp()
+    for pfad in pdfs.values():
+        os.utime(pfad, (vorher, vorher))
+    assert nbm.finde_lexware_pdfs(wik, nb_settings, nicht_vor=ZEITPUNKT) == {}
+
+
 def test_nachbereiten_ohne_liefertag_und_ohne_kontaktliste(nb_settings: Settings):
     nb_settings.m365.kontaktliste_datei = DateiRefKonfig()
     paket = _paket(nb_settings, liefertag=None)
@@ -295,6 +324,52 @@ def test_nachbereiten_ohne_firma_und_fixtermin_ausserhalb(nb_settings: Settings)
 # ---------------------------------------------------------------------------
 # Scharf mit injizierten Backends
 # ---------------------------------------------------------------------------
+
+
+def test_fixtermin_je_weiterem_weingut_mit_eigener_bestellnummer(nb_settings: Settings, tmp_path: Path):
+    """Regression (Review Befund 12): Bei zwei Weingütern (Cide + Colosi) bekommt auch das zweite Weingut einen
+    eigenen Eintrag mit seinem Kurznamen und der Belegnummer seiner Bestellung (Nachfrage, Häkchen, Oc-Zuordnung)."""
+    from auftragsautomat.stammdaten.laden import lade_stammdaten
+
+    stamm = lade_stammdaten(nb_settings.firma("wik_leh"))
+    positionen = [
+        RohPosition(laufnr=1, bezeichnung="Gloria Secco Frizzante", menge=Decimal(60), preis=Decimal("6.90")),
+        RohPosition(laufnr=2, bezeichnung="Colosi Nero d'Avola 2022", menge=Decimal(12), preis=Decimal("8.40")),
+    ]
+    roh = RohBestellung(
+        eingangstyp=Eingangstyp.KUNDENBESTELLUNG_PDF, quelldatei=_quelldatei(nb_settings), extraktionsmethode=Extraktionsmethode.PDFPLUMBER,
+        kunde_text="Weinmarkt Beispiel", bestellnummer="B-4712", datum=date(2026, 5, 4), liefertag=LIEFERTAG, positionen=positionen,
+    )
+    artikel = [stamm.artikel_nach_nummer["1643"], stamm.artikel_nach_nummer["2001"]]
+    paket = Belegpaket(
+        roh=roh, firma_id="wik_leh",
+        kunde=KundeZuordnung(kunde=stamm.kunden_nach_nummer["3441"], status=MatchStatus.SICHER),
+        lieferant=LieferantZuordnung(lieferant=stamm.lieferanten_nach_nummer["72"], status=MatchStatus.SICHER),
+        positionen=[
+            PositionsZuordnung(roh=p, artikel=a, menge=p.menge, ek_preis=a.ek_preis, vk_preis=a.vk_preis_1, status=MatchStatus.SICHER)
+            for p, a in zip(positionen, artikel, strict=True)
+        ],
+        belegfelder=Belegfelder(spedition="Spedition Beispiel", weingut="Cide / Colosi", shipment="directly", kunde="Hegmann"),
+    )
+
+    def beleg(art: Belegart, nummer: str) -> Belegergebnis:
+        return Belegergebnis(belegart=art, belegnummer=nummer, erfolgreich=True, dry_run=False, methode="ui_automation")
+
+    ergebnis = BuchungsErgebnis(
+        firma_id="wik_leh", quelldatei=roh.quelldatei, dry_run=False, zeitpunkt=ZEITPUNKT,
+        einkauf=beleg(Belegart.BESTELLUNG, "BE-1"), einkauf_weitere=[beleg(Belegart.BESTELLUNG, "BE-2")],
+        verkauf=beleg(Belegart.AUFTRAGSBESTAETIGUNG, "AB-1"),
+    )
+    excel = FakeExcelBackend(aus_xlsx=FIXTERMIN_XLSX, jetzt=lambda: ZEITPUNKT)
+    backends = Backends(excel=excel, mail=FakeMailBackend(nb_settings.kommunikation.entwuerfe_ordner), datei=FakeDateiBackend(tmp_path / "w"), backend="graph")
+    weitere: list = []
+    haupt, _ = nbm.fixtermin_eintragen(paket, ergebnis, nb_settings, backends=backends, dry_run=False, weitere=weitere)
+    assert haupt is not None and haupt.zeile is not None and haupt.bestellnummer == "BE-1"
+    assert len(weitere) == 1
+    zweit = weitere[0]
+    assert zweit.zeile is not None and zweit.zeile != haupt.zeile and zweit.liefertag == LIEFERTAG
+    assert zweit.bestellnummer == "BE-2" and zweit.ab_nummer == "AB-1" and zweit.lieferant_kurz != haupt.lieferant_kurz
+    assert "Best.-Nr BE-2" in (zweit.bemerkung or "")
 
 
 def test_nachbereiten_scharf_schreibt_register_und_legt_ab(nb_settings: Settings, tmp_path: Path):
@@ -440,3 +515,19 @@ def test_nachbereitung_pfad_und_laden_defekt(nb_settings: Settings):
     geladen = nbm.lade_nachbereitung(paket, nb_settings)
     assert geladen is not None and geladen.hinweise == ["a"] and geladen.speicherort == pfad
     assert not list(pfad.parent.glob("*.tmp"))
+
+
+def test_vorschau_csv_behaelt_vorherige_dry_run_buchungen(nb_settings: Settings):
+    """Regression (Integration Stufe 2): Jede Dry-Run-Buchung schrieb logs/fixtermine_vorschau.csv neu; nach
+    zwei Buchungen stand nur noch die Vorschau der letzten darin. Jetzt werden die Zeilen angehängt."""
+    erstes = _paket(nb_settings)
+    nbm.nachbereiten(erstes, _ergebnis(erstes, nb_settings), nb_settings, speichern=False)
+    zweites = _paket(nb_settings, liefertag=date(2026, 5, 19))  # Dienstag, KW 21
+    zweites.roh.bestellnummer = "4712"
+    nb = nbm.nachbereiten(zweites, _ergebnis(zweites, nb_settings), nb_settings, speichern=False)
+    assert nb.vorschau_csv is not None
+    zeilen = nb.vorschau_csv.read_text(encoding="utf-8-sig").splitlines()
+    assert zeilen[0].startswith("Zeitpunkt;Datei;Blatt;Zelle") and sum(1 for z in zeilen if z.startswith("Zeitpunkt;")) == 1
+    zellen = [z.split(";")[3] for z in zeilen[1:]]
+    assert "D21" in zellen  # erste Buchung (15.05.2026, Zeile 21) bleibt erhalten
+    assert nb.fixtermin is not None and f"D{nb.fixtermin.zeile}" in zellen and nb.fixtermin.zeile != 21

@@ -109,6 +109,7 @@ firmenwahl:
   gedaechtnis_datei: "config/firmen_gedaechtnis.yaml"
   merken: true
   fragen_wenn_unklar: true
+  gedaechtnis_tolerant: true   # gelernte Regeln auch tolerant erkennen (Region/Kette/Großkunde nie über den Matchcode)
 
 eingang:
   upload_erlaubt: true          # Freigabe-UI: Auftrag (PDF/MSG/EML/Scan) hochladen -> landet im Eingang

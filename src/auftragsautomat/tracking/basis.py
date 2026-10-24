@@ -56,6 +56,7 @@ __all__ = [
     "status_aus_meilensteinen",
     "status_mit_puenktlichkeit",
     "vereinige_meilensteine",
+    "zeit_schluessel",
 ]
 
 QuellenName = Literal["mail", "api", "public_tracking", "portal", "manuell", "keine"]
@@ -460,6 +461,21 @@ def mit_hinweis(sendung: Sendung, hinweis: str) -> Sendung:
     return sendung.model_copy(update={"hinweise": hinweise, "letzte_pruefung": jetzt()})
 
 
+def zeit_schluessel(zeit: datetime | None) -> datetime:
+    """Sortierschlüssel für Zeitpunkte mit **und** ohne Zeitzone.
+
+    Graph und ``.eml`` liefern Empfangszeiten mit Zeitzone, Datumsangaben aus Mail-Texten, der API oder
+    dem Portal sind zeitzonenlos; Python kann beide nicht vergleichen (``TypeError``). Zeitzonenbehaftete
+    Werte werden deshalb in zeitzonenlose Ortszeit umgerechnet, ein fehlender Zeitpunkt zählt als
+    ``datetime.min``.
+    """
+    if zeit is None:
+        return datetime.min
+    if zeit.tzinfo is not None:
+        return zeit.astimezone().replace(tzinfo=None)
+    return zeit
+
+
 def vereinige_meilensteine(alt: list[Meilenstein], neu: list[Meilenstein]) -> list[Meilenstein]:
     """Alte und neue Meilensteine ohne Doppelte (Code + Zeitpunkt + geplant), chronologisch."""
     ergebnis: list[Meilenstein] = []
@@ -470,7 +486,7 @@ def vereinige_meilensteine(alt: list[Meilenstein], neu: list[Meilenstein]) -> li
             continue
         gesehen.add(schluessel)
         ergebnis.append(m)
-    ergebnis.sort(key=lambda m: (m.zeitpunkt or datetime.min, m.geplant))
+    ergebnis.sort(key=lambda m: (zeit_schluessel(m.zeitpunkt), m.geplant))
     return ergebnis
 
 

@@ -74,3 +74,24 @@ def test_parse_jahrgang():
 )
 def test_normalisiere_bezeichnung(text, erwartet):
     assert normalisiere_bezeichnung(text) == erwartet
+
+
+@pytest.mark.parametrize(
+    "text, erwartet",
+    [
+        # Regression (Integration Stufe 2): Abkürzung mit Punkt direkt vor der Zahl ("htr." = halbtrocken)
+        ("Quinta Beispiel Vinho Verde DOC htr.0,75l", Decimal("75")),
+        ("Rosé htr.0,375 l", Decimal("37.5")),
+        ("Beispielwein Rosso x.750ml", Decimal("75")),
+        # ein Punkt hinter einer Ziffer bleibt Dezimal-/Tausenderpunkt und ist kein Volumenbeginn
+        ("1.234,50 l", None),
+        ("Preis 1.0,75", None),
+    ],
+)
+def test_parse_volumen_punkt_vor_zahl(text, erwartet):
+    assert parse_volumen_cl(text) == erwartet
+
+
+def test_normalisiere_bezeichnung_entfernt_volumen_nach_abkuerzung():
+    """Regression: "htr.0,75l" blieb als "htr 0 75l" stehen und verfälschte das Fuzzy-Matching."""
+    assert normalisiere_bezeichnung("Quinta Beispiel Vinho Verde DOC htr.0,75l") == "quinta beispiel vinho verde doc htr"

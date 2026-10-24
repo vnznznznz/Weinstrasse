@@ -21,6 +21,7 @@ import csv
 import logging
 import re
 import shutil
+from collections.abc import Callable
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -210,7 +211,7 @@ def _dateien_text(ergebnis: BuchungsErgebnis) -> str:
 
 
 def _revision_text(paket: Belegpaket, ergebnis: BuchungsErgebnis) -> str:
-    ist_revision = ergebnis.ist_revision or paket.ist_revision or paket.roh.ist_revision
+    ist_revision = ergebnis.ist_revision or paket.revision_wirksam
     if not ist_revision:
         return "nein"
     ersetzt = (paket.revision_von or paket.roh.revision_von or "").strip()
@@ -647,16 +648,24 @@ def schreibe_protokoll(
 # ---------------------------------------------------------------------------
 
 
-def archiviere(datei: Path, settings: Settings, firma_id: str, *, jahr: int | None = None) -> Path:
+def archiviere(
+    datei: Path,
+    settings: Settings,
+    firma_id: str,
+    *,
+    jahr: int | None = None,
+    jetzt: Callable[[], datetime] | None = None,
+) -> Path:
     """Verschiebt ``datei`` nach ``<archiv_ordner>/<firma_id>/<JJJJ>/<name>`` und liefert den Zielpfad.
 
     Vorhandene Dateien werden nie überschrieben (Suffix ``_2``, ``_3`` …). ``jahr`` ist
-    standardmäßig das aktuelle Jahr. Fehlt die Datei, wird ``FileNotFoundError`` ausgelöst.
+    standardmäßig das Jahr von ``jetzt()`` (Standard ``datetime.now``). Fehlt die Datei, wird
+    ``FileNotFoundError`` ausgelöst.
     """
     datei = Path(datei)
     if not datei.is_file():
         raise FileNotFoundError(f"Quelldatei {datei} existiert nicht oder ist keine Datei")
-    jahr = jahr or date.today().year
+    jahr = jahr or (jetzt or datetime.now)().year
     ziel_ordner = Path(settings.archiv_ordner) / _sicherer_dateiteil(firma_id or "unbekannt") / f"{jahr:04d}"
     ziel_ordner.mkdir(parents=True, exist_ok=True)
     ziel = ziel_ordner / datei.name
