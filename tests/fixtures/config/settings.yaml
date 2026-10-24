@@ -103,16 +103,20 @@ eingang:
   upload_erlaubt: true          # Freigabe-UI: Auftrag (PDF/MSG/EML/Scan) hochladen -> landet im Eingang
   upload_max_mb: 50
   upload_in_firmen_unterordner: true
+  ordner_name: "Eingang"        # OneDrive-Ordner "Eingang": hier liegen die Kundenaufträge
   onedrive_ordner:
-    web_url: null               # optional: Eingangsordner in OneDrive (Verkäufer legen Aufträge dort ab)
-    lokaler_pfad: null          # oder eingang_ordner oben direkt auf den synchronisierten Ordner zeigen lassen
+    web_url: null               # Link zum OneDrive-Ordner "Eingang" (Graph)
+    lokaler_pfad: null          # oder eingang_ordner oben auf den synchronisierten Ordner "Eingang" zeigen lassen
   als_kundenbestellung_ablegen: true   # Eingangsdokument nach Freigabe als "Kd" mit ablegen
 
 ablage:
   aktiv: false                  # einschalten, sobald Ordnerstruktur und Benennung freigegeben sind
   auftraege_ordner:
-    web_url: null               # OneDrive: Buchhaltung/Aufträge
+    web_url: null               # OneDrive-Ordner, der "Aufträge mit Provision" und "Aufträge ohne Provision" enthält
     lokaler_pfad: null
-  struktur: "1 Eingang"         # alle Aufträge zuerst nach "Aufträge/1 Eingang"; Platzhalter {firma} {jahr} {lieferant} {kunde} möglich
+  ordner_mit_provision: "Aufträge mit Provision"    # nur Weinstrasse Agentur
+  ordner_ohne_provision: "Aufträge ohne Provision"  # WIK FH & SEH, WIK LEH, WOE
+  firmen_mit_provision: [weinstrasse_agentur]
+  struktur: "{provision}"       # Zielpfad; weitere Platzhalter {firma} {jahr} {monat} {lieferant} {kunde}
   lokaler_ordner: "logs/ablage"
   nur_scharf: true

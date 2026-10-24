@@ -325,12 +325,15 @@ Design und Geschäftsregeln: `docs/AUSBAUSTUFE_2.md`, Abschnitte 5 bis 9. Vertr�
 * `lege_ab(paket: Belegpaket, ergebnis: BuchungsErgebnis, settings, *, datei_backend: DateiBackend,
   dry_run=True) -> list[AblageErgebnis]`: Dateien aus `ergebnis.pdfs` (+ Quelldatei als "Kd",
   wenn `eingang.als_kundenbestellung_ablegen`) nach `ablage.struktur` unter
-  `ablage.auftraege_ordner`; Dry Run oder `ablage.aktiv = False` → nur protokollieren.
+  `ablage.auftraege_ordner`; `{provision}` → `AblageKonfig.provisionsordner(firma_id)`:
+  "Aufträge mit Provision" (Weinstrasse Agentur) oder "Aufträge ohne Provision" (alle anderen);
+  Dry Run oder `ablage.aktiv = False` → nur protokollieren.
 * `zielordner(paket, settings, *, datum=None) -> str` (Platzhalter füllen),
   `freier_name(backend, ref, ordner, name) -> str` (" (2)", " (3)" …).
 
 ### `freigabe/app.py` (Erweiterungen)
-* Seitenleiste "Auftrag hochladen" (`eingang.upload_*`) → speichert in `eingang/[<firma>/]`,
+* Seitenleiste "Auftrag hochladen" (`eingang.upload_*`) → speichert in den Eingangsordner
+  (OneDrive "Eingang", `eingang/[<firma>/]`),
   startet `verarbeite_standard`.
 * Firma: wenn `FIRMA_UNKLAR` mit Kandidaten → Auswahl + Häkchen "für diesen Kunden und
   Lieferanten merken" (Standard an) → `setze_firma` + `merke_firma`.
@@ -357,8 +360,8 @@ Aktionen), `firma-merken <paket.json> --firma <id>`, `ablegen <paket.json> [--sc
     Lieferant wiederverwenden und als solche kennzeichnen.
 18. Dateinamen ausschließlich nach Titulierung (`benennung.py`); Auftragskopie nie
     "Auftragsbestätigung".
-19. Ablage nur nach Freigabe und scharfem Lauf nach "Aufträge/1 Eingang"; nichts verschieben,
-    nichts überschreiben.
+19. Ablage nur nach Freigabe und scharfem Lauf: Weinstrasse Agentur → "Aufträge mit Provision",
+    alle anderen Firmen → "Aufträge ohne Provision"; nichts verschieben, nichts überschreiben.
 20. Hochgeladene Dateien gelten als Eingang: extrahieren und prüfen ja, buchen nur nach Freigabe.
 
 ## Testdaten

@@ -285,28 +285,43 @@ class FirmenwahlKonfig(BaseModel):
 
 
 class AblageKonfig(BaseModel):
-    """Fertige, benannte Dateien nach OneDrive "Buchhaltung/Aufträge/1 Eingang" einsortieren (nur nach Freigabe).
+    """Fertige, benannte Dateien in OneDrive einsortieren (nur nach Freigabe).
 
-    Alle Aufträge landen zunächst im Unterordner "1 Eingang" des Ordners "Aufträge" (Vorgabe des
-    Anwenders); von dort sortiert die Buchhaltung weiter. Die Struktur ist konfigurierbar
-    (Platzhalter ``{firma}`` = Kürzel, ``{jahr}``, ``{monat}``, ``{lieferant}``, ``{kunde}``).
+    Vorgabe des Anwenders (Korrektur vom 24.10.2026): Aufträge der **Weinstrasse Agentur** kommen in
+    den Ordner **"Aufträge mit Provision"**, alle Aufträge der anderen Firmen (WIK FH & SEH, WIK LEH,
+    WOE) in **"Aufträge ohne Provision"**. ``auftraege_ordner`` ist der OneDrive-Ordner, der diese
+    beiden Ordner enthält. ``struktur`` ist der Zielpfad darunter; der Platzhalter ``{provision}``
+    wird je Firma durch einen der beiden Ordnernamen ersetzt (weitere Platzhalter: ``{firma}`` =
+    Kürzel, ``{jahr}``, ``{monat}``, ``{lieferant}``, ``{kunde}``). Eine frühere Vorgabe
+    ("Aufträge/1 Eingang") ist damit überholt.
     """
 
     aktiv: bool = False  # erst nach Freigabe des Benennungsschemas durch den Anwender einschalten
-    auftraege_ordner: DateiRefKonfig = Field(default_factory=DateiRefKonfig)  # OneDrive: Buchhaltung/Aufträge
-    struktur: str = "1 Eingang"  # Zielordner unter "Aufträge"; z. B. "1 Eingang" oder "1 Eingang/{firma}"
+    auftraege_ordner: DateiRefKonfig = Field(default_factory=DateiRefKonfig)  # OneDrive-Ordner mit beiden Provisionsordnern
+    ordner_mit_provision: str = "Aufträge mit Provision"  # Weinstrasse Agentur
+    ordner_ohne_provision: str = "Aufträge ohne Provision"  # alle anderen Firmen
+    firmen_mit_provision: list[str] = Field(default_factory=lambda: ["weinstrasse_agentur"])
+    struktur: str = "{provision}"  # Zielpfad unter auftraege_ordner; z. B. "{provision}" oder "{provision}/{jahr}"
     lokaler_ordner: Path = Path("logs/ablage")  # Dry Run / Backend "fake"
     nur_scharf: bool = True  # im Dry Run nur protokollieren, nichts kopieren
     vorhandene_ueberschreiben: bool = False  # Namenskollision -> " (2)" anhängen statt überschreiben
     kundenbestellung_ablegen: bool = True  # das Eingangsdokument als "Kd" mit ablegen
 
+    def provisionsordner(self, firma_id: str) -> str:
+        """Ordnername je Firma: "Aufträge mit Provision" (Weinstrasse Agentur) oder "... ohne Provision"."""
+        return self.ordner_mit_provision if firma_id in self.firmen_mit_provision else self.ordner_ohne_provision
+
 
 class EingangKonfig(BaseModel):
-    """Der eigene Eingang des Tools: Ordner, in den Kunden-/Verkäuferaufträge gelegt werden, plus Upload in der UI.
+    """Der Eingang des Tools: der OneDrive-Ordner "Eingang", in den Kunden-/Verkäuferaufträge gelegt werden.
 
-    ``Settings.eingang_ordner`` darf ein OneDrive-synchronisierter Ordner sein, damit Verkäufer
-    Aufträge dort ablegen können; der Watcher und die Freigabe-UI lesen denselben Ordner.
+    Vorgabe des Anwenders: Die Kundenaufträge liegen im OneDrive-Ordner **"Eingang"**.
+    ``Settings.eingang_ordner`` zeigt auf den lokal synchronisierten Pfad dieses Ordners (oder
+    ``onedrive_ordner`` auf den Ordner in Graph); der Watcher, der Upload in der Freigabe-UI und
+    die Verarbeitung nutzen denselben Ordner.
     """
+
+    ordner_name: str = "Eingang"  # Name des OneDrive-Ordners
 
     upload_erlaubt: bool = True  # Freigabe-UI: "Auftrag (PDF) hochladen" -> Datei landet im Eingang
     upload_max_mb: int = 50
@@ -321,8 +336,8 @@ class DossierKonfig(BaseModel):
     lokaler_ordner: Path = Path("logs/dossiers")  # Dry Run / Backend "fake"
     gesamt_pdf: bool = False
     verschieben_erlauben: bool = False
-    ablage_mit_provision: str = "Auftragsablage (mit Provision)"
-    ablage_ohne_provision: str = "Auftragsablage (ohne Provision)"
+    ablage_mit_provision: str = "Aufträge mit Provision"  # Zielordner-Vorschlag (siehe AblageKonfig)
+    ablage_ohne_provision: str = "Aufträge ohne Provision"
     firmen_mit_provision: list[str] = Field(default_factory=lambda: ["weinstrasse_agentur"])
 
 
