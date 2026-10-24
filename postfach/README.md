@@ -34,6 +34,10 @@ unter „Antworten erhalten“.
 
 ## Was du noch tun solltest
 
+0. **Einmalig: Microsoft-365-Connector an den geplanten Aufgaben aktivieren.** In claude.ai → Geplante Aufgaben →
+   jede der vier Aufgaben („Postfach Einsortieren (Knopf)“, „Postfach Morgen-Briefing“, „Postfach Antwort-Entwürfe“,
+   „Postfach Lernen (wöchentlich)“) öffnen → Connectors → Microsoft 365 anhaken. Ohne das melden die Läufe nur,
+   dass sie kein Postfach erreichen. Aus einer Claude-Code-Sitzung ließ sich der Connector nicht mitgeben.
 1. Ordner **LEH** und **Quintessenzio** in Outlook anlegen (Rechtsklick auf dein Postfach → Neuer Ordner) und die IDs
    in `regeln.json` → `ordner` eintragen (ID: Ordner im Browser anklicken, aus der Adresszeile nach `/mail/` kopieren,
    `%3D`→`=`, `%2F`→`-`, `%2B`→`_`). Bis dahin bleiben diese Mails im Posteingang.
