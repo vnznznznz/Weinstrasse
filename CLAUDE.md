@@ -42,9 +42,9 @@ Lexware-Code: `lexware/ui_automation.py` (`PywinautoBackend`, `LexwareControls`/
 
 ## Git
 
-* Arbeitszweig: `claude/fervent-galileo-urj1wl`. Nicht auf andere Zweige wechseln.
+* Repository: `github.com/weinstrasse/auftragsautomat`, Arbeitszweig: `main`. Nicht auf andere Zweige wechseln.
 * Commits mit klaren deutschen Nachrichten ("Lexware-Controls: Angebotsassistent Seite 1 kalibriert").
-  Danach `git push origin claude/fervent-galileo-urj1wl`. **Nie Force-Push**, nie History umschreiben.
+  Danach `git push origin main`. **Nie Force-Push**, nie History umschreiben.
 * Dateien einzeln hinzufügen (`git add <datei>`), vor jedem Commit `git status` und `git diff --cached`
   lesen. Nie committen: `logs/`, `daten/`, `eingang/`, `archiv/`, Erkundungs- und Screenshot-Dateien,
   `config/settings.yaml` mit `dry_run: false`.

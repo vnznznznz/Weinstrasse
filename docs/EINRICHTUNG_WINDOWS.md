@@ -15,8 +15,8 @@ das **Kalibrier-Protokoll**, das Claude nach jeder Phase fortschreibt.
 * Windows 10 oder Windows 11.
 * Lexware premium ist installiert, und Sie können damit arbeiten.
 * Ein eigenes Claude-Konto (Anmeldung auf claude.ai), das Claude Code nutzen darf.
-* Zugang zum GitHub-Projekt `github.com/vnznznznz/weinstrasse` (bei einem privaten Projekt mit
-  Ihrem GitHub-Konto).
+* Zugang zum GitHub-Projekt `github.com/weinstrasse/auftragsautomat` (privat; Anmeldung mit dem
+  GitHub-Konto der Weinstrasse).
 * Administratorrechte brauchen Sie **nur** für die Installation der Programme in Abschnitt 2.
   Für alles Weitere nicht.
 
@@ -55,9 +55,8 @@ Nach der Installation alle offenen Eingabeaufforderungen/PowerShell-Fenster schl
 
    ```powershell
    cd C:\
-   git clone https://github.com/vnznznznz/weinstrasse.git Auftragsautomat
+   git clone https://github.com/weinstrasse/auftragsautomat.git Auftragsautomat
    cd C:\Auftragsautomat
-   git checkout claude/fervent-galileo-urj1wl
    ```
 
    Fragt Git nach einer Anmeldung, öffnet sich ein Browserfenster für GitHub; dort anmelden.
@@ -126,7 +125,7 @@ Schalter:
 Claude **darf**:
 
 * Programme im Projektordner ausführen, Tests laufen lassen, Dateien im Projekt ändern und die
-  Änderungen auf GitHub sichern (Arbeitszweig `claude/fervent-galileo-urj1wl`).
+  Änderungen auf GitHub sichern (Arbeitszweig `main`).
 * Lexware-Fenster **lesen** (Fenster- und Feldnamen), Assistenten öffnen, Felder probeweise füllen
   und **mit "Abbrechen" wieder schließen**.
 * Ihre Stammdaten-Exporte lesen.
