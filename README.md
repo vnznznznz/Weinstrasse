@@ -21,6 +21,14 @@ Vier Firmen (Lexware-Mandanten), konfiguriert in `config/firmen.yaml`:
 Grundsätze: Standard ist der Dry Run. E-Mails entstehen nur als Entwurf und werden nie gesendet.
 Es wird nichts gedruckt. Die Auftragsbestätigung heißt gegenüber Kunden nur "Auftragskopie".
 
+## Einrichtung am Windows-PC
+
+Schritt-für-Schritt-Anleitung für den Lexware-PC (Programme installieren, Projekt holen, Claude Code
+starten, Lexware-Kalibrierung mit Kalibrier-Protokoll): `docs/EINRICHTUNG_WINDOWS.md`. Die
+Einrichtung der Python-Umgebung erledigt `scripts/windows/einrichten.ps1`
+(`powershell -ExecutionPolicy Bypass -File scripts\windows\einrichten.ps1`). Die Arbeitsanweisung
+und Sicherheitsregeln für die Claude-Code-Sitzung am PC stehen in `CLAUDE.md`.
+
 ## Installation unter Windows
 
 Voraussetzungen: Windows-PC mit Lexware premium, Python 3.11 oder neuer (entwickelt mit 3.13),
@@ -180,6 +188,7 @@ ein Dry Run.
 | `watch [--einmalig] [--paket-ordner P]` | Eingang beobachten: extrahieren, prüfen, Paket speichern; bucht nie |
 | `stammdaten-pruefen [--firma ID]` | Stammdaten laden und Datenqualität berichten |
 | `odbc-erkunden --firma ID [--ziel DATEI] [--praefix X]` | Lexware-ODBC-Schema als Bericht (nur lesend) |
+| `lexware-erkunden [--ziel PFAD] [--tiefe N] [--alle-fenster] [--backend uia\|win32\|beide] [--abgleich] [--aus-datei BAUM.JSON]` | Control-Baum des laufenden Lexware nach `logs/lexware_erkundung/<JJJJ-MM-TT_HHMMSS>/` (nur lesend, startet Lexware nie); mit `--abgleich` Vergleich mit `config/lexware_controls.yaml` (`abgleich.md`) |
 | `beispiel-pdfs [ORDNER]` | synthetische Beispiel-PDFs erzeugen (Standard `tests/fixtures/pdfs`) |
 | `m365-anmelden [--device-code] [--nur-status]` | Microsoft-365-Anmeldung bzw. Status |
 | `m365-pruefen` | nur lesen: Fixterminüberwachung, Kontaktliste, Dossier-Ordner |
@@ -364,10 +373,11 @@ daten/<firma>/          Stammdaten-Exporte aus Lexware (nicht im Repository)
 eingang/                Eingang (Standard; im Betrieb der synchronisierte OneDrive-Ordner "Eingang")
 archiv/<firma>/<jahr>/  archivierte Quelldateien nach scharfer Buchung
 logs/                   pakete/, protokoll.csv, berichte/, opentrans/, pdf/, entwuerfe/, dossiers/,
-                        ablage/, ueberwachung/, fixtermine_vorschau.csv, nachfragen.json, screenshots/
+                        ablage/, ueberwachung/, fixtermine_vorschau.csv, nachfragen.json, screenshots/,
+                        lexware_erkundung/
 beispiele/              Platz für anonymisierte Beispielbelege (siehe beispiele/README.md)
-docs/                   ARCHITEKTUR.md, AUSBAUSTUFE_2.md, WAS_ICH_BRAUCHE.md, recherche/
-scripts/                beispiel_pdfs_erzeugen.py
+docs/                   ARCHITEKTUR.md, AUSBAUSTUFE_2.md, WAS_ICH_BRAUCHE.md, EINRICHTUNG_WINDOWS.md, recherche/
+scripts/                beispiel_pdfs_erzeugen.py, windows/einrichten.ps1 (Einrichtung am Windows-PC)
 src/auftragsautomat/    Quellcode (extraktion, stammdaten, matching, rabatte, lexware, freigabe, m365,
                         termine, kontakte, kommunikation, tracking, ueberwachung, dossier, ablage,
                         benennung.py, eingang.py, protokoll.py, watcher.py, cli.py)

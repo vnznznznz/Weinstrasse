@@ -12,6 +12,8 @@ Befehle:
 * ``watch [--einmalig]``                    – Eingangsordner beobachten (extrahieren + prüfen, NIE buchen)
 * ``stammdaten-pruefen [--firma]``          – Stammdaten laden und Datenqualität berichten
 * ``odbc-erkunden --firma [--ziel]``        – Lexware-ODBC-Schema erkunden (nur lesend)
+* ``lexware-erkunden [--ziel] [--tiefe] [--alle-fenster] [--backend] [--abgleich] [--aus-datei]`` – Control-Baum
+  des laufenden Lexware nur lesend auslesen und mit config/lexware_controls.yaml abgleichen
 * ``beispiel-pdfs [ORDNER]``                – Beispiel-PDFs erzeugen (scripts/beispiel_pdfs_erzeugen.py)
 * ``version``
 
@@ -561,6 +563,136 @@ def odbc_erkunden(
         logger.exception("ODBC-Erkundung für %s fehlgeschlagen", firma)
         raise _fehler(f"ODBC-Erkundung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
     typer.echo(f"Schema-Bericht geschrieben: {pfad}")
+
+
+def _liegt_unter(pfad: Path, basis: Path) -> bool:
+    try:
+        Path(pfad).resolve().relative_to(Path(basis).resolve())
+    except ValueError:
+        return False
+    return True
+
+
+@app.command("lexware-erkunden")
+def lexware_erkunden(
+    ziel: Annotated[
+        Path | None,
+        typer.Option("--ziel", help="Zielordner (Standard: logs/lexware_erkundung/<JJJJ-MM-TT_HHMMSS>; mit --aus-datei: Ordner der Datei)."),
+    ] = None,
+    tiefe: Annotated[int, typer.Option("--tiefe", min=0, help="Maximale Tiefe des Control-Baums (Fenster = Ebene 0).")] = 12,
+    alle_fenster: Annotated[
+        bool, typer.Option("--alle-fenster", help="Auch offene Dialoge/Unterfenster des Lexware-Prozesses lesen.")
+    ] = False,
+    backend: Annotated[
+        str | None, typer.Option("--backend", help="uia | win32 | beide (Standard: settings.lexware.backend).")
+    ] = None,
+    abgleich: Annotated[
+        bool, typer.Option("--abgleich", help="config/lexware_controls.yaml mit dem gefundenen Baum abgleichen (abgleich.md).")
+    ] = False,
+    aus_datei: Annotated[
+        Path | None,
+        typer.Option("--aus-datei", help="Abgleich offline aus baum.json einer früheren Erkundung (ohne Lexware)."),
+    ] = None,
+    max_elemente: Annotated[
+        int, typer.Option("--max-elemente", min=1, help="Obergrenze der gelesenen Elemente insgesamt.")
+    ] = 20000,
+) -> None:
+    """Lexware-Oberfläche NUR LESEND erkunden: Control-Baum nach baum.json/baum.txt, optional Abgleich der Control-Namen.
+
+    Dockt nur an das laufende Lexware an (startet es nie), klickt nichts, tippt nichts, setzt keinen Fokus.
+    """
+    from auftragsautomat.lexware import erkundung as ek
+    from auftragsautomat.lexware.instanz import LexwareNichtGestartet
+    from auftragsautomat.lexware.ui_automation import (
+        BackendNichtVerfuegbar,
+        NichtAufWindows,
+        lade_controls,
+        standard_controls_datei,
+    )
+
+    settings = _lade_settings()
+    if backend is not None and backend not in ("uia", "win32", "beide"):
+        raise _fehler(f"Unbekanntes Backend '{backend}' (erlaubt: uia, win32, beide).")
+
+    quelle: Path | None = None
+    if aus_datei is not None:
+        try:
+            erk = ek.lade_erkundung(aus_datei)
+        except ek.ErkundungsFehler as exc:
+            raise _fehler(str(exc)) from exc
+        quelle = Path(aus_datei)
+        ordner = Path(ziel) if ziel is not None else quelle.parent
+        backends = list(erk.backends)
+        if backend is not None:
+            gewuenscht = ["uia", "win32"] if backend == "beide" else [backend]
+            backends = [b for b in gewuenscht if erk.fenster_von(b)]
+            if not backends:
+                raise _fehler(f"{aus_datei} enthält keinen Baum für Backend {backend} (vorhanden: {', '.join(erk.backends) or '-'}).")
+        abgleich = True
+        dateien: list[Path] = []
+    else:
+        name = backend or str(settings.lexware.backend or "uia")
+        backends = ["uia", "win32"] if name == "beide" else [name]
+        try:
+            erk = ek.erkunde(settings, backends=backends, tiefe=tiefe, alle_fenster=alle_fenster, max_elemente=max_elemente)
+        except (NichtAufWindows, BackendNichtVerfuegbar) as exc:
+            raise _fehler(
+                f"{exc} Die Erkundung läuft nur auf dem Windows-PC mit Lexware; den Abgleich einer vorhandenen "
+                "baum.json gibt es überall mit --aus-datei."
+            ) from exc
+        except LexwareNichtGestartet as exc:
+            raise _fehler(str(exc)) from exc
+        ordner = Path(ziel) if ziel is not None else ek.standard_zielordner(Path(settings.log_ordner))
+        try:
+            dateien = [ek.schreibe_baum_json(erk, ordner / "baum.json"), ek.schreibe_baum_txt(erk, ordner / "baum.txt")]
+        except OSError as exc:
+            raise _fehler(f"Ergebnis nicht schreibbar ({ordner}): {exc}") from exc
+
+    bilanzen: list[str] = []
+    if abgleich:
+        datei = settings.lexware.controls_datei
+        controls_datei = Path(datei) if datei else standard_controls_datei()
+        try:
+            controls = lade_controls(controls_datei if controls_datei.exists() else None)
+        except (ValueError, OSError) as exc:
+            raise _fehler(f"Control-Datei {controls_datei} nicht lesbar: {exc}") from exc
+        abgleiche = [
+            ek.gleiche_ab(
+                erk, controls, backend=b, controls_datei=controls_datei if controls_datei.exists() else None,
+                fenster_titel_regex=settings.lexware.fenster_titel_regex,
+            )
+            for b in backends
+        ]
+        try:
+            dateien.append(
+                ek.schreibe_abgleich_md(
+                    erk, abgleiche, ordner / "abgleich.md",
+                    controls_datei=controls_datei if controls_datei.exists() else None, quelle=quelle,
+                )
+            )
+        except OSError as exc:
+            raise _fehler(f"abgleich.md nicht schreibbar ({ordner}): {exc}") from exc
+        bilanzen = [f"Abgleich ({a.backend}): {a.bilanz_text()}" for a in abgleiche]
+
+    typer.echo(f"Lexware-Erkundung ({'aus Datei' if quelle else 'nur lesend'}): {ordner}")
+    for pfad in dateien:
+        typer.echo(f"  {pfad}")
+    typer.echo(
+        f"Fenster: {len(erk.fenster)}, Elemente: {erk.anzahl_elemente}, Fehler beim Lesen: {erk.fehler}"
+        + (f" – ABGESCHNITTEN bei {erk.max_elemente} Elementen" if erk.abgeschnitten else "")
+    )
+    if erk.aktive_firma:
+        typer.echo(f"Aktive Firma: {erk.aktive_firma}" + (f" ({erk.firma_id})" if erk.firma_id else ""))
+    for name, text in erk.backend_fehler.items():
+        typer.secho(f"Backend {name}: {text}", fg=typer.colors.YELLOW)
+    for zeile in bilanzen:
+        typer.echo(zeile)
+    if not _liegt_unter(ordner, Path(settings.log_ordner)):
+        typer.secho(
+            f"WARNUNG: {ordner} liegt nicht unter {settings.log_ordner} – die Dateien nicht ins Git aufnehmen.",
+            fg=typer.colors.YELLOW,
+        )
+    typer.secho(f"HINWEIS: {ek.DATENSCHUTZ_HINWEIS}", fg=typer.colors.YELLOW)
 
 
 @app.command("beispiel-pdfs")

@@ -716,6 +716,45 @@ class PywinautoBackend:
             ergebnis.append(Fenster(titel=titel, roh=wrapper, art="dialog"))
         return ergebnis
 
+    # ----------------------------------------------------------------- Nur lesen (Erkundung)
+
+    def lese_fenster_fuer_erkundung(self, *, alle_fenster: bool = False, timeout: float | None = None) -> list[Fenster]:
+        """NUR LESEND, für ``auftragsautomat lexware-erkunden`` (``lexware/erkundung.py``).
+
+        Liefert das Hauptfenster der laufenden Instanz und mit ``alle_fenster`` zusätzlich alle
+        sichtbaren Top-Level-Fenster des Lexware-Prozesses (offene Dialoge, Assistent). Dockt nur an
+        (``connect``), startet nie, klickt nie, setzt keinen Fokus und sendet keine Tasten.
+        """
+        haupt = self.finde_hauptfenster(timeout=timeout)
+        ergebnis = [haupt]
+        if not alle_fenster:
+            return ergebnis
+        app = self._verbinde()
+        try:
+            haupt_handle: int | None = int(haupt.roh.handle)
+        except Exception:  # noqa: BLE001
+            haupt_handle = None
+        try:
+            elemente = self._findwindows.find_elements(
+                process=app.process, top_level_only=True, visible_only=True, backend=self.backend_name
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Top-Level-Fenster des Prozesses nicht lesbar: %s", exc)
+            return ergebnis
+        for element in elemente:
+            handle = getattr(element, "handle", None)
+            if handle is None or (haupt_handle is not None and int(handle) == haupt_handle):
+                continue
+            try:
+                wrapper = app.window(handle=handle).wrapper_object()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Fenster %s nicht lesbar: %s", handle, exc)
+                continue
+            titel = getattr(element, "name", "") or ""
+            art = "assistent" if re.search(self.controls.ASSISTENT_TITEL_REGEX, titel, re.I) else "dialog"
+            ergebnis.append(Fenster(titel=titel, roh=wrapper, art=art))
+        return ergebnis
+
     # ----------------------------------------------------------------- Controls
 
     def _element(self, fenster: Fenster, control: str, *, timeout: float | None = None) -> Any:
