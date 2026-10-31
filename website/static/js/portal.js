@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var WS = window.WS; if (!WS) return;
-  var D = WS.daten, PROD = WS.produkte, WG = WS.weingueter, root = WS.root, fmt = WS.fmt, esc = WS.esc;
+  var D = WS.daten, PROD = WS.produkte, WG = WS.weingueter, root = WS.root, fmt = WS.fmt, esc = WS.esc; var IX = document.querySelector('a[href$="index.html"]') ? 'index.html' : '';
   var $ = function (s, el) { return (el || document).querySelector(s); }, $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
   var LAENDER = ['Italien', 'Frankreich', 'Spanien', 'Portugal', 'Bulgarien', 'England', 'Argentinien', 'Australien'];
   var KATS = ['Schaumwein', 'Weisswein', 'Rosé', 'Rotwein', 'Süsswein', 'Portwein', 'Spirituose', 'Alkoholfrei', 'Olivenöl', 'Cidre', 'Sonstiges'];

@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -48,6 +49,7 @@ def preis(wert) -> str:
 
 
 def main() -> None:
+    explizit_index = "--index" in sys.argv
     weingueter = lade("weingueter.json", [])
     produkte = lade("produkte.json", [])
     news = lade("aktuelles.json", [])
@@ -112,6 +114,10 @@ def main() -> None:
         ziel = DIST / pfad / "index.html" if pfad else DIST / "index.html"
         ziel.parent.mkdir(parents=True, exist_ok=True)
         html = env.get_template(vorlage).render(root=root, pfad=pfad, **ctx)
+        if explizit_index:
+            # Für Hoster ohne Verzeichnis-Index (z.B. Artefakt-Vorschau): "ordner/" -> "ordner/index.html"
+            html = re.sub(r'href="((?:\./|\.\./)[^"#?:]*?/|\./|\.\./)(#[^"]*)?"',
+                          lambda m: 'href="' + m.group(1) + 'index.html' + (m.group(2) or '') + '"', html)
         ziel.write_text(html, encoding="utf-8")
 
     schreibe("", "index.html", weingueter=weingueter, news=news, produkte=produkte, seite="home")

@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var root = document.body.getAttribute('data-root') || './';
+  var IX = /index\.html(\?|#|$)/.test(location.href) || document.querySelector('a[href$="index.html"]') ? 'index.html' : '';
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.documentElement.classList.add('js');
   var DATEN = window.WS_DATEN || { produkte: [], weingueter: [] };
@@ -135,7 +136,7 @@
   document.addEventListener('click', function (e) { var a = e.target.closest('[data-lightbox]'); if (a && lb) { e.preventDefault(); lbImg.src = a.getAttribute('href'); lb.hidden = false; } if (e.target === lb || e.target.id === 'lbZu') lb.hidden = true; });
 
   /* Störer: Korken knallt, dann Katalog */
-  var st = $('#stoerer'); if (st) st.addEventListener('click', function () { if (reduce) { location.href = root + 'katalog/'; return; } st.classList.remove('pop'); void st.offsetWidth; st.classList.add('pop'); setTimeout(function () { location.href = root + 'katalog/'; }, 650); });
+  var st = $('#stoerer'); if (st) st.addEventListener('click', function () { if (reduce) { location.href = root + 'katalog/' + IX; return; } st.classList.remove('pop'); void st.offsetWidth; st.classList.add('pop'); setTimeout(function () { location.href = root + 'katalog/' + IX; }, 650); });
 
   /* Kontaktformular (Entwurf: kein Versand) */
   var kf = $('#kontaktForm'); if (kf) kf.addEventListener('submit', function (e) { e.preventDefault(); var ok = $('#kontaktOk'); if (!$('#k-ds').checked) { ok.textContent = 'Bitte bestätigen Sie zuerst den Datenschutzhinweis.'; ok.classList.add('show'); return; } ok.textContent = 'Vielen Dank. Im Entwurf wird noch nichts versendet. Auf der echten Seite landet Ihre Nachricht bei info@weinstrasseadolph.de.'; ok.classList.add('show'); });
