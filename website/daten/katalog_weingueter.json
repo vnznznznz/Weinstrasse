@@ -1,0 +1,776 @@
+[
+ {
+  "weingut_slug": "ca-di-rajo",
+  "name": "Ca' di Rajo",
+  "land": "Italien",
+  "region_titel": "FRIZZANTE, SPUMANTE, UNFILTERED",
+  "claim": "Spitzen-Prosecco zum kleinen Preis! – So feinperlig kann Genuss sein: Elegante Mousseux, die begeistert",
+  "portraet": "Ca' di Rajo ist ein familiengeführtes Weingut, das die Region und ihr Terroir bestens kennt. Besonders stolz ist das Weingut auf das historische Bellussera-Erziehungssystem. Auf einer Fläche von 15 Hektar wachsen die Reben in radialer Anordnung hoch über dem Boden. Ursprünglich wurde dieses System entwickelt, um Platz zu optimieren und Gemüse oder andere Feldfrüchte unter den Reben anzubauen. Heute kann man unter den Reben spazieren, was den Weinberg zu einem besonderen Erlebnis macht. Für die Produkte von Ca' di Rajo werden ausschließlich Trauben aus dem eigenen Anbau verwendet. Dadurch können die hohe Qualität und Preisstabilität sichergestellt werden. Ein lebendiges Erbe der italienischen Weinbaukunst.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 600 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,34 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 204,00 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "4-7",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "centinari",
+  "name": "Centinari",
+  "land": "Italien",
+  "region_titel": "FRANCIACORTA",
+  "claim": "Faszination Franciacorta: Balance, Präzision & lebendige Perlage – Von der Raffinesse der Lombardei bis zur Sonne Veneziens",
+  "portraet": "Im Herzen der sanften Hügel der Franciacorta in der Lombardei liegt das Weingut Centinari – ein Ort, an dem Leidenschaft, Familienwerte und handwerkliche Perfektion verschmelzen. Das Weingut wurde 2018 gegründet und steht für höchste Ansprüche im Bereich klassisch hergestellter italienischer Schaumweine. Die Weinberge befinden sich in einer geschützten Landschaft zwischen dem Lago d'Iseo und den vorbeiziehenden moränischen Hügeln – Böden voller Mineralien, ein Mikroklima mit großen Temperaturunterschieden zwischen Tag und Nacht und eine Arbeit, die von Hand und mit Respekt vor der Natur geleitet wird. Die Familie hinter dem Weingut – die Familie Togni – bringt über 70 Jahre Erfahrung im Schaumweinbereich mit und hat mit Centinari einen neuen Weg eingeschlagen, der auf höchste Qualität und ein bewusstes Markenbild ausgerichtet ist. Centinari vereint somit Landschaft, Zeit, Handwerk und Familie – und schafft Schaumweine, die nicht nur Genuss sind, sondern Ausdruck einer Philosophie: Natur in Balance, geduldige Herstellung und exquisite Eleganz.",
+  "mindestmenge_flaschen": 120,
+  "mindestmenge_text": "Bestellen Sie Franciacorta ab 120 Flaschen, Prosecco/Spumante ab 600 Flaschen und Franciacorta & Prosecco/Spumante gemischt ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 120 Flaschen: 0,883 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,44 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,36 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 204,00 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "8-9",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "rocca-dei-forti",
+  "name": "Rocca dei Forti",
+  "land": "Italien",
+  "region_titel": "PROSECCO & SPUMANTE",
+  "claim": "Von der Raffinesse der Lombardei bis zur Sonne Venetiens",
+  "portraet": "Im Bereich Schaumwein steht Rocca dei Forti für Tradition, Verlässlichkeit und Marktführerschaft in Italien mit einer breiten Auswahl an Prosecco, klassischen Cuvées und alkoholfreien Varianten. Centinari Franciacorta, gegründet 2018, repräsentiert die Exzellenz der Lombardei: handwerklich erzeugte Premium-Franciacorta, vielfach ausgezeichnet und geprägt von Präzision, Geduld und Leidenschaft.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie Franciacorta ab 120 Flaschen, Prosecco/Spumante ab 600 Flaschen und Franciacorta & Prosecco/Spumante gemischt ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 120 Flaschen: 0,883 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,44 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,36 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "10-11",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "bodega-sommos",
+  "name": "Bodega Sommos",
+  "land": "Spanien",
+  "region_titel": "SOMONTANO",
+  "claim": "Spannung statt Schwere – Avantgardistische Architektur mit kompromissloser Weinqualität",
+  "portraet": "Mitten im Herzen der D.O. Somontano nahe Barbastro, wurde Bodega Sommos 2014 gegründet und zählt heute zu den modernsten und selektivsten Weingütern Spaniens. Es wurde sogar zum BESTEN WEINGUT SPANIENS von National Geographic (Travel Readers Awards) gekürt. Das avantgardistische Weingut, inspiriert von den Pyrenäen, steht sinnbildlich für die Philosophie von Sommos: Innovation, Präzision und kompromisslose Qualität. Mit über 350 Hektar eigener Weinberge, nächtlicher Handlese und schonender Schwerkraft-Vinifikation entstehen unter der akribischen und gekonnten Leitung des Chefönologen José Javier Echandi stets sehr elegante, terroirbetonte Weine von großer Tiefe. Nachhaltigkeit und diverse internationale Auszeichnungen unterstreichen deutlich den Anspruch von Sommos, Weine mit moderner Eleganz und starkem Charakter zu schaffen.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie ab 300 Flaschen. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,65 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,40 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "12-17",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "bodegas-el-progreso",
+  "name": "El Progreso Sociedad Cooperativa",
+  "land": "Spanien",
+  "region_titel": "ALKOHOLFREI - REBSORTENWEINE UND OLIVENÖL",
+  "claim": "Genuss ganz ohne Promille – Unsere Highend Olivenöle",
+  "portraet": "Castilla-La Mancha, bekannt für die Abenteuer des Don Quijote und ihre weiten Weinlandschaften, steht für Tradition und charaktervolle Weine. In dieser Region wurde 1917 in Villarrubia de los Ojos die Genossenschaft El Progreso gegründet, heute die älteste Wein- und Ölkooperative Spaniens mit ununterbrochener Tätigkeit. Viele Winzerfamilien pflegen hier ihre Weinberge mit Hingabe und Erfahrung. In Verbindung mit moderner Kellertechnik entstehen Weine und Olivenöle, die Tradition und Innovation vereinen. El Progreso ist die älteste Winzergenossenschaft Spaniens, die seit ihrer Gründung vor über hundert Jahren ununterbrochen tätig ist. Gegründet von einer Gruppe visionärer Winzer, die sich dafür einsetzten, den Bauern faire Möglichkeiten zur Verarbeitung und Vermarktung ihrer Produkte zu bieten, hat das Weingut seither eine Reise voller Tradition, Leidenschaft und Gemeinschaft durchlebt. Durch absolute Hingabe und durch beste Qualität, sowohl bei ihren Weinen als auch ihrem hochwertigem Olivenöl, hat sich El Progreso in den letzten Jahren in Spanien einen Namen gemacht und sich etabliert. Der wahre Schatz des Unternehmens liegt in der sorgfältigen Auswahl und der Liebe zum Detail, die in jedem einzelnen Produkt steckt. Die Essenz von El Progreso liegt in der Handwerkskunst, die in jede Flasche fließt, und in der unaufhörlichen Suche nach Perfektion.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller. (Preisliste: ab 600 Flaschen à 75 cl sortiert)",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,56 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "18-22",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "bodega-vilano",
+  "name": "Bodegas Vilano",
+  "land": "Spanien",
+  "region_titel": "RIBERA DEL DUERO",
+  "claim": "Charakter & viel Power – Eine Hommage an unsere Wurzeln",
+  "portraet": "Bei Vilano sind Rebe, Land und Mensch untrennbar verbunden. Jede Traube wird von Hand geerntet. Es handelt sich um Familien, die ihr Handwerk seit vielen Generationen perfektionieren. Dieser Gemeinschaftssinn ist die Grundlage für die Kernidentität von Vilano. Vilano wurde 1957 gegründet, 25 Jahre vor der Gründung der D.O. Ribera del Duero, wobei zwei grundlegende Prioritäten beibehalten wurden: kontinuierliche Verbesserung und die Erhaltung der hundertjährigen Weinberge, die die Weine und das Erbe des Unternehmens prägen. Seit der Gründung im Jahr 1957 befindet sich Bodegas Vilano in einer konstanten Evolution. Mit Stolz blicken sie auf ihre Geschichte zurück: Im Jahr 2027 feiern sie ihr 70-jähriges Bestehen. Doch ihr Weg führt sie auch über die Grenzen der Ribera del Duero hinaus. Mit innovativen Weinen aus der D.O. Bierzo (Godello) und der D.O. León (Albarín) erweitern sie ihr Portfolio und bieten heute eine außergewöhnliche Vielfalt, die jahrzehntelange Erfahrung mit modernem Pioniergeist verbindet.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller. Aktion Frachtfrei für volle oder halbe Palette: Bei Bestellung von je 2 Kartons je Sorte Premium oder 60 Flaschen Premium sortiert.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,56 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "23-26",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "lou-gat",
+  "name": "Lou Gat (Maison Marcellin)",
+  "land": "Frankreich",
+  "region_titel": "CÔTES DE GASCOGNE",
+  "claim": "Lou Gat – Legende der Katzen: Zwischen Legende und Lebensfreude. Elegant wie eine Katze – Feine Frucht. Präzise Frische. Mit dezenten Krallen im Finish.",
+  "portraet": "Die Maison Marcellin ist ein inhabergeführtes Weingut in Condom, im Herzen der Côtes de Gascogne. Die Familie Marcellin blickt auf drei Generationen Weinbau zurück und verbindet traditionelle Werte mit moderner Weinherstellung. Neben frischen, zugänglichen Weinen entstehen hier auch hochwertige Armagnacs und französischer Brandy. Der Name „Lou Gat“ bedeutet im lokalen Dialekt „die Katze“. Einer Legende zufolge aßen die Dorfbewohner im 13. Jahrhundert aus Hunger alle Katzen auf. Ohne deren Schutz konnten sich die Ratten ungehindert vermehren und vernichteten die gesamte Weinernte. Angeline, eine mutige Frau, hatte einige Katzen versteckt. Deren Nachkommen vertrieben schließlich die Ratten – und retteten damit den Weinbau. Médéric Marcellin, der das Weingut heute leitet, setzt auf Weine, die frisch, fruchtig und klar im Geschmack sind. Die stilisierte Katze auf dem Etikett symbolisiert nicht nur die Legende, sondern auch die Vielfalt der Region.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,56 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 630 Flaschen: 0,392 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 235,20 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "27-29",
+  "neuentdeckung": true
+ },
+ {
+  "weingut_slug": "cantine-colosi",
+  "name": "Cantine Colosi",
+  "land": "Italien",
+  "region_titel": "SIZILIEN / SALINA",
+  "claim": "Weine vom Vulkan – Weine, die von Licht, Wind, Sonne und dem Meer erzählen",
+  "portraet": "Das kleine Weingut Cantine Colosi ist ein echter Familienbetrieb. Schon als kleiner Junge stürzte sich der heutige Önologe Pietro mit Begeisterung in das Abenteuer Weinbau und unterstützte seinen Vater Piero tatkräftig bei der Arbeit. Heute, mit 30 Jahren, leitet der Jungwinzer die Arbeiten im Weinkeller eigenständig, während er weiterhin von der wertvollen Expertise seines Vaters profitiert. Auf Sizilien gedeihen zahlreiche autochthone Rebsorten, darunter die prestigeträchtige rote Sorte Nero d'Avola und die weiße Rebsorte Grillo – beide gehören zu den Klassikern von Colosi. Die Böden auf Sizilien, geprägt von vulkanischem Gestein, sind unglaublich fruchtbar, und der maritime Einfluss sorgt für optimale Temperaturunterschiede, die den Trauben eine hervorragende Reife verleihen. Neben den Weinbergen auf Sizilien bewirtschaftet Pietro auch Reben auf der benachbarten Vulkaninsel Salina, deren Böden ebenfalls von den vulkanischen Gegebenheiten profitieren. Auf den Vulkaninseln Salina und Lipari gedeihen auf Steinterrassen unter schwierigsten Bedingungen terroirfokussierte Weine. Der Boden am Fuße des Vulkans ist reich an Mineralien und die steilen Hanglagen lassen nur reine Handarbeit zu. Hier entstehen seit drei Generationen der Familie Colosi mit Hingabe komplexe Weine, in denen sich jahrzehntelange Erfahrung und Leidenschaft widerspiegeln. Colosi bewahrt mit viel Sorgfalt die traditionellen Trockenmauern und die natürliche Biodiversität der einzigartigen Vulkanlandschaft. Diese mineralreichen Vulkanböden und die mediterrane Vegetation schaffen ideale Bedingungen für autochthone Rebsorten wie Malvasia und Corinto Nero.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 600 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,31 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "30-33",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "cantine-san-pancrazio",
+  "name": "Cantine San Pancrazio",
+  "land": "Italien",
+  "region_titel": "SALENTO",
+  "claim": "Geheimtipp aus dem Salento – Weine, die die Vielfalt und Fülle Süditaliens zeigen. Primitivo, aber gut! Leidenschaft in jeder Flasche.",
+  "portraet": "Cantine San Pancrazio, eine wahre Perle der süditalienischen Weinwelt, die tief in der traditionsreichen Region des Salento verwurzelt ist. Seit über 60 Jahren verbindet dieses Weingut eine lange Tradition im Weinbau mit innovativer Technik in der Weinkellerei – eine einzigartige Kombination, die den Charakter, die Persönlichkeit und die Einzigartigkeit ihrer Weine prägt. Gegründet im Jahr 1961 von Antonio Bianco, liebevoll „Il Cavaliere“ genannt, und 13 weiteren Winzern, entstand Cantine San Pancrazio aus der tiefen Verbundenheit der Gründer zu ihrer Heimat. Diese Kooperative liegt in der malerischen Landschaft Apuliens, nur wenige Kilometer vom Ionischen Meer entfernt, im Herzen des Salento, einem Gebiet, das berühmt für seine DOC Salice Salentino Weine ist. Dank der sorgfältigen Arbeit der Winzerinnen und Winzer sowie dem Einsatz modernster Technologie entstehen in der Cantine San Pancrazio einige der besten Weine Apuliens. Die wichtigste und zugleich geschätzteste Rebsorte des Weinguts ist der Negroamaro, eine edle Traube, die hier von Hand gelesen wird. Weitere bedeutende autochthone Sorten sind Primitivo, Malvasia Nera, Fiano und Malvasia Bianca, die das Weingut zum Vorschein bringt.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 600 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,45 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "34-37",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "la-bollina",
+  "name": "La Bollina",
+  "land": "Italien",
+  "region_titel": "PIEMONTE & LUGANA",
+  "claim": "Tutta l'Italia auf einer Palette – Besondere Entdeckungen aus dem Piemonte. „La Bollina präsentiert Weine von analytischer & sensorischer Perfektion.“ Luca Maroni",
+  "portraet": "Das Weingut Agricola La Bollina ist im idyllischen Serravalle Scrivia beheimatet, einem kleinen Weindorf mit gut 7.000 Einwohnern südöstlich von Alessandria im Piemonte. Das historische Anwesen, einst vom Adelsgeschlecht Marquis Figari aus Genua genutzt, erstreckt sich über sanfte Hügel, malerische Weinberge und Kastanienwälder. Nach einer umfangreichen Renovierung des Weinkellers setzt das Weingut auf modernste Technologien, wie spezielle Filter, um organoleptische Eigenschaften der Weine bis zur letzten Produktionsstufe zu bewahren. Mit der Cortese-Traube als Hauptakteur in der DOCG Gavi entstehen elegante Weine, ergänzt durch Barbera und Chardonnay. Auf insgesamt 120 Hektar Rebfläche gedeihen Spitzenweine, die unter anderem vom Starkritiker Luca Maroni immer wieder hochgelobt werden. La Bollina verbindet historische Eleganz mit moderner Innovation und fängt den unverwechselbaren Geist des Piemonts in jedem Tropfen ein.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine jeder Farbregion ab 150 Flaschen à 75 cl sortiert. Sie können alle Weine auf einer Palette ab 600 Flaschen à 75 cl beliebig kombinieren (S. 38–48). Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,98 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "39-40",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "luciano-arduini",
+  "name": "Luciano Arduini",
+  "land": "Italien",
+  "region_titel": "VENEZIEN",
+  "claim": "Authentische Weine aus dem Herzen Veneziens – Nur 7 Hektar und die besten Bewertungen",
+  "portraet": "Für die Familie Arduini ist Wein ein Lebensstil. Seit den 1940er Jahren, als Gabriele Arduini das erste Weingut in Marano di Valpolicella gründete, wird die Tradition fortgeführt. Heute leitet Luciano Arduini den Familienbetrieb, unterstützt von seiner Frau Silvana, Sohn Andrea und Tochter Sofia. Die Familie bewirtschaftet sieben Hektar in der Valpolicella Classico Appellation und kombiniert handwerkliches Können mit moderner Technik. Die Weine, darunter Amarone, Ripasso und Valpolicella Superiore, werden aus autochthonen Rebsorten wie Corvina, Rondinella und Molinara hergestellt. Sie begeistern durch ihre Qualität und Authentizität. Der Wille, sich als kleiner Familienbetrieb zwischen den Großen zu behaupten, sowie Fleiß und Engagement, spiegeln sich in der Qualität der Weine, tollen Kritikerbewertungen und natürlich dem großen Kundenzuspruch wider.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 150 Flaschen à 75 cl sortiert. Alle Weine dieser Seite sind mit den Weinen (S. 38–48) auf einer Palette ab 600 Flaschen à 75 cl beliebig kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,98 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "41-42",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "cortemedicea",
+  "name": "CorteMedicea",
+  "land": "Italien",
+  "region_titel": "TOSKANA",
+  "claim": "Toskana – zwischen Klassik und Moderne",
+  "portraet": "Die Geschichte von CorteMedicea beginnt in einer Region mit einer reichen Weinbautradition. Die Weinberge liegen im malerischen San Casciano de Bagni, einem Ort, der für seine toskanischen Spitzenweine bekannt ist. Winzer Andrea Bernardini sammelte wertvolle Erfahrungen in Südafrika, Rumänien und Griechenland, bevor es ihn zurück zu seinen Wurzeln zog. Heute leitet er mehrere Projekte bei CorteMedicea und bringt sein internationales Wissen in die Pflege der Weinberge und Weiterentwicklung der Weine ein.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 150 Flaschen à 75 cl sortiert. Alle Weine dieser Seite sind mit den Weinen (S. 38–48) auf einer Palette ab 600 Flaschen à 75 cl beliebig kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,98 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "43-44",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "lazzeretti",
+  "name": "Marco Lazzeretti",
+  "land": "Italien",
+  "region_titel": "TOSKANA / MONTALCINO",
+  "claim": "Außergewöhnliche Qualitäten in kleinster Auflage – „Unser Brunello ist unser ganzer Stolz. Die Wertschätzung des Brunello ist unsere Motivation.“",
+  "portraet": "Das Weingut Lazzeretti liegt nur wenige Minuten vor dem Dorf Montalcino. Nachdem die Trauben erstmals in Eigenregie verarbeitet wurden, hat sich wenig verändert – die Familie verfolgt mit Geduld und Hingabe ihre Tradition. Marco und seine Schwester Lucia haben es sich zur Aufgabe gemacht, feine Weine zu kreieren, die die Geschichte des Brunellos und das Wissen ihres Großvaters repräsentieren. 2002 wurde der erste Rosso di Montalcino DOC abgefüllt, 2006 folgte der erste Brunello, und die erste Riserva di Brunello erschien 2010.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 150 Flaschen à 75 cl sortiert. Alle Weine dieser Seite sind mit den Weinen (S. 38–48) auf einer Palette ab 600 Flaschen à 75 cl beliebig kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,98 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "45-46",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "la-bollina-sueditalien",
+  "name": "Bollina SRL (Süditalien)",
+  "land": "Italien",
+  "region_titel": "LUGANA, KALABRIEN, APULIEN, SIZILIEN & KAMPANIEN",
+  "claim": "Süditalien in seiner ganzen Vielfalt – Entdecken Sie preisgekrönte Weine aus Kalabrien, Apulien, Sizilien, Lugana & Kampanien – kombiniert auf einer Palette!",
+  "portraet": "Süditalien – Kampanien, Apulien, Sizilien: Regionen voller Reichtum und Tradition, deren Potenzial lange Zeit übersehen wurde. Doch mit der Rückbesinnung auf uralte Rebbestände und deren Schätze begann eine Renaissance, die weltweit Beachtung findet. Önologe Andrea Bernardini nutzt sein feines Gespür für Terroirs und verbindet meisterhaft Tradition mit moderner Technologie. Sein Ziel: Weine, die den Charakter der Trauben und Böden unverfälscht widerspiegeln. So schafft es unser italienischer Partner in den renommiertesten Regionen kontinuierlich starke Weine zu produzieren. Auch Luca Maroni ist davon überzeugt und vergibt u.a. sagenhafte 99 Punkte. Ob moderne Weine oder Klassiker, bei diesem Portfolio werden Sie fündig.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 150 Flaschen à 75 cl sortiert. Alle Weine dieser Seite sind mit den Weinen (S. 38–48) auf einer Palette ab 600 Flaschen à 75 cl beliebig kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,98 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,37 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "47-48",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "montalbera",
+  "name": "Montalbera",
+  "land": "Italien",
+  "region_titel": "MONFERRATO & LANGHE",
+  "claim": "Besondere Entdeckungen aus dem Piemonte – Rarer Genuss – Hoch ausgezeichnet! Seltene Eleganz aus dem Piemonte. Kraftvoll und trotzdem weich.",
+  "portraet": "Im Herzen des Piemonts, wo die sanften Hügel von Monferrato den Horizont malen, liegt das Weingut Montalbera – eine Perle inmitten der Natur. Seit drei Generationen hütet die Familie Enrico Riccardo Morando diesen Schatz mit Leidenschaft, die in jeder Flasche spürbar wird. Über 100 Hektar zusammenhängender Weinberge prägen die Landschaft und machen Montalbera zu einem der renommiertesten Weingüter der Region. Hier gedeihen autochthone Rebsorten wie der Ruché, der dank Montalbera weltweite Bekanntheit erlangte. Das Aushängeschild des Weinguts, der vielfach prämierte Ruché Laccento, vereint Eleganz und Tiefe. Lassen Sie Ihre Kunden Teil dieser Geschichte werden – mit modernen, authentischen Weinen, die die Essenz des Piemonts in sich tragen.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Region ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,44 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,36 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "49-52",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "bonfante-chiarle",
+  "name": "Bonfante & Chiarle",
+  "land": "Italien",
+  "region_titel": "PIEMONTE",
+  "claim": "Einzellagen mit echter Identität – Aus Liebe zur Region und dem Terroir – hochwertige Weine aus Norditalien",
+  "portraet": "Es gibt wohl kaum ein Weingut im Piemonte, das TOP Rebflächen in ALLEN wichtigen Regionen des Piemonts sein eigen nennen darf und weder Wein noch Trauben zukaufen muss. Tauchen Sie ein in die faszinierende Weinwelt des Piemonts mit Klassikern wie Barbera d'Asti, Barolo und vielen mehr bietet Bonfante & Chiarle beispielhafte Weine aus Top-Einzellagen der Region, die sich alle im Familienbesitz befinden! Besonders zu erwähnen sind auch die erstklassigen Weißweine Gavi und Gavi di Gavi, sowie einer der besten Arneis aus Einzellagen. Für den Winzer Paolo Scaiola steht die Authentizität der Weine und Charakteristika der einzelnen Lagen im Mittelpunkt. Mit ihrer Hingabe entsteht ein Portfolio von Weinen, das höchste Ansprüche erfüllt und die Seele des Piemonts in jeder Flasche einfängt.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 300 Flaschen à 75 cl sortiert, kombinierbar mit Grappa (ab 120 Flaschen). Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,44 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,36 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "53-54",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "grappa",
+  "name": "Ca' de Monte / Malgrà / Tenuta Carretta",
+  "land": "Italien",
+  "region_titel": "GRAPPA PIEMONTE",
+  "claim": "Edler Grappa von edlen Trauben – Seidig weich – aus dem Trester von Spitzenweinen",
+  "portraet": "Ca' de Monte Grappa steht für exzellente Handwerkskunst und höchste Qualität. Exklusiv für Bonfante & Chiarle wird in einer traditionsreichen italienischen Brennerei destilliert. Typisch für die Region hat sich die Brennerei auf die Herstellung von Grappa unter Verwendung eines Destillierkolbens mit Wasserbad spezialisiert. Diese Methode zeichnet sich durch eine besonders schonende Destillation aus, die jedoch viel Zeit und handwerkliches Können erfordert. Das Ziel ist die Herstellung von klaren, aromatischen Grappas mit deutlichen Geschmacksprofilen. Nach dem Brennvorgang wird ein Teil der Grappa in französische Holzfässer aus Allier-Eiche gefüllt. Während der verhältnismäßig langen, etwa dreijährigen Lagerung entfaltet sich ein harmonisches Geschmacksprofil, geprägt von zarten Noten von Vanille und Mandeln, die durch die Interaktion mit den Tanninen des Holzes entstehen. Die Grappas von Ca' de Monte verkörpern Tradition und Eleganz – klare, aromatische Brände mit Charakter, die höchsten Genuss versprechen.",
+  "mindestmenge_flaschen": 120,
+  "mindestmenge_text": "Bestellen Sie ab 120 Flaschen Grappa oder in Kombination mit dem Bonfante & Chiarle Weinsortiment ab 600 Flaschen à 70 cl / 75 cl sortiert, wenn mindestens 60 Flaschen Grappa bestellt werden. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 120 Flaschen: 0,883 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,44 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,36 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, Steueranmeldung 15,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "55-56",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "villa-armellina",
+  "name": "Villa Armellina",
+  "land": "Italien",
+  "region_titel": "PROSECCO & FRIZZANTE",
+  "claim": "Bester Prosecco Fachhandel – Platz 2: Kategorie Qualität, Platz 3: Kategorie Prosecco (Weinwirtschaft 1/2021)",
+  "portraet": "Die Kellerei Villa Armellina liegt mitten im Herzen der Prosecco-Region, welche herausragende Voraussetzungen für konstant hohe Qualitäten bietet! Das hochwertige Traubenmaterial stammt von kleinen Winzern aus der Umgebung rund um die Kellerei aus den Hochlagen um Conegliano, zu denen die Weingutsinhaberin Gloria bereits seit Jahren engen persönlichen Kontakt pflegt. Seit Mai 2009 ist Bruno Cecchetto der verantwortliche Winemaker. Sein Handwerk erlernte er an der Universität Padova und an der traditionsreichen Weinakademie in Conegliano, die mit ihren 140 Jahren Geschichte die älteste Weinakademie Italiens ist. Beide Studiengänge hat er in Rekordzeit mit der Bestnote „summa cum laude“ abgeschlossen. Weshalb Villa Armellina der ideale Partner für Sie ist: Gloria und ihre Familie investierten alles in die Qualität ihrer Produkte statt in Marketing und Werbung. Qualität steht bei Villa Armellina an 1. Stelle und die erstklassigen Prosecchi, Spumante & Co. erweisen sich als absolute Mengendreher!",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Frizzante und Spumante dieser Seite ab 600 Flaschen à 75 cl sortiert oder ab 570–576 Fl. reinsortig. Bianco del Giglio nur reinsortig bestellbar. Die Preise verstehen sich ab Keller. Kostenvorteil durch die Abnahme von reinsortigen Paletten möglich.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,33 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 198,00 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "57-58",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "caves-messias",
+  "name": "Caves Messias",
+  "land": "Portugal",
+  "region_titel": "VINHO VERDE, BAIRRADA, DOURO, DÃO, ALENTEJO",
+  "claim": "100 Jahre Caves Messias! Feiern Sie zusammen mit Caves Messias 100 Jahre Weinbautradition. Der Star der portugiesischen Sternegastro – Schaumweinspezialist seit 1926.",
+  "portraet": "Die Weinkellerei Caves Messias zählt in Portugal zu den bedeutendsten Erzeugern des Landes und hat sich seit vielen Jahren als Premiumhersteller etabliert. Das Weingut besteht seit 1926 und befindet sich bis heute in Familienbesitz, mittlerweile in der 3. und 4. Generation. Messias verfügt über einige der besten Weinberge in den wichtigsten Anbaugebieten Portugals. In mehreren kleinen Weingütern, den sogenannten Quintas, entstehen charakterstarke Weine von konstant hoher Qualität. Das Portfolio von Messias ist ebenso vielschichtig wie die Weine selbst. Der talentierte portugiesische Winzer João Soares studierte Önologie in Lissabon und verfasste seine Abschlussarbeit an der renommierten Hochschule Geisenheim in Deutschland. Mit innovativen Ideen kehrte er nach Portugal zurück und zählt heute zu den gefragtesten Winzern des Landes. Schaumweine aus Portugal sind hierzulande noch eher selten, doch in ihrer Heimat hat sich Messias längst einen Namen gemacht. Seit der Gründung des Hauses wird in der Region Bairrada, unweit der Heimatstadt der Familie, hochwertiger Schaumwein erzeugt. Die Region gilt als renommierteste Schaumweinregion Portugals und profitiert von einem milden Klima mit starkem atlantischem Einfluss, das Weine von besonderer Frische und Eleganz hervorbringt. Mit der traditionellen Flaschengärung, bei der jede Flasche von Hand gerüttelt wird, erhält der Wein feinste Aromen und eine elegante Perlage. Diese sorgfältige Handarbeit verleiht den Schaumweinen von Messias ihren charakteristischen Stil und eine besondere Raffinesse. In den besten Restaurants Portugals sind die Schaumweine längst eine feste Größe. Das Sortiment umfasst alles, was das Herz eines Weinliebhabers begehrt – von eleganten Basis-Cuvées bis hin zu Jahrgangs-Espumantes, die mit ihrem einzigartigen Esprit und Charakter begeistern.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 600 Flaschen à 75 cl sortiert. Alle Weine sind auch mit dem Schaum-, Spirituosen- und Portweinsortiment sowie den Weinen auf den Seiten 59–69 auf einer Palette kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,68 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,41 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 246,00 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "59-64",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "portweine",
+  "name": "Caves Messias (Spirituosen & Portwein)",
+  "land": "Portugal",
+  "region_titel": "SPIRITUOSEN & PORTWEINE PORTUGAL",
+  "claim": "Portweine aus der Douro A-Klasse – Exzellente Portweine aus dem zerklüfteten Herzen des Douro. Bester Portwein-Produzent (Prémios Grandes Escolhas, 02/2018)",
+  "portraet": "Der Portwein von Caves Messias entsteht auf der Quinta do Cachão im Cima Corgo. Hier erfolgt eine strenge Klassifizierung jeder Parzelle nach sechs Kriterien, darunter Höhenlage, Hangneigung, Bodentyp, Sonnenexposition, Rebsorten sowie das Alter der Reben bzw. die Pflanzdichte pro Hektar. Die Quinta do Cachão kann stolz darauf sein, dass der Großteil ihrer Parzellen zur höchsten Klassifizierungsstufe des Douro („A“) gehört. Für die Portweinproduktion verwendet Messias ausschließlich die edelsten Rebsorten Portugals, die in dieser Region besonders gut gedeihen. Dazu zählen Tinta Roriz, Touriga Nacional, Touriga Franca und Tinta Barroca. Die Trauben werden mit äußerster Sorgfalt selektiert, die Vinifizierung erfolgt nach höchsten Qualitätsstandards. Aus der Liebe zum Detail – vom Weinberg bis zur Flasche – entsteht eine faszinierende Bandbreite an Portweinen mit höchsten Auszeichnungen. Im Jahr 2021 wurde Caves Messias für herausragende Colheita-Jahrgänge und Rotweine mit Spitzenbewertungen zwischen 95 und 97 Punkten von Robert Parker gewürdigt.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie ab 300 Flaschen à 75 cl Portwein sortiert oder in Kombination mit dem Messias Wein-, Spirituosen- und Schaumweinsortiment (S. 59–69) ab 600 Flaschen sortiert. Die Preise verstehen sich ab Keller. Weitere Jahrgänge auf Anfrage.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,68 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,41 € / Flasche (inkl. Hebebühnenzustellung)",
+   "reinsortige Palette: 246,00 € / Palette (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "65-69",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "rodriguez-sanzo",
+  "name": "Rodriguez y Sanzo",
+  "land": "Spanien",
+  "region_titel": "TORO, CASTILLA Y LEÓN, RIBERA DEL DUERO, RIOJA, RUEDA & RIAS BAIXAS",
+  "claim": "Javier Rodriguez – Exklusive Weine aus Meisterhand: Akribischer Perfektionist, Forscher und Pionier. Meister des Terroirs.",
+  "portraet": "Mit den Weinen von Javier Rodríguez haben Sie die Möglichkeit, die Vielfalt Spaniens in höchster Qualität zu erleben – und das gebündelt auf einer Palette. Der spanische Top-Winzer sprüht vor kreativen Ideen, initiiert innovative Projekte und sucht stets nach außergewöhnlichen Terroirs sowie einzigartigen Ausbauverfahren. Eine seiner wohl besondersten Weinlinien stammt aus einem der ältesten Terroirs Europas, das bis heute noch Fußabdrücke aus der Zeit der Dinosaurier birgt. Seine exzellenten Kenntnisse über Bodenbeschaffenheiten und Terroir ermöglichen es Javier, aus besonderen Einzellagen einzigartige Terroirweine zu erschaffen. Auf das Wissen des „Terroiristen“ verlassen sich selbst namhafte Weingüter wie Château Lafite-Rothschild und Château Olivier, die er bei der Analyse und Auswertung von Böden berät. Mit präzisen Untersuchungen der Bodenschichten, teils mehrere Meter tief, setzt er neue Maßstäbe in der Verbindung von Wissenschaft und Weinbaukunst, um die optimale Entwicklung der Trauben zu gewährleisten. Der hohe Qualitätsanspruch von Rodriguez erstreckt sich von der sorgfältigen Kultivierung der Böden über den gesamten Anbauprozess bis hin zum Ausbau und zur Produktion der Weine. Dabei liegt ein besonderes Augenmerk auf einem respektvollen Umgang mit der Natur – eine Philosophie, welche die Arbeit von Javier Rodriguez maßgeblich prägt. Biodynamische Bewirtschaftung und ein minimaler Eingriff in natürliche Prozesse bilden das Fundament seiner Prinzipien. Darüber hinaus zeigt Javier ein großes Innovationsstreben: Er experimentiert mit wilden Hefen, am Rebstock getrocknetem Traubenmaterial und außergewöhnlichen Methoden des Fassausbaus. Die exzellente Resonanz zahlreicher spanischer und internationaler Experten sowie die hohen Wiederkaufraten bezeugen das herausragende Talent des Önologen Javier Rodriguez. Seine Weine wurden von renommierten Institutionen wie Decanter, Guía Peñín, Robert Parker's Wine Advocate, der International Wine Challenge, Mundus Vini und Jancis Robinson vielfach ausgezeichnet. Die Liste der Ehrungen für Rodriguez' Weine ist beeindruckend lang.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 600 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,38 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "70-75",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "bodegas-vina-herminia",
+  "name": "Bodegas Viña Herminia",
+  "land": "Spanien",
+  "region_titel": "RIOJA",
+  "claim": "Eine Erfolgsgeschichte – Viña Herminia – Tradition und Klasse. Der Fachhandels-Rioja.",
+  "portraet": "Viña Herminia – die Fachhändler-Adresse für herausragende Rioja-Weine. Überraschend für die Weinwelt entschied sich die Familie Caballero (Lustau), ihr Weingut bewusst in der Region Rioja Oriental – den früher als Rioja Baja bekannten westlichen Ausläufern der Pyrenäen – zu gründen. Die Hänge des Monte Yerga, auf denen das Weingut gelegen ist, bieten ideale klimatische Bedingungen für konstant hohe Qualität, unabhängig vom Jahrgang. Im Herbst ist es während der Erntezeit deutlich trockener als in Rioja Alavesa oder Rioja Alta, weshalb die Trauben zum perfekten Zeitpunkt gelesen werden können. Die Eleganz und Komplexität der Weine resultieren aus den erheblichen Temperaturunterschieden in der Hochlage auf 400 bis 450 Metern über dem Meeresspiegel. Zudem profitieren die Trauben von einer überdurchschnittlich hohen Zahl an Sonnenstunden, die eine optimale Reifung sicherstellen. Der außergewöhnliche Erfolg dieses Konzepts spiegelt sich in den höchsten Auszeichnungen bei renommierten internationalen Wettbewerben wider. Zu den Highlights zählen: Bester Rioja Crianza bei Decanter 2016 und 2018, 95 Punkte und Platin-Auszeichnung von Decanter, Goldmedaillen bei der London Wine Challenge und dem Concours Mondial de Bruxelles sowie herausragende Bewertungen durch die renommierten amerikanischen Weinkritiker Parker und Tanzer.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 600 Flaschen à 75 cl sortiert. Alle Weine dieser Seite sind auch mit dem Sherry-, Likör- und Spirituosensortiment (S. 76–83) auf einer Palette kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,45 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "76-79",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "sherry",
+  "name": "Bodegas José de la Cuesta",
+  "land": "Spanien",
+  "region_titel": "SHERRY",
+  "claim": "Sherry von Cuesta",
+  "portraet": "1. Garantierte Frische: Die Abfüllung erfolgt ausschließlich auf Bestellung – ganz nach der Tradition der besten Sherryhäuser. Dieses Verfahren sichert die Frische und Authentizität jedes einzelnen Sherrys. 2. Langsame Reifung: Ausschlaggebend für die Spitzenqualität eines Sherrys sind die verschiedenen Fass-Stufen, die der Sherry während des Reifungsprozesses durchläuft. Alle Sherrys der Bodegas José de la Cuesta rotieren äußerst langsam in einem System aus Solera- und Criadera-Fässern. Diese langsame Rotation garantiert ein konstant herausragendes Geschmackserlebnis. 3. Kleine Mengen: Weitere Schlüsselfaktoren sind die Menge, die an gereiftem Sherry entnommen wird und die Häufigkeit der Entnahme. In der Bodegas José de la Cuesta garantiert eine niedrige Entnahmefrequenz die außerordentliche Qualität der Sherrys. 4. Alte Fässer: Die Fässer, die José de la Cuesta bereits im 18. Jahrhundert erwarb, sind ein unverzichtbarer Bestandteil der Sherryproduktion. Die besonders feinen Hefekulturen in diesen Fässern haben auch die Qualitäten von Lustau geschaffen und verleihen nun den Sherrys von José de la Cuesta ihr unverkennbares Aroma. 5. Ideale Reifung: Die Lage in Puerto de Santa María, unmittelbar am Meer, bietet perfekte Bedingungen für die Entstehung des besten Flor – jener Hefeschicht, die für die Eleganz und Feinheit des Sherrys verantwortlich ist. 6. Nur der Sherry zählt: Die Bodegas José de la Cuesta investieren in die Qualität des Sherrys und nicht in kostspieliges Marketing. Dieses ermöglicht es Sherrys von höchster Qualität zu einem erstaunlich günstigen Preis anzubieten.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie ab 300 Flaschen oder in Kombination mit dem Viña Herminia Wein- und Spirituosensortiment ab 600 Flaschen à 75 cl sortiert (S. 76–83). Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,65 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,45 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "80-81",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "spirituosen",
+  "name": "Caballero Group",
+  "land": "Spanien",
+  "region_titel": "LIKÖRE & SPIRITUOSEN",
+  "claim": "Erstklassige Spirituosen für den Fachhandel – Profitieren Sie von über 180 Jahren Erfahrung",
+  "portraet": "Profitieren Sie von einer umfassenden Auswahl an internationalen Spirituosen und Likören, die nahezu jeden Wunsch erfüllt und sich als perfekte Ergänzung für Ihr Fachhandelssortiment präsentiert. Neben Klassikern wie Gin und Brandy präsentiert Master Distiller Fernando Pérez auch einen herausragenden Rum, der sich innerhalb von nur zwei Jahren nach seiner Einführung zur meistverkauften Spirituose entwickelt hat. Abseits der ausgetretenen Pfade entdecken Sie hier besondere Marken für den Fachhandel. Die Qualität der Produkte überzeugt uns und unsere Kunden voll und ganz – ein klarer Beweis hierfür sind die hohen Nachkaufraten.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie ab 300 Flaschen oder in Kombination mit dem Viña Herminia Wein- und Sherrysortiment ab 600 Flaschen à 75 cl sortiert (S. 76–83). Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,65 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,45 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "82-83",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "aljibes",
+  "name": "Bodega Los Aljibes",
+  "land": "Spanien",
+  "region_titel": "CHINCHILLA DE MONTEARAGÓN",
+  "claim": "High End Weine aus dem Niemandsland – Wo moderne Technik und traditioneller Weinbau höchste Qualität schaffen",
+  "portraet": "Die Bodega Finca Los Aljibes liegt fernab der bekannten Weinregionen Spaniens im idyllischen Chinchilla de Montearagón. Das junge Weingut verzeichnete in den vergangenen Jahren einen kometenhaften Aufstieg. Mit besonderem Augenmerk auf ausdrucksstarke und zugleich zugängliche Weine werden auf fast 1.000 Metern Höhe die Rebsorten Cabernet Sauvignon, Merlot, Syrah, Tempranillo und Petit Verdot kultiviert. Um die hohe Qualität dauerhaft zu sichern, scheut das Weingut keinen Aufwand. Für die Premiumweine werden speziell angefertigte Fässer aus der französischen „Perle de Quintessence“ verwendet. Eine weitere Besonderheit der Finca Los Aljibes ist die Verbindung von Weinbau und Pferdezucht. Die Zucht der spanischen Edelpferde, der Pura Raza Española, fördert nicht nur die Biodiversität, sondern unterstützt auch das natürliche Wachstum der Reben. So können Besucher ein einzigartiges Weinerlebnis genießen – bestehend aus Verkostungen, Kutschfahrten und Touren. Entdecken Sie hochwertige spanische Weine außerhalb der kommerziellen Weinbauregionen.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,57 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,38 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "84-85",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "pierre-seguinot-fils",
+  "name": "Pierre Seguinot & Fils",
+  "land": "Frankreich",
+  "region_titel": "COGNAC",
+  "claim": "Fachhandels-Cognac aus der Grande Champagne – Bekannte Cognac-Häuser stehen für die Qualität bei Seguinot Schlange!",
+  "portraet": "Bereits seit über vier Generationen bewirtschaftet die Familie Seguinot nach altbewährter Tradition ihre Weingärten im Herzen der Grande Champagne, der prestigeträchtigsten Cognac-Region. Diese liegt in Segonzac, einer exklusiven Einzellage im Zentrum der Appellation d'Origine Contrôlée (AOC), bekannt für ihre außergewöhnliche Qualität und mineralischen Kreideböden – ähnlich wie in der Champagne. Diese besonderen Terroirbedingungen verleihen den Cognacs eine unvergleichliche Eleganz sowie ein großes Reifepotenzial. Viele renommierte Cognac-Häuser schätzen die exquisiten Grande-Champagne-Qualitäten von Seguinot und stehen bei ihnen Schlange. Die feinsten Fässer behält die Familie jedoch für ihre eigene Marke zurück. Unter dem Namen 1er Cru de Cognac entstehen limitierte Erzeugerabfüllungen, die ausschließlich dem gehobenen Fachhandel vorbehalten sind. Die kalkhaltigen Böden der Grande Champagne verleihen den dort gewachsenen Trauben eine einzigartige Komplexität, Eleganz und Frische – Eigenschaften, die sich in den daraus gewonnenen Cognacs in vollendeter Form widerspiegeln. Im Vergleich zu anderen Regionen mit weniger kalkhaltigen Böden entstehen hier Cognacs von unvergleichlicher Feinheit, mineralischer Frische und außergewöhnlichem Reifepotenzial. Die Grande Champagne gilt als das Herzstück der edelsten Cognac-Produktion und ist weltweit berühmt für die Herstellung der teuersten und begehrtesten Cognacs, die in ihrer Klasse unerreicht sind.",
+  "mindestmenge_flaschen": 120,
+  "mindestmenge_text": "Bestellen Sie die Cognacs dieser Seite ab 120 Flaschen à 70 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 120 Flaschen: 0,87 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,43 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "86-89",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "hostomme",
+  "name": "Champagne Hostomme",
+  "land": "Frankreich",
+  "region_titel": "CHAMPAGNE",
+  "claim": "Grand Cru Lage an der Côte des Blancs – Der Champagner mit den starken Argumenten. „Eine Familie, ein Name & eine Tradition“ – Champagner der Spitzenklasse.",
+  "portraet": "Das traditionsreiche Familienunternehmen Hostomme ist seit mehreren Jahrhunderten in der Champagne verwurzelt. Der heutige Inhaber, Laurent Hostomme, erzeugt Champagner der Extraklasse. Das Weingut liegt in Chouilly, einer der sechs Grand-Cru-Lagen der Côte des Blancs. Hier gedeiht die Chardonnay-Traube auf kreidehaltigen Böden in Hanglage – Grundlage für Trauben von höchster Qualität. Unter der Hausmarke Hostomme entstehen erstklassige Champagner, die ohne den Preisaufschlag bekannter Marken auskommen. Laurent Hostomme erzeugt Spitzenchampagner, indem er den bestmöglichen Ausdruck seines Terroirs herausarbeitet. Der Stil des Hauses wird durch zahlreiche Besonderheiten geprägt. Die Champagner von Hostomme zeichnen sich durch eine außergewöhnliche Frische sowie eine sehr lange Flaschengärung von bis zu 12 Jahren aus. Robert Parker schreibt begeistert: „Champagnes of remarkable finesse and freshness.” Neben den herausragenden alten Rebstöcken in den Grand-Cru-Lagen rund um Chouilly zeichnen sich die Champagner von Hostomme durch ihre Eleganz, Präzision und ihr außergewöhnliches Reifepotenzial aus.",
+  "mindestmenge_flaschen": 120,
+  "mindestmenge_text": "Bestellen Sie die Champagner dieser Seite ab 120 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 120 Flaschen: 0,89 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "90-93",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "ackerman",
+  "name": "Ackerman",
+  "land": "Frankreich",
+  "region_titel": "LOIRE",
+  "claim": "Spitzen Crémants von der Loire – Die Kunst französischer Schaumweine. Eine Reise durch Frankreichs ikonische Weinregionen – Perfektion von Saumur bis Sancerre. 0 % Alkohol, 100 % Geschmack.",
+  "portraet": "Jean-Baptiste Ackerman, Sohn einer wohlhabenden Kaufmannsfamilie aus Antwerpen, machte sich im Jahr 1810 auf den Weg in die Champagne, um sich vor Ort in die Geheimnisse der Champagnerherstellung einführen zu lassen – nach der Tradition des Benediktinermönchs Dom Pérignon. Mit dem Ziel, ein eigenes Sekthaus zu gründen, reiste er ins Loiretal. Die einzigartigen Bodenbeschaffenheiten sowie der Charakter der lokalen Rebsorten nahe Saumur überzeugten Jean-Baptiste aufgrund des immensen Potenzials der Region, sich 1811 dort niederzulassen und den Grundstein für die bis heute berühmteste Crémant-Kellerei an der Loire – Ackerman-Laurance – zu legen. So brachte Ackerman die Méthode Traditionnelle von der Champagne an die Loire und revolutionierte die Schaumweinproduktion der Region – eine Tradition, die in den historischen Tuffsteinkellern des Hauses bis heute lebendig bleibt, wo Kunstfertigkeit und Geschichte bewahrt werden. Die Domaine La Perruche, ein wahres Meisterwerk im Herzen der Appellation Saumur-Champigny, verdankt ihren Namen nicht nur den lebendigen Farben der Wellensittiche, sondern auch dem charakteristischen Terroir aus „Tuffeau“-Kreide und kieselhaltigen Steinen mit dem hübschen Namen „Perruches“. Dieses mineralreiche Terroir verleiht den Weinen eine außergewöhnliche Feinheit und Fülle. Das sich über 45 Hektar erstreckende Weingut kultiviert hauptsächlich die Rebsorten Chenin Blanc und Cabernet Franc. Die Weinberge ziehen sich über sonnenverwöhnte, hervorragend exponierte Hänge, die Trauben von außergewöhnlicher Qualität hervorbringen. Die berühmte Fahrradroute entlang der Loire macht die Domaine La Perruche zu einem beliebten Zwischenstopp für Radfahrer. Die Weine von Donatien Bahuaud können auf Anfrage weiterhin bezogen werden.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie das Wein- und Schaumweinsortiment auf den Seiten 94-98 ab 600 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,339 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, Steueranmeldung 15,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "94-98",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "cidrerie-de-la-brique",
+  "name": "Cidrerie de la Brique",
+  "land": "Frankreich",
+  "region_titel": "NORMANDIE",
+  "claim": "Der Cidre für den Fachhandel – Hergestellt wie ein Sekt, Pur Jus. Die fruchtige Alternative.",
+  "portraet": "Die Cidrerie de la Brique produziert seit fast 70 Jahren im Herzen der Normandie authentischen Cidre, der für seinen unverfälschten Geschmack bekannt ist. Die Cidrerie legt großen Wert auf Natürlichkeit: Die Äpfel werden schonend von Hand geerntet und sorgfältig selektiert. Dabei kommen über 20 verschiedene Apfelsorten von lokalen Bauern aus Le Cotentin, einer Region im nordwestlichen Teil der Normandie, zum Einsatz. Die typische Cidre-Stilistik ist durch das einzigartige Terroir und die Nähe zum Meer geprägt. Das Ergebnis ist ein Cidre, der wie ein Sekt produziert wird, von außergewöhnlicher Aromatik ist und vollständig ohne Konservierungs-, Aroma- und Farbstoffe auskommt. Die Vielfalt der Apfelsorten sorgt für eine natürliche Balance zwischen Frische, Süße und Säure.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Kombinieren Sie die Cidres und Spirituosen ab 300 Flaschen sortiert oder 120 BiBs. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,484 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,339 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, Steueranmeldung 15,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "99-101",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "caves-des-papes",
+  "name": "Caves des Papes / Clos de l'Oratoire des Papes",
+  "land": "Frankreich",
+  "region_titel": "RHÔNE / CHÂTEAUNEUF-DU-PAPE",
+  "claim": "Alle wichtigen Rhône-Appellationen auf einer Palette – Erste Wahl für den Fachhändler. Älteste und prestigereichste Appellation Frankreichs – Weine von päpstlicher Güte.",
+  "portraet": "Das älteste Weingut in Châteauneuf-du-Pape zählt zugleich zu den renommiertesten Adressen im südlichen Rhône-Tal. Die Spitzenweine dieses Hauses stehen ohne Zweifel im Fokus des qualifizierten Fachhandels. Seit Jahren verfolgt das Weingut eine klare Vision: die kontinuierliche Verfeinerung seiner Weine. Es werden ausschließlich die besten Parzellen sorgfältig ausgewählt, um das volle Potenzial des Terroirs zu entfalten. Mit einer beeindruckenden Auswahl an bekannten Rhône-Lagen und Provence-Weinen bietet das Weingut eine Vielzahl, die Kenner und Liebhaber gleichermaßen begeistert. Vertrauen Sie auf eine solide Basis und entdecken Sie Weine, die Genuss und Exzellenz vereinen. Im Jahr 1926 gründete Léonce Amouroux sein Weingut und wählte als Hommage an die Päpste, die im 14. Jahrhundert ihren Sommerpalast auf den Höhen des Dorfes errichtet hatten, den Namen „Clos de l'Oratoire des Papes“. Aus dieser Inspiration entstand das symbolträchtige, handgefertigte Etikett, das bis heute nahezu unverändert geblieben ist. Es greift Elemente wie die Papstkrone, Medaillen und das Oratorium auf, um verschiedene Päpste zu ehren und die tiefe Verbindung zwischen Region, Geschichte und Tradition widerzuspiegeln. Châteauneuf-du-Pape ist die erste AOC Frankreichs, die 1936 festgelegt wurde, und gilt heute als prestigeträchtigste Appellation des Landes. Die selektierten Parzellen mit Böden aus Kalk, Gletscherkies, Sand und rotem Sandstein in Châteauneuf-du-Pape ergeben durch eine gekonnt komponierte Assemblage einen charaktervollen Premiumwein mit herausragender Komplexität, Fülle und Eleganz. Ein Klassiker, der in keinem Fachhandel fehlen sollte – und eine Reise in Geschichte und Terroir von Châteauneuf-du-Pape bietet.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Weine von Caves des Papes, Clos de l'Oratoire des Papes, Victoire und Château Beaulieu ab 600 Flaschen à 75 cl sortiert. Die Weine sind mit den Weinen auf den Seiten 102–105 auf einer Palette kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,33 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "102-105",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "sainte-victoire",
+  "name": "Victoire Provence Expérience / Château Beaulieu",
+  "land": "Frankreich",
+  "region_titel": "PROVENCE",
+  "claim": "Provence Rosé – Die Seele Südfrankreichs",
+  "portraet": "Entlang der sonnenverwöhnten Küste erstreckt sich das geografisch geschützte Weinanbaugebiet Côtes de Provence. Die Appellation Coteaux d'Aix-en-Provence liegt im westlichen Teil der Provence. Das Anbaugebiet erstreckt sich von der Durance bis zum Mittelmeer und vom Rhônetal im Westen bis zur imposanten Montagne Sainte-Victoire im Osten. Dieses Gebiet zeichnet sich durch sein mediterranes Klima aus, das einerseits vom Mistral, einem kalten und trockenen Nordwestwind, geprägt wird und andererseits von einer durchschnittlichen jährlichen Sonnenscheindauer von rund 2.900 Stunden profitiert. Der Mistral kühlt die sonnenverwöhnten Trauben ab, sodass sie optimal ausreifen können. Die daraus resultierenden Weine dieser Region verkörpern die unverwechselbare Schönheit und die unwiderstehliche Anziehungskraft der Provence. Die Region ist insbesondere berühmt für ihre lebendigen Roséweine von eleganter Frische.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Weine von Caves des Papes, Clos de l'Oratoire des Papes, Victoire und Château Beaulieu ab 600 Flaschen à 75 cl sortiert. Die Weine sind mit den Weinen auf den Seiten 102–105 auf einer Palette kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,33 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "104-105",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "maison-jeanjean",
+  "name": "Maison Jeanjean",
+  "land": "Frankreich",
+  "region_titel": "SÜDFRANKREICH – SCHLOSSABZÜGE & REBSORTENWEINE",
+  "claim": "AOP Schlossabzüge – Punkten Sie durch Authentizität, Geschichte und klassische Eleganz. Rebsortenweine vom Master of Wine Iain Munson – Typizität oben, Preis unten.",
+  "portraet": "Die Gebrüder Jeanjean unterstützen kleine, unabhängige Weingüter in Südfrankreich mit ihrem technischen Know-how und einer speziell entwickelten Infrastruktur. Dadurch können sich die Winzer voll und ganz auf die Produktion erstklassiger Weine konzentrieren. Auch Sie als Fachhändler profitieren von diesem Konzept, da die Weine zu attraktiven Preisen angeboten werden. Der Erfolg dieses Modells spricht für sich: Die Schlossabfüllungen lassen sich zudem mit erstklassigen Rebsortenweinen auf einer Palette kombinieren. Die Weine von Castelmaure können auf Anfrage weiterhin bezogen werden. Wer dem Master of Wine Iain Munson zuhört, spürt sofort die Leidenschaft und Präzision, mit der er seine Weine kreiert. Jedes Detail spielt für Iain und seine handwerklich perfekt erzeugten Weine eine zentrale Rolle. Der Weg beginnt mit der strengen Auswahl der Terroirs, die den spezifischen Ansprüchen jeder Rebsorte optimal gerecht werden. Durch den aufwendigen und modernen Ausbau stehen die Weine für höchsten Trinkgenuss und zeigen eindrucksvoll den Charakter der Rebsorten und des Terroirs. Unter optimalen Bedingungen entstehen frische Weißweine mit ausgewogener Säure und Mineralität – wie etwa der Chardonnay, der seine Eleganz aus sehr kalkhaltigen Böden bezieht. Das auf die Rebsorte abgestimmte Terroir begünstigt eine gleichmäßige Reife und eine hohe Fruchtkonzentration. Die Typizität der Rebsorten und des Terroirs kommt in allen Weinen der Linie optimal zur Geltung. Ihre Kunden werden von der hohen, zugleich zugänglichen Qualität begeistert sein.",
+  "mindestmenge_flaschen": 600,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 600 Flaschen à 75 cl sortiert. Die Weine sind mit den Jeanjean Schlossabzügen und Rebsortenweinen (S. 106–109) auf einer Palette kombinierbar. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 600 Flaschen: 0,33 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "106-109",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "cazes",
+  "name": "Cazes / Mas de Lavail",
+  "land": "Frankreich",
+  "region_titel": "ROUSSILLON",
+  "claim": "Einzigartiges Terroir für Carignan in Perfektion – Älteste Carignan-Reben der Welt",
+  "portraet": "Am Fuße der majestätischen Pyrenäen, wo Berge die Regenwolken zurückhalten und stetige Winde die Trauben sanft trocknen, liegt das Weingut Cazes – ein wahrer Schatz Südfrankreichs. Hier scheint die Natur selbst den perfekten Ort für außergewöhnlichen Weinbau geschaffen zu haben. Meterdicker schwarzer Schiefer prägt die Böden, speichert tagsüber die Wärme der Sonne und gibt sie nachts an die Reben ab. Ein Klima, das kraftvolle und charaktervolle Weine hervorbringt – und ein Paradies für die Rebsorte Carignan. Seit 1895 wird auf dem familiengeführten Weingut Tradition gepflegt und zugleich die Zukunft gestaltet. Als Pionier des biodynamischen Weinbaus hat sich Cazes seit 1997 ganz dieser nachhaltigen Philosophie verschrieben. Die Reben, von denen einige über 100 Jahre alt sind, tragen das Beste dieser einzigartigen Umgebung in sich und schenken Weine, die Geschichten erzählen – von Tiefe, Eleganz und Authentizität.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,58 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "110-111",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "mortier",
+  "name": "J.J. Mortier & Cie",
+  "land": "Frankreich",
+  "region_titel": "BORDEAUX",
+  "claim": "Modernes Bordeaux auf höchstem Niveau – Tiefgründig und elegant",
+  "portraet": "J.J. Mortier & Cie ist seit 1889 eine wichtige Adresse am Place de Bordeaux für außergewöhnliche Weine und ein zeitlos modernes Bordeaux-Portfolio. Das Haus hat sich über die Jahre hinweg als Garant für herausragende Qualität etabliert und bietet eine erlesene Auswahl, die sich durch Charakter und Authentizität auszeichnet. Zudem ist Mortier der offizielle Lieferant des japanischen Kaiserhofs für feine Bordeaux-Weine – ein Zeichen höchster Anerkennung und Exzellenz. Eine weitere Stärke des Hauses ist das Grand-Cru- und En-Primeur-Geschäft. Durch den Zugang zu vielen begehrten Bordeaux-Grand-Cru-Châteaux und dank der außergewöhnlich starken Position von J. J. Mortier in Japan ergeben sich einzigartige Konditionen. Für Fachhändler ist Mortier damit die perfekte Wahl: ein Portfolio, das die Essenz von Bordeaux einfängt und sowohl Tradition als auch moderne Ansprüche erfüllt. Kombinieren Sie ausgesuchte Bordeaux-Spezialitäten & renommierte Grand Cru Classés zu Ihrer Mortier Bestellung. Gesamtsortiment, Preise und Verfügbarkeiten auf Anfrage.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller. Weitere Bordeaux Raritäten auf Anfrage.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,54 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,35 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "112-113",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "pfaff",
+  "name": "Pfaff",
+  "land": "Frankreich",
+  "region_titel": "ELSASS",
+  "claim": "Überholspur Elsass – Grand Crus & Crémants",
+  "portraet": "In den sonnenverwöhnten Hügeln des Elsass praktiziert die Winzergenossenschaft Pfaff seit 1957 ihr Handwerk. Als eine der führenden Kellereien der Region steht Pfaff für Weine und Crémants von unvergleichlicher Qualität, die das außergewöhnliche Terroir und die jahrhundertealte Tradition des Elsass in bester Form widerspiegeln. Besonders die vielfach prämierten Crémants d'Alsace mit ihrer eleganten Perlage und ihren fein nuancierten Aromen heben Pfaff als Crémant-Spezialisten hervor – ein Must-have für Fachhändler. Die Vielfalt der Böden, von Kalkstein bis Mergel, prägt auch die unverwechselbaren Lagenweine und Cuvées. Diese Weine fangen die Essenz des Elsass ein und verbinden Bodenständigkeit mit modernem Anspruch. Mit kontinuierlichen Innovationen wie nachhaltigem Weinbau und moderner Kellertechnik setzt Pfaff zudem zukunftsweisende Maßstäbe. Ein unverwechselbarer Klassiker aus dem Elsass – kraftvoll, authentisch und die perfekte Wahl für alle, die ihren Kunden etwas Außergewöhnliches bieten möchten.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Schaumweine dieser Seite ab 300 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,49 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "114-115",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "zuccardi",
+  "name": "Zuccardi",
+  "land": "Argentinien",
+  "region_titel": "ARGENTINIEN – MENDOZA",
+  "claim": "Zuccardi – Champions League Übersee. 3 x in Folge World's Best Vineyard – erstes Weingut in der Hall of Fame.",
+  "portraet": "Wohl kaum ein anderes Weingut hat in so kurzer Zeit so viele höchste Auszeichnungen erhalten. Alleine in den letzten Jahren: Erstes Weingut in der Hall of Fame (World's Best Vineyards), 10 x 100 Punkte (Robert Parker), Bester Winemaker Südamerikas (Decanter 2019), 100 Punkte (Tim Atkin), 100 Punkte (Descorchados), New World Winery of the Year 2022 (Wine Enthusiast), Top 100 (Wine Spectator). Winemaker Sebastián Zuccardi verfolgt das Ziel, Weine größter Reinheit zu kreieren, die die Vielfalt des Terroirs und der Mikroklimata im Uco Valley – am Fuße des höchsten Berges der Anden – mit unverwechselbarem Charakter zum Ausdruck bringen. PHILOSOPHIE: „I no longer look for the perfect wine, but for one that truthfully expresses its origin.“ – Sebastián Zuccardi. Genau das ist seine Haltung: Er setzt alles daran, das Terroir in seinen Weinen herauszuarbeiten – und betreibt dafür einen außergewöhnlich hohen Aufwand. Sebastián Zuccardis Anspruch ist es, die Vielfalt der Weinberge auch im Keller zu bewahren. Dafür war es essenziell, Behälter zu entwickeln, die eine möglichst natürliche und nachhaltige Vinifikation ermöglichen. Nach Jahren des Experimentierens haben sich Betontanks ohne Epoxidharz in den Formen Kegelstumpf und Amphore etabliert. In diesen Tanks werden die Weine vergoren und anschließend entweder darin oder in gebrauchten, ungetoasteten Holzfässern ausgebaut. Wie im Weinberg, wo auf Herbizide und systemische Mittel verzichtet wird, kommen auch im Keller keine chemischen Zusatzstoffe zum Einsatz. Die Weine werden behutsam, meist nur durch Gravitation oder von Hand, bewegt, um die mechanische Belastung so gering wie möglich zu halten. Daher wird auch bei den Top-Gewächsen meist auf Filtration verzichtet. Zudem wird keine Reinzuchthefe eingesetzt – die Weine vergären mit natürlichen Hefen aus Weinberg und Keller. TERROIR: Das Uco-Tal am Fuße der majestätischen Anden in Mendoza ist das höchstgelegene kultivierte Tal der Region und ein wahres Paradies für den Weinbau. Die Reben profitieren hier von einem kühlen, trockenen Klima sowie einer außergewöhnlich großen Temperaturspanne zwischen Tag und Nacht. Diese Bedingungen sorgen für eine langsame Reifung der Trauben und eine beeindruckende Aromenvielfalt. Die Vielfalt des Uco-Tals ist außergewöhnlich: Unterschiedliche Mikroklimata, Höhenlagen und Bodentypen schaffen eine Vielzahl an Terroirs. Sebastián Zuccardi stellt sich der Herausforderung, diese Eigenheiten authentisch zu interpretieren und die Identität jedes Terroirs in seinen Weinen zum Ausdruck zu bringen. Geprägt ist das Terroir des Uco-Tals von Alluvialböden – komplexen Schwemmlandböden, die im Gegensatz zu vielen anderen Regionen nur geringe Anteile an Lehm und Sand aufweisen. Stattdessen bestehen sie hauptsächlich aus Granit und einer wertvollen Kalksteinschicht. Diese komplexe Komposition verschiedener Gesteine macht das Terroir des Uco-Tals so besonders und verleiht den Weinen ihre charakteristische Mineralität und Tiefe. PERFEKTION DURCH PRÄZISION: Seit 2009 verfügt das Weingut über eine eigene Forschungs- und Entwicklungsabteilung. Jeder Schritt des Produktionsprozesses – vom Weinberg bis in den Keller – wird sorgfältig analysiert, kontrolliert und ausgewertet. Dieses Engagement ermöglicht eine kontinuierliche Perfektionierung der Weine. Besonders bemerkenswert ist die Arbeit des Teams an der detaillierten Klassifizierung der Mikroregionen des Uco-Tals. Unterschiedliche Bodentypen werden genau untersucht, um Weinbaupraktiken wie Bewässerungszeitpunkte, Reberziehungssysteme oder Rebschnitt optimal anzupassen. Zudem wird für jede einzelne Parzelle die geeignete Rebsorte, der angestrebte Weinstil und der optimale Erntezeitpunkt individuell festgelegt. Um diese Präzision weiter voranzutreiben, nutzt das Weingut moderne Technologien wie Satellitenbilder der Weinberge. So können die Böden analysiert und die Flächen entsprechend ihrer Beschaffenheit in einzelne Parzellen unterteilt werden. Das Ergebnis sind Terroir-getreue Weine, die das Beste des Uco-Tals authentisch widerspiegeln.",
+  "mindestmenge_flaschen": 150,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 150 Flaschen à 75 cl sortiert. Die Preise verstehen sich ab Hafen Deutschland inkl. Maut, Versicherung und Floating. Aufgrund des Seeweges beträgt die Vorlaufzeit ca. 15 Wochen. Weitere Weine auf Anfrage.",
+  "frachtkosten": [
+   "ab 150 Flaschen: 0,650 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 300 Flaschen: 0,400 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,290 € / Flasche (inkl. Hebebühnenzustellung)"
+  ],
+  "service": null,
+  "abwicklung": "WIK",
+  "katalogseiten": "116-121",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "redheads",
+  "name": "RedHeads",
+  "land": "Australien",
+  "region_titel": "AUSTRALIEN",
+  "claim": "RedHeads – Übersee-Weine abseits vom Mainstream: Weine von wahrer Individualität & ehrlichem Charakter – aber bitte ohne Konventionen",
+  "portraet": "RedHeads wurde 2002 im McLaren Vale gegründet und entstand aus einer Gruppe junger Winzerinnen und Winzer, die als Rebellen der lokalen Weinszene galten. Viele von ihnen arbeiteten tagsüber in großen Kellereien und trafen sich nach Feierabend – als sogenannte „Moonlighters“ – im kleinen RedHeads-Studio, das zugleich als Bar und als kreativer Treffpunkt für Winzer diente. Dort konnten sie fernab industrieller Vorgaben eigenständige, charaktervolle Weine in kleinen Chargen entwickeln und ihrer Kreativität freien Lauf lassen. Mit der Zeit wurde das kleine Studio für all die Ideen zu eng, und RedHeads zog ins Barossa Valley weiter. Dort entstand ein modernes, nachhaltig arbeitendes Weingut, das seinen rebellischen Charakter dennoch bewahrt hat: kleine Lots, viel Handarbeit und die Freiheit, neben klassischem Shiraz auch europäische Rebsorten sowie ungewöhnliche Blends zu vinifizieren. Diese Mischung aus Vertrautem und mutigen Experimenten prägt bis heute den Stil des Hauses – professionell, aber mit einer frechen Note. Heute steht RedHeads für Weine, die Charakter zeigen und keine Angst davor haben, anders zu sein. Jeder Jahrgang, jede Cuvée und jeder Blend erzählt ein Stück dieser Entwicklung – von den frühen Nächten im McLaren Vale bis hin zum modernen Setup im Barossa Valley.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 300 Flaschen à 70 cl sortiert. Die Preise verstehen sich ab Keller. Weitere Weine auf Anfrage.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,471 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,339 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, Steueranmeldung 15,50 €, telef. Avis 27,50 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "122-124",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "windsor-great-park",
+  "name": "Windsor Great Park",
+  "land": "England",
+  "region_titel": "UNITED KINGDOM",
+  "claim": "Royales Vergnügen aus England – Aus Schloss Windsor, dem Garten des Königs",
+  "portraet": null,
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie die Weine dieser Seite ab 300 Flaschen à 70 cl sortiert. Die Preise verstehen sich ab Keller. Weitere Weine auf Anfrage.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,471 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,339 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, Steueranmeldung 15,50 €, telef. Avis 27,50 €",
+  "abwicklung": "WIK",
+  "katalogseiten": "122-124",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "edoardo-miroglio",
+  "name": "Edoardo Miroglio",
+  "land": "Bulgarien",
+  "region_titel": "NOVA ZAGORA / THRAKISCHES TAL",
+  "claim": "Ein italienischer Winzer in Bulgarien – Außergewöhnliche Weine für Ihr Geschäft. Die Essenz Bulgariens. Bester Rotwein Bulgariens.",
+  "portraet": "Im Jahr 2002 entdeckte der renommierte italienische Weinproduzent Edoardo Miroglio ein verborgenes Juwel in der Region Thrakien – das malerische Dorf Elenovo, eingebettet in sanfte Hügel, rund 22 Kilometer südöstlich von Nova Zagora. Fasziniert von der außergewöhnlichen Bodenqualität und den idealen klimatischen Bedingungen, erkannte er das Potenzial dieses Terroirs, erlesene Weine hervorzubringen. Hier begann die Verwirklichung eines Traums: die Verbindung italienischer Weintradition mit der einzigartigen Seele Bulgariens. 2005 markierte die Geburtsstunde des Weinguts und die ersten Traubenkelterungen. Unter der Leitung des weltweit renommierten Önologen Marco Monchiero entstehen seither edle Tropfen aus französischen und bulgarischen Rebsorten. Einen besonderen Fokus legt das Weingut auf die autochthone Rebsorte Mavrud – eine der ältesten und edelsten Trauben Bulgariens, bekannt für tiefgründige, komplexe Weine. Jeder Schritt, von der Kultivierung bis zur Abfüllung, wird mit Hingabe und Perfektion überwacht. Miroglios Weine spiegeln die Geschichte der thrakischen Region wider, die bereits vor über 3.000 Jahren von Homer für ihre Weine gerühmt wurde. Sie vereinen Tradition und Moderne – ein Genuss, der auch die anspruchsvollsten Kunden begeistert.",
+  "mindestmenge_flaschen": 300,
+  "mindestmenge_text": "Bestellen Sie diese Weine ab 300 Flaschen sortiert. Die Preise verstehen sich ab Keller.",
+  "frachtkosten": [
+   "ab 300 Flaschen: 0,64 € / Flasche (inkl. Hebebühnenzustellung)",
+   "ab 600 Flaschen: 0,428 € / Flasche (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Maut, Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 8,50 €, telef. Avis 27,50 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "125-128",
+  "neuentdeckung": false
+ },
+ {
+  "weingut_slug": "holzkisten",
+  "name": "Houtindustrie",
+  "land": "Niederlande",
+  "region_titel": "HOLZKISTEN",
+  "claim": "Perfekter Partner für's Präsentgeschäft – Holzkisten vom Spezialisten – hochwertige Holzkisten und farbiger Logodruck auf Wunsch!",
+  "portraet": "Houtindustrie ist Ihr Spezialist für hochwertige Holzkisten und der ideale Partner für Verpackungs- und Präsentlösungen. Mit einem klaren Fokus auf Qualität und Individualität bietet das Unternehmen Premium-Holzkisten mit Schiebedeckel, die in Sachen Preis-Leistung Maßstäbe setzen. Gefertigt aus selektiertem Fichtenholz in 13 bzw. 14 mm Stärke, überzeugen die Kisten durch ihre robuste Bauweise und eine ästhetische Verarbeitung. Die Deckel aus hochwertigem, verzugsfreiem Furnierholz sind nicht nur stabil, sondern auch optimal für personalisierte Bedruckungen geeignet. Machen Sie Ihre Holzkisten zu einem Blickfang! Der individuell gestaltete Logoaufdruck – auf Wunsch auch in Originalfarben (2c, 3c oder 4c) – verleiht Ihrem Präsent oder Ihrer Verpackung einen unverwechselbaren Charakter. So stärken Sie nicht nur das Image Ihres Geschäfts, sondern hinterlassen bei Ihren Kunden einen bleibenden Eindruck. Ein perfektes Zusammenspiel aus Funktionalität, Qualität und Branding.",
+  "mindestmenge_flaschen": 0,
+  "mindestmenge_text": "Bestellen Sie die Holzkisten ab einer Palette sortiert. Die Preise verstehen sich ab Werk Niederlande. Preise können in der zweiten Jahreshälfte aufgrund volatiler Rohstoffpreise angepasst werden. 10% Rabatt auf Bestellungen über 750 €.",
+  "frachtkosten": [
+   "eine Palette: ca. 194,00 € (inkl. Hebebühnenzustellung)",
+   "zwei Paletten: ca. 310,00 € (inkl. Hebebühnenzustellung)",
+   "drei Paletten: ca. 404,00 € (inkl. Hebebühnenzustellung)",
+   "Nebenkosten wie Versicherung, TRG-Ausgleich, Floating",
+   "Nachhaltigkeitsbeitrag 2,50 €"
+  ],
+  "service": "Zoll-Erledigung 15 €, Steueranmeldung 22,50 €, telef. Avis 10 €",
+  "abwicklung": "Weinstrasse",
+  "katalogseiten": "129-130",
+  "neuentdeckung": false
+ }
+]

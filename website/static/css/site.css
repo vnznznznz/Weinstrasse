@@ -294,6 +294,7 @@ html.js .rv:not(.in){opacity:0;transform:translateY(26px)}
 .totop{position:fixed;right:calc(22px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:55;width:44px;height:44px;border-radius:6px;overflow:hidden;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .4s}
 .totop.show{opacity:1;pointer-events:auto}
 .totop img{width:100%;height:100%;object-fit:cover}
+body.seite-katalog .stoerer{display:none}
 @media (max-width:700px){.stoerer{width:84px;height:84px;font-size:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:all .4s var(--ease);z-index:90;max-width:90vw}
 .toast.show{opacity:1;transform:translate(-50%,0)}

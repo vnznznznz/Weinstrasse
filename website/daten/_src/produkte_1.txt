@@ -88,10 +88,10 @@ Tempranillo low alcohol 7,5% | 2024 | 75 | 2,20 | 11+1 | 2,02 | T |
 
 ## bodega-vilano | Bodegas Vilano | Spanien | RIBERA DEL DUERO
 # Ribera del Duero DO
-Vilano Roble | 24/25 | 75 | 3,75 | Messepreis | 3,50 | T |
-Full Flap Albarin "Blanco" | 2025 | 75 | 4,20 | Messepreis | 4,00 | W |
-Full Flap Red Blend | 2024 | 75 | 3,50 | Messepreis | 3,00 | T |
-Vilano Black | 2024 | 75 | 5,20 | Messepreis | 4,50 | T |
+Vilano Roble | 24/25 | 75 | 3,75 | | 3,50 | T |
+Full Flap Albarin "Blanco" | 2025 | 75 | 4,20 | | 4,00 | W |
+Full Flap Red Blend | 2024 | 75 | 3,50 | | 3,00 | T |
+Vilano Black | 2024 | 75 | 5,20 | | 4,50 | T |
 Vilano 57 | 2021 | 75 | 9,00 | | | T | limitiert
 Vilano Reserva | 2021 | 75 | 11,00 | | | T | Premium
 La Baraja Godello | 2024 | 75 | 12,00 | | | W | Premium; nummerierte Flaschen

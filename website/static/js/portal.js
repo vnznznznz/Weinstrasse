@@ -25,16 +25,16 @@
   if (liste) {
     var f = { land: 'alle', kat: 'alle', preis: 100, awards: false, bio: false, aktion: false, q: '', sort: 'weingut' }, seite = 0, SEITE = 48, ansicht = 'karten';
     var hoechster = D.produkte.reduce(function (m, p) { return Math.max(m, p.listenpreis || 0); }, 0); var maxPreis = hoechster > 0 ? Math.min(100, Math.ceil(hoechster / 10) * 10) : 100;
-    var fp = $('#fPreis'); fp.max = maxPreis; fp.value = maxPreis; f.preis = maxPreis; $('#fPreisWert').textContent = 'bis ' + maxPreis + ' €';
+    var fp = $('#fPreis'); fp.max = maxPreis; fp.value = maxPreis; f.preis = maxPreis; $('#fPreisWert').textContent = 'alle Preise';
     function chips(el, werte, key, labels) { el.innerHTML = ['alle'].concat(werte).map(function (v) { return '<button class="chip" type="button" data-v="' + esc(v) + '" aria-pressed="' + (v === 'alle') + '">' + (v === 'alle' ? 'Alle' : esc((labels && labels[v]) || v)) + '</button>'; }).join(''); el.addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (!b) return; $$('.chip', el).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); f[key] = b.dataset.v; seite = 0; render(); }); }
     var laender = LAENDER.filter(function (l) { return D.produkte.some(function (p) { return p.land === l; }); });
     var kats = KATS.filter(function (k) { return D.produkte.some(function (p) { return p.kategorie === k; }); });
     chips($('#fLand'), laender, 'land'); chips($('#fKat'), kats, 'kat', KAT_LABEL);
-    fp.addEventListener('input', function () { f.preis = +fp.value; $('#fPreisWert').textContent = 'bis ' + fp.value + ' €'; seite = 0; render(); });
+    fp.addEventListener('input', function () { f.preis = +fp.value; $('#fPreisWert').textContent = f.preis < maxPreis ? 'bis ' + fp.value + ' €' : 'alle Preise'; seite = 0; render(); });
     ['fAwards', 'fBio', 'fAktion'].forEach(function (id, i) { $('#' + id).addEventListener('change', function (e) { f[['awards', 'bio', 'aktion'][i]] = e.target.checked; seite = 0; render(); }); });
     $('#kSuche').addEventListener('input', function (e) { f.q = e.target.value.trim().toLowerCase(); seite = 0; render(); });
     $('#fSort').addEventListener('change', function (e) { f.sort = e.target.value; render(); });
-    $('#fReset').addEventListener('click', function () { f = { land: 'alle', kat: 'alle', preis: maxPreis, awards: false, bio: false, aktion: false, q: '', sort: 'weingut' }; fp.value = maxPreis; $('#fPreisWert').textContent = 'bis ' + maxPreis + ' €'; $('#kSuche').value = ''; ['fAwards', 'fBio', 'fAktion'].forEach(function (id) { $('#' + id).checked = false; }); $$('#fLand .chip, #fKat .chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === 'alle'); }); seite = 0; render(); });
+    $('#fReset').addEventListener('click', function () { f = { land: 'alle', kat: 'alle', preis: maxPreis, awards: false, bio: false, aktion: false, q: '', sort: 'weingut' }; fp.value = maxPreis; $('#fPreisWert').textContent = 'alle Preise'; $('#kSuche').value = ''; ['fAwards', 'fBio', 'fAktion'].forEach(function (id) { $('#' + id).checked = false; }); $$('#fLand .chip, #fKat .chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === 'alle'); }); seite = 0; render(); });
     $$('.ansicht button').forEach(function (b) { b.addEventListener('click', function () { ansicht = b.dataset.ansicht; $$('.ansicht button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); liste.classList.toggle('liste', ansicht === 'liste'); render(); }); });
     $('#kMehr').addEventListener('click', function () { seite++; render(true); });
     var params = new URLSearchParams(location.search); if (params.get('weingut')) f.q = params.get('weingut').toLowerCase();
@@ -42,7 +42,7 @@
       var r = D.produkte.filter(function (p) {
         if (f.land !== 'alle' && p.land !== f.land) return false;
         if (f.kat !== 'alle' && p.kategorie !== f.kat) return false;
-        if ((p.listenpreis || 0) > f.preis) return false;
+        if (f.preis < maxPreis && (p.listenpreis || 0) > f.preis) return false;
         if (f.awards && !(p.auszeichnungen || []).length) return false;
         if (f.bio && !p.bio) return false;
         if (f.aktion && !p.aktion) return false;

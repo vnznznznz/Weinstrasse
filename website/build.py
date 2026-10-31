@@ -48,6 +48,19 @@ def preis(wert) -> str:
     return f"{wert:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") + " €"
 
 
+# Seiten, deren Weine im Katalog unter einem anderen Lieferanten stehen: (Quelle, Muster auf Region+Name)
+VERWEISE = {
+    "chateau-cassemichere": ("ackerman", r"Cassemich"),
+    "domaine-de-la-perruche": ("ackerman", r"Perruche"),
+    "chateau-la-variere": ("ackerman", r"Vari[èe]re"),
+    "chateau-de-sancerre": ("ackerman", r"Sancerre"),
+    "quinta-do-cachao-douro": ("caves-messias", r"Douro"),
+    "quinta-do-penedo-dao": ("caves-messias", r"D[ãa]o"),
+    "quinta-do-valdoeiro-bairrada": ("caves-messias", r"Bairrada"),
+    "schaumweine": ("caves-messias", r"Schaumwein"),
+}
+
+
 def main() -> None:
     explizit_index = "--index" in sys.argv
     weingueter = lade("weingueter.json", [])
@@ -61,6 +74,9 @@ def main() -> None:
         w.setdefault("produkte", [])
     for p in produkte:
         p.setdefault("ve", 6)
+        g = p.get("groesse_cl")
+        if isinstance(g, float) and g.is_integer():
+            p["groesse_cl"] = int(g)
         p["preis_text"] = preis(p.get("listenpreis"))
         p["uvp_text"] = preis(p.get("uvp"))
         w = nach_slug.get(p.get("weingut_slug"))
@@ -69,6 +85,22 @@ def main() -> None:
             p["weingut_name"] = w["name"]
             p["weingut_url"] = f"weingueter/{w['land_slug']}/{w['slug']}/"
             p["land"] = w["land"]
+    for p in produkte:
+        if p.get("weingut_slug") == "holzkisten":
+            p["weingut_name"] = "Houtindustrie Holzkisten"
+            p["weingut_url"] = "service/#holzkisten"
+            p["land"] = p.get("land") or "Service"
+    for slug, (quelle, muster) in VERWEISE.items():
+        w = nach_slug.get(slug)
+        q = nach_slug.get(quelle)
+        if w is None or q is None or w["produkte"]:
+            continue
+        rx = re.compile(muster, re.I)
+        w["produkte"] = [p for p in q["produkte"] if rx.search((p.get("region") or "") + " " + (p.get("name") or ""))]
+        w["verweis"] = {"name": q["name"], "url": f"weingueter/{q['land_slug']}/{q['slug']}/", "mindestmenge": q.get("mindestmenge")}
+        w["mindestmenge"] = q.get("mindestmenge") or w.get("mindestmenge")
+        w["mindestmenge_text"] = w.get("mindestmenge_text") or q.get("mindestmenge_text") or ""
+        w["frachtkosten"] = w.get("frachtkosten") or q.get("frachtkosten") or []
     for w in weingueter:
         # Regionen in Reihenfolge des Auftretens
         regionen = []

@@ -47,7 +47,7 @@
 <section class="band on-weiss wg-weine" id="weine">
   <div class="wrap">
     <div class="rail-head"><div><span class="eyebrow">Sortiment {{ w.name }}</span><h2>Weine &amp; Preise 2026</h2></div>
-      <div class="wg-kond"><b>Mindestmenge {{ w.mindestmenge }} Flaschen</b><span>{{ w.mindestmenge_text or 'Bestellen Sie die Weine dieses Weinguts palettenweise ab Weingut, gemischt.' }}</span></div></div>
+      <div class="wg-kond"><b>Mindestmenge {{ w.mindestmenge }} Flaschen</b><span>{% if w.verweis %}Diese Weine werden über <a href="{{ root }}{{ w.verweis.url }}">{{ w.verweis.name }}</a> bestellt und zählen dort zur Mindestmenge. {% endif %}{{ w.mindestmenge_text or 'Bestellen Sie die Weine dieses Weinguts palettenweise ab Weingut, gemischt.' }}</span></div></div>
     {% if w.produkte %}
     {% for region, ps in w.regionen %}
     <div class="region-block rv">
@@ -70,7 +70,7 @@
     {% endfor %}
     <p class="fuss-hinweis">Alle Preise netto ab Keller, spätestens gültig ab 1.3.2026, Änderungen vorbehalten. * zzgl. Schaumwein- bzw. Branntweinsteuer, siehe Artikel. Mengen in Flaschen, Schritt = Karton ({{ w.produkte[0].ve }}).</p>
     {% else %}
-    <div class="leer">Die Preise dieses Weinguts werden gerade aus dem Katalog 2026 übernommen. <a href="{{ w.url_alt }}" target="_blank" rel="noopener">Bisherige Seite ansehen</a></div>
+    <div class="leer">Dieses Weingut ist im Katalog 2026 nicht gelistet. Fragen Sie uns nach Verfügbarkeit und Preisen. <a href="{{ root }}#kontakt">Zum Kontakt</a></div>
     {% endif %}
   </div>
 </section>

@@ -95,6 +95,19 @@ def main() -> None:
                     alt[feld] = wert
             eintrag = alt
         aus.append(eintrag)
+    # Lieferanten, die es nur im Katalog gibt (keine eigene Seite auf der alten Website)
+    ZUSATZ = {"sherry": {"name": "Bodegas José de la Cuesta", "land": "Spanien", "land_slug": "spanien", "logo": "logos/spirituosen.webp",
+                         "hero": "weingueter/spirituosen-hero.webp", "ort": "Jerez de la Frontera, Spanien", "inhaber": "Grupo Caballero"}}
+    for slug, z in ZUSATZ.items():
+        if slug in katalog and not any(e["slug"] == slug for e in aus):
+            k = katalog[slug]
+            aus.append({"slug": slug, "name": z["name"], "land": z["land"], "land_slug": z["land_slug"], "url_alt": "",
+                        "logo": z["logo"], "hero": z["hero"], "galerie": [], "ort": z["ort"], "inhaber": z["inhaber"],
+                        "claim": k.get("claim") or "", "region_titel": k.get("region_titel") or "", "besonderheiten": [],
+                        "portraet": k.get("portraet") or "", "absaetze": [], "mindestmenge": k.get("mindestmenge_flaschen") or 300,
+                        "mindestmenge_text": k.get("mindestmenge_text") or "", "frachtkosten": k.get("frachtkosten") or [],
+                        "service": k.get("service") or "", "abwicklung": k.get("abwicklung") or "Weinstrasse",
+                        "katalogseiten": k.get("katalogseiten") or "", "neuentdeckung": bool(k.get("neuentdeckung"))})
     reihenfolge = ["Italien", "Frankreich", "Spanien", "Portugal", "Bulgarien", "England", "Argentinien", "Australien"]
     aus.sort(key=lambda e: (reihenfolge.index(e["land"]), e["name"].lower()))
     (DATEN / "weingueter.json").write_text(json.dumps(aus, ensure_ascii=False, indent=1), encoding="utf-8")
