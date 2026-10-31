@@ -58,8 +58,10 @@ mail:
 # Artikelstamm (artikelnummer). Steht der Artikel nicht im Stamm (z. B. ohne Export), gilt
 # `preis_brutto` als Beispielpreis und das Produkt wird als solcher gekennzeichnet.
 # typ: rot | weiss | rose | schaum | spirit | alkoholfrei
+# anlaesse (Wein-Finder): dinner | grillen | aperitif | feier | geschenk | jubilaeum | alkoholfrei
 sortiment:
   - artikelnummer: "WS-HOST-BDB"
+    anlaesse: [feier, geschenk, aperitif, jubilaeum]
     name: "Blanc de Blancs Grand Cru Millésime"
     untertitel: "Champagne M. Hostomme · Chouilly"
     typ: schaum
@@ -69,6 +71,7 @@ sortiment:
     bild: "assets/img/produkte/hostomme-blanc-de-blancs.jpg"
     preis_brutto: 49.90
   - artikelnummer: "WS-BOLL-ZENAS"
+    anlaesse: [dinner, grillen, feier, geschenk]
     name: "Zenas Primitivo"
     untertitel: "La Bollina · Apulien"
     typ: rot
@@ -78,6 +81,7 @@ sortiment:
     bild: "assets/img/produkte/zenas-primitivo.jpg"
     preis_brutto: 9.90
   - artikelnummer: "WS-ZUCC-Q"
+    anlaesse: [dinner, grillen, geschenk]
     name: "Zuccardi Q Malbec"
     untertitel: "Familia Zuccardi · Uco Valley"
     typ: rot
@@ -87,6 +91,7 @@ sortiment:
     bild: "assets/img/produkte/zuccardi-q-malbec.jpg"
     preis_brutto: 16.90
   - artikelnummer: "WS-RH-COCO"
+    anlaesse: [dinner, grillen, geschenk]
     name: "Coco Rotie"
     untertitel: "RedHeads · Barossa"
     typ: rot
@@ -96,6 +101,7 @@ sortiment:
     bild: "assets/img/produkte/redheads-coco-rotie.jpg"
     preis_brutto: 19.90
   - artikelnummer: "WS-VIL-BARAJA"
+    anlaesse: [dinner, geschenk, jubilaeum]
     name: "La Baraja"
     untertitel: "Bodegas Vilano · Ribera del Duero"
     typ: rot
@@ -105,6 +111,7 @@ sortiment:
     bild: "assets/img/produkte/vilano-la-baraja.jpg"
     preis_brutto: 18.90
   - artikelnummer: "WS-ACK-CREM"
+    anlaesse: [aperitif, feier, geschenk]
     name: "Crémant de Loire Brut"
     untertitel: "Ackerman · Loire"
     typ: schaum
@@ -114,6 +121,7 @@ sortiment:
     bild: "assets/img/produkte/ackerman-cremant-brut.jpg"
     preis_brutto: 14.90
   - artikelnummer: "WS-ACK-ZERO"
+    anlaesse: [alkoholfrei, aperitif, feier]
     name: "Zéro Alcohol Blanc"
     untertitel: "Ackerman · alkoholfrei"
     typ: alkoholfrei
@@ -123,6 +131,7 @@ sortiment:
     bild: "assets/img/produkte/ackerman-zero-blanc.jpg"
     preis_brutto: 8.90
   - artikelnummer: "WS-ARM-PROS"
+    anlaesse: [aperitif, feier, grillen]
     name: "Prosecco DOC Extra Dry"
     untertitel: "Villa Armellina · Venetien"
     typ: schaum
@@ -132,6 +141,7 @@ sortiment:
     bild: "assets/img/produkte/villa-armellina-prosecco.jpg"
     preis_brutto: 9.90
   - artikelnummer: "WS-COL-GRILLO"
+    anlaesse: [aperitif, grillen, dinner]
     name: "Grillo"
     untertitel: "Cantine Colosi · Sizilien"
     typ: weiss
@@ -140,6 +150,7 @@ sortiment:
     bild: "assets/img/produkte/colosi-grillo.jpg"
     preis_brutto: 8.90
   - artikelnummer: "WS-PFAFF-RIES"
+    anlaesse: [dinner, aperitif, geschenk]
     name: "Tradition Riesling"
     untertitel: "Pfaff · Elsass"
     typ: weiss
@@ -148,6 +159,7 @@ sortiment:
     bild: "assets/img/produkte/pfaff-riesling.jpg"
     preis_brutto: 10.90
   - artikelnummer: "WS-CACH-TINTO"
+    anlaesse: [dinner, grillen, feier]
     name: "Cachão Douro Tinto"
     untertitel: "Caves Messias · Douro"
     typ: rot
@@ -156,6 +168,7 @@ sortiment:
     bild: "assets/img/produkte/cachao-douro-tinto.jpg"
     preis_brutto: 9.90
   - artikelnummer: "WS-HERM-RES"
+    anlaesse: [dinner, geschenk, jubilaeum]
     name: "Viña Herminia Reserva"
     untertitel: "Bodegas Viña Herminia · Rioja"
     typ: rot
@@ -165,6 +178,7 @@ sortiment:
     bild: "assets/img/produkte/vina-herminia-reserva.jpg"
     preis_brutto: 17.90
   - artikelnummer: "WS-GRAPPA-BAR"
+    anlaesse: [geschenk, jubilaeum, dinner]
     name: "Grappa di Barolo"
     untertitel: "Piemont · Serralunga d’Alba"
     typ: spirit
@@ -174,6 +188,7 @@ sortiment:
     bild: "assets/img/produkte/grappa-barolo.jpg"
     preis_brutto: 34.90
   - artikelnummer: "WS-MAL-SILVER"
+    anlaesse: [feier, aperitif]
     name: "Tequila Silver La Malinche"
     untertitel: "Jalisco · 100 % Blaue Agave"
     typ: spirit
@@ -183,6 +198,7 @@ sortiment:
     bild: "assets/img/produkte/la-malinche-silver.jpg"
     preis_brutto: 29.90
   - artikelnummer: "WS-MAL-GOLD"
+    anlaesse: [feier, geschenk]
     name: "Tequila Gold La Malinche"
     untertitel: "Jalisco · 100 % Blaue Agave"
     typ: spirit
@@ -192,6 +208,7 @@ sortiment:
     bild: "assets/img/produkte/la-malinche-gold.jpg"
     preis_brutto: 32.90
   - artikelnummer: "WS-CONTRA-RUM"
+    anlaesse: [geschenk, jubilaeum]
     name: "Contrabando Black Rum"
     untertitel: "Dominikanische Republik · 15 Jahre Solera"
     typ: spirit

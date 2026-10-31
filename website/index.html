@@ -41,7 +41,7 @@
   <div class="container">
     <a class="logo" href="#top" aria-label="Weinstrasse Startseite">Weinstrasse <small>Weinladen Köln-Süd</small></a>
     <nav class="nav-links" aria-label="Hauptnavigation">
-      <a href="#laden">Laden</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
+      <a href="#laden">Laden</a><a href="#finder">Wein-Finder</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
     </nav>
     <div style="display:flex;gap:.5rem;align-items:center">
       <button class="cart-btn" id="cartBtn" aria-label="Warenkorb öffnen">
@@ -53,7 +53,7 @@
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#laden">Laden</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
+  <a href="#laden">Laden</a><a href="#finder">Wein-Finder</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
 </div>
 
 <!-- ============ HERO ============ -->
@@ -66,7 +66,7 @@
       <p class="lead">Über 500 Weine aus sieben Ländern, persönlich ausgesucht. Online bestellen und per Lastenrad liefern lassen, freitags bei uns probieren oder einfach vorbeikommen.</p>
       <div class="cta">
         <a class="btn btn-primary magnetic" href="#shop">Jetzt Wein bestellen</a>
-        <a class="btn btn-ghost magnetic" href="#friday">Freitag probieren</a>
+        <a class="btn btn-ghost magnetic" href="#finder">Wein zum Anlass finden</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -88,6 +88,41 @@
     <div class="stat"><b data-count="30" data-suffix="+">0</b><span>Weingüter, direkt importiert</span></div>
     <div class="stat"><b data-count="12">0</b><span>Flaschen – ab dann fährt das Wein-Taxi</span></div>
     <div class="stat"><b data-count="1980" data-plain="1">0</b><span>Familienunternehmen seit</span></div>
+  </div>
+</section>
+
+
+<!-- ============ WEIN-FINDER (Concierge-Einstieg) ============ -->
+<section class="section finder" id="finder">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">Concierge-Service</p>
+      <h2 class="words" data-words>Den Wein zum perfekten Anlass finden.</h2>
+      <p class="lead">Drei Fragen, drei Vorschläge aus dem Laden. Und wenn es persönlicher werden soll, übernimmt unser Wein-Concierge: Beratung, Zusammenstellung, Lieferung bis zum Tisch.</p>
+    </div>
+    <div class="finder-card reveal">
+      <div class="finder-steps">
+        <div class="fstep"><div class="q"><i>1</i>Was ist der Anlass?</div>
+          <div class="fchips" data-frage="anlass">
+            <button class="fchip" data-v="dinner">🍽️ Dinner zu zweit</button><button class="fchip" data-v="feier">🎉 Feier &amp; Party</button><button class="fchip" data-v="geschenk">🎁 Geschenk</button><button class="fchip" data-v="grillen">🔥 Grillen &amp; Balkon</button><button class="fchip" data-v="aperitif">🥂 Aperitif</button><button class="fchip" data-v="jubilaeum">🏆 Jubiläum &amp; Firma</button><button class="fchip" data-v="alkoholfrei">🚫 Ohne Alkohol</button>
+          </div></div>
+        <div class="fstep"><div class="q"><i>2</i>Welche Richtung?</div>
+          <div class="fchips" data-frage="stil">
+            <button class="fchip sel" data-v="alle">Überrascht mich</button><button class="fchip" data-v="rot">Rot</button><button class="fchip" data-v="weiss">Weiß</button><button class="fchip" data-v="schaum">Prickelnd</button><button class="fchip" data-v="spirit">Spirituose</button>
+          </div></div>
+        <div class="fstep"><div class="q"><i>3</i>Budget pro Flasche</div>
+          <div class="fchips" data-frage="budget">
+            <button class="fchip sel" data-v="0">Egal</button><button class="fchip" data-v="12">bis 12 €</button><button class="fchip" data-v="20">bis 20 €</button><button class="fchip" data-v="999">Darf mehr sein</button>
+          </div></div>
+      </div>
+      <div>
+        <div class="finder-result" id="finderResult"><div class="finder-empty"><span class="big">🍷</span><b>Wählen Sie einen Anlass.</b><span>Wir zeigen drei passende Flaschen aus dem Laden.</span></div></div>
+        <div class="finder-cta" id="finderCta" style="display:none">
+          <a class="btn btn-primary magnetic" href="#concierge" id="finderBeratung" data-anlass="sonstiges">Persönlich beraten lassen</a>
+          <a class="btn btn-ghost magnetic" href="#shop">Alle Weine im Shop</a>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -115,6 +150,16 @@
         <h3>Beratung mit Leidenschaft</h3>
         <p>Verkostungen, Seminare, Präsente mit persönlichem Gruß. Wir finden den passenden Wein, nicht den teuersten.</p>
       </article>
+    </div>
+
+    <div class="section-head reveal" style="margin-top:5rem;margin-bottom:2rem">
+      <p class="eyebrow">Wer dahintersteckt</p>
+      <h2 class="words" data-words>Familie, zwei Generationen, ein Anspruch.</h2>
+    </div>
+    <div class="team stagger">
+      <div class="quote"><p>„Beste Qualität, absolut preiswert, direkt vom Weingut ohne Umwege. Das war 1980 die Idee, und das ist sie heute noch.“</p><small>Andreas Dünschede, Geschäftsführer</small></div>
+      <figure class="person"><img src="assets/img/laden/team-duenschede.jpg" alt="Andreas Dünschede, Geschäftsführer der Weinstrasse" loading="lazy"><figcaption class="cap"><b>Andreas Dünschede</b>Geschäftsführer, zweite Generation. Reist für Sie zu den Weingütern.</figcaption></figure>
+      <figure class="person"><img src="assets/img/laden/team-gerd-adolph.jpg" alt="Gerd Adolph, Gründer der Weinstrasse, im Fasskeller" loading="lazy"><figcaption class="cap"><b>Gerd Adolph</b>Gründer. Legte 1980 den Grundstein für die Weinstrasse und den Wein-Import-Kreis.</figcaption></figure>
     </div>
   </div>
   <div class="gallery reveal" aria-label="Fotos aus dem Laden">

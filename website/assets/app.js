@@ -392,10 +392,47 @@ async function absenden() {
   if (!offline) { cart = {}; save(); renderCart(); konfetti(); }
 }
 
+/* ===================== Wein-Finder ===================== */
+(function () {
+  const res = $("#finderResult"), cta = $("#finderCta"); if (!res) return;
+  const wahl = { anlass: null, stil: "alle", budget: 0 };
+  const LABEL = { dinner: "Dinner zu zweit", feier: "Feier & Party", geschenk: "Geschenk", grillen: "Grillen & Balkon", aperitif: "Aperitif", jubilaeum: "Jubiläum & Firma", alkoholfrei: "ohne Alkohol" };
+  const WHY = { dinner: "Passt zum Essen", feier: "Für viele Gläser", geschenk: "Macht was her", grillen: "Unkompliziert & saftig", aperitif: "Leicht & frisch", jubilaeum: "Besonderer Moment", alkoholfrei: "0,0 % Alkohol" };
+  $$(".fchips").forEach(g => g.addEventListener("click", e => {
+    const b = e.target.closest(".fchip"); if (!b) return;
+    [...g.querySelectorAll(".fchip")].forEach(x => x.classList.toggle("sel", x === b));
+    const f = g.dataset.frage; wahl[f] = f === "budget" ? +b.dataset.v : b.dataset.v;
+    zeige();
+  }));
+  function punkte(p) {
+    let s = 0;
+    if (p.anlaesse && p.anlaesse.includes(wahl.anlass)) s += 10; else if (wahl.anlass === "alkoholfrei") return -1;
+    if (wahl.stil !== "alle") { if (p.typ === wahl.stil) s += 5; else return -1; }
+    if (wahl.budget && wahl.budget < 900 && p.preis > wahl.budget) return -1;
+    if (wahl.budget === 999 && p.preis >= 15) s += 2;
+    if (p.badge) s += 1;
+    return s;
+  }
+  function zeige() {
+    if (!wahl.anlass) return;
+    const treffer = PRODUKTE.map(p => [punkte(p), p]).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0] || a[1].preis - b[1].preis).slice(0, 3).map(([, p]) => p);
+    if (!treffer.length) { res.innerHTML = `<div class="finder-empty"><span class="big">🤔</span><b>Da wird es eng.</b><span>Für ${esc(LABEL[wahl.anlass])} mit dieser Auswahl haben wir online gerade nichts. Unser Concierge findet trotzdem etwas.</span></div>`; cta.style.display = "flex"; return; }
+    res.innerHTML = treffer.map(p => `
+      <div class="pick"><div class="pimg" style="background:${esc(p.bg)}">${p.bild ? `<img src="${esc(p.bild)}" alt="" loading="lazy">` : ""}</div>
+        <div><b>${esc(p.name)}</b><span>${esc(p.untertitel)} · ${esc(p.land)}</span><br><span class="why">✓ ${esc(WHY[wahl.anlass])}</span></div>
+        <div class="pp"><b>${eur(p.preis)}</b><br><button class="btn btn-dark btn-sm add" data-id="${esc(p.id)}" style="margin-top:.3rem">In den Korb</button></div></div>`).join("");
+    cta.style.display = "flex";
+    const beratung = $("#finderBeratung");
+    beratung.dataset.anlass = wahl.anlass === "jubilaeum" ? "firmenfeier" : wahl.anlass === "geschenk" ? "praesente" : wahl.anlass === "feier" ? "privat" : "sonstiges";
+    beratung.dataset.nachricht = `Wein-Finder: ${LABEL[wahl.anlass]}, Richtung ${wahl.stil === "alle" ? "offen" : wahl.stil}, Budget ${wahl.budget ? (wahl.budget === 999 ? "offen nach oben" : "bis " + wahl.budget + " €") : "egal"} pro Flasche.`;
+  }
+  res.addEventListener("click", e => { const b = e.target.closest(".add"); if (!b) return; add(b.dataset.id); b.textContent = "✓ Im Korb"; setTimeout(() => b.textContent = "In den Korb", 1200); });
+})();
+
 /* ===================== Concierge-Anfrage ===================== */
 (function () {
   const form = $("#anfrageForm"); if (!form) return;
-  $$("[data-anlass]").forEach(a => a.addEventListener("click", () => { $("#a-anlass").value = a.dataset.anlass; }));
+  $$("[data-anlass]").forEach(a => a.addEventListener("click", () => { $("#a-anlass").value = a.dataset.anlass; if (a.dataset.nachricht && !$("#a-nachricht").value) $("#a-nachricht").value = a.dataset.nachricht; }));
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const daten = {

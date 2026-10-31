@@ -1,5 +1,5 @@
 {
-  "stand": "2026-10-31T22:44:21+00:00",
+  "stand": "2026-10-31T23:10:46+00:00",
   "produkte": [
     {
       "id": "WS-HOST-BDB",
@@ -16,7 +16,13 @@
       "beispielpreis": true,
       "farbe": "sparkling",
       "bg": "linear-gradient(160deg,#f2f1e7,#d8dcc7)",
-      "bild": "assets/img/produkte/hostomme-blanc-de-blancs.jpg"
+      "bild": "assets/img/produkte/hostomme-blanc-de-blancs.jpg",
+      "anlaesse": [
+        "feier",
+        "geschenk",
+        "aperitif",
+        "jubilaeum"
+      ]
     },
     {
       "id": "WS-BOLL-ZENAS",
@@ -33,7 +39,13 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/zenas-primitivo.jpg"
+      "bild": "assets/img/produkte/zenas-primitivo.jpg",
+      "anlaesse": [
+        "dinner",
+        "grillen",
+        "feier",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-ZUCC-Q",
@@ -50,7 +62,12 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/zuccardi-q-malbec.jpg"
+      "bild": "assets/img/produkte/zuccardi-q-malbec.jpg",
+      "anlaesse": [
+        "dinner",
+        "grillen",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-RH-COCO",
@@ -67,7 +84,12 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/redheads-coco-rotie.jpg"
+      "bild": "assets/img/produkte/redheads-coco-rotie.jpg",
+      "anlaesse": [
+        "dinner",
+        "grillen",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-VIL-BARAJA",
@@ -84,7 +106,12 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/vilano-la-baraja.jpg"
+      "bild": "assets/img/produkte/vilano-la-baraja.jpg",
+      "anlaesse": [
+        "dinner",
+        "geschenk",
+        "jubilaeum"
+      ]
     },
     {
       "id": "WS-ACK-CREM",
@@ -101,7 +128,12 @@
       "beispielpreis": true,
       "farbe": "sparkling",
       "bg": "linear-gradient(160deg,#f2f1e7,#d8dcc7)",
-      "bild": "assets/img/produkte/ackerman-cremant-brut.jpg"
+      "bild": "assets/img/produkte/ackerman-cremant-brut.jpg",
+      "anlaesse": [
+        "aperitif",
+        "feier",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-ACK-ZERO",
@@ -118,7 +150,12 @@
       "beispielpreis": true,
       "farbe": "zero",
       "bg": "linear-gradient(160deg,#e9eef5,#cfd9e6)",
-      "bild": "assets/img/produkte/ackerman-zero-blanc.jpg"
+      "bild": "assets/img/produkte/ackerman-zero-blanc.jpg",
+      "anlaesse": [
+        "alkoholfrei",
+        "aperitif",
+        "feier"
+      ]
     },
     {
       "id": "WS-ARM-PROS",
@@ -135,7 +172,12 @@
       "beispielpreis": true,
       "farbe": "sparkling",
       "bg": "linear-gradient(160deg,#f2f1e7,#d8dcc7)",
-      "bild": "assets/img/produkte/villa-armellina-prosecco.jpg"
+      "bild": "assets/img/produkte/villa-armellina-prosecco.jpg",
+      "anlaesse": [
+        "aperitif",
+        "feier",
+        "grillen"
+      ]
     },
     {
       "id": "WS-COL-GRILLO",
@@ -152,7 +194,12 @@
       "beispielpreis": true,
       "farbe": "white",
       "bg": "linear-gradient(160deg,#eef3e4,#d6e3c2)",
-      "bild": "assets/img/produkte/colosi-grillo.jpg"
+      "bild": "assets/img/produkte/colosi-grillo.jpg",
+      "anlaesse": [
+        "aperitif",
+        "grillen",
+        "dinner"
+      ]
     },
     {
       "id": "WS-PFAFF-RIES",
@@ -169,7 +216,12 @@
       "beispielpreis": true,
       "farbe": "white",
       "bg": "linear-gradient(160deg,#eef3e4,#d6e3c2)",
-      "bild": "assets/img/produkte/pfaff-riesling.jpg"
+      "bild": "assets/img/produkte/pfaff-riesling.jpg",
+      "anlaesse": [
+        "dinner",
+        "aperitif",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-CACH-TINTO",
@@ -186,7 +238,12 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/cachao-douro-tinto.jpg"
+      "bild": "assets/img/produkte/cachao-douro-tinto.jpg",
+      "anlaesse": [
+        "dinner",
+        "grillen",
+        "feier"
+      ]
     },
     {
       "id": "WS-HERM-RES",
@@ -203,7 +260,12 @@
       "beispielpreis": true,
       "farbe": "red",
       "bg": "linear-gradient(160deg,#f3e3df,#e4c3bd)",
-      "bild": "assets/img/produkte/vina-herminia-reserva.jpg"
+      "bild": "assets/img/produkte/vina-herminia-reserva.jpg",
+      "anlaesse": [
+        "dinner",
+        "geschenk",
+        "jubilaeum"
+      ]
     },
     {
       "id": "WS-GRAPPA-BAR",
@@ -220,7 +282,12 @@
       "beispielpreis": true,
       "farbe": "spirit",
       "bg": "linear-gradient(160deg,#f6ead9,#e6cfae)",
-      "bild": "assets/img/produkte/grappa-barolo.jpg"
+      "bild": "assets/img/produkte/grappa-barolo.jpg",
+      "anlaesse": [
+        "geschenk",
+        "jubilaeum",
+        "dinner"
+      ]
     },
     {
       "id": "WS-MAL-SILVER",
@@ -237,7 +304,11 @@
       "beispielpreis": true,
       "farbe": "spirit",
       "bg": "linear-gradient(160deg,#f6ead9,#e6cfae)",
-      "bild": "assets/img/produkte/la-malinche-silver.jpg"
+      "bild": "assets/img/produkte/la-malinche-silver.jpg",
+      "anlaesse": [
+        "feier",
+        "aperitif"
+      ]
     },
     {
       "id": "WS-MAL-GOLD",
@@ -254,7 +325,11 @@
       "beispielpreis": true,
       "farbe": "spirit",
       "bg": "linear-gradient(160deg,#f6ead9,#e6cfae)",
-      "bild": "assets/img/produkte/la-malinche-gold.jpg"
+      "bild": "assets/img/produkte/la-malinche-gold.jpg",
+      "anlaesse": [
+        "feier",
+        "geschenk"
+      ]
     },
     {
       "id": "WS-CONTRA-RUM",
@@ -271,7 +346,11 @@
       "beispielpreis": true,
       "farbe": "spirit",
       "bg": "linear-gradient(160deg,#f6ead9,#e6cfae)",
-      "bild": "assets/img/produkte/contrabando-black-rum.jpg"
+      "bild": "assets/img/produkte/contrabando-black-rum.jpg",
+      "anlaesse": [
+        "geschenk",
+        "jubilaeum"
+      ]
     }
   ]
 }

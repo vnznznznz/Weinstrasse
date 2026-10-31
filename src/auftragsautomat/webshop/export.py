@@ -71,6 +71,7 @@ def produkt_aus_eintrag(
         "farbe": farbe,
         "bg": hintergrund,
         "bild": eintrag.bild,
+        "anlaesse": eintrag.anlaesse,
     }
 
 

@@ -100,6 +100,7 @@ class SortimentEintrag(BaseModel):
     preis_brutto: Decimal | None = None  # Beispielpreis, falls der Artikel nicht im Stamm steht
     jahrgang: int | None = None
     bild: str | None = None  # Pfad relativ zu website/, z. B. assets/img/produkte/zenas-primitivo.jpg
+    anlaesse: list[str] = Field(default_factory=list)  # Wein-Finder: dinner, grillen, aperitif, feier, geschenk, jubilaeum, alkoholfrei
 
 
 class WebshopKonfig(BaseModel):

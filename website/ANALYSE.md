@@ -109,6 +109,8 @@ Empfehlung: **B für den Shop** (Shopify Local Delivery deckt PLZ-Zonen, Mindest
 | Hosting, Domain, TLS, SMTP | offen: Server hinter Reverse-Proxy stellen, `mail.smtp_host` setzen |
 | Übernahme der Bestellung in Lexware | offen: JSON liegt in `eingang/webshop/`, Anbindung an `pruefen`/`buchen` folgt |
 | Wein-Concierge (Firmenfeiern), Präsent-Service, Friday Uncorked, Events | fertig als Abschnitte; Anfragen gehen per `POST /api/anfrage` nach `eingang/webshop/anfragen/` |
+| Wein-Finder („Den Wein zum perfekten Anlass finden“) | fertig: drei Fragen, Vorschläge aus `produkte.json` über `anlaesse` je Artikel in `webshop.yaml`, Übergabe an das Concierge-Formular |
+| Team-Abschnitt | fertig: Portraits von Andreas Dünschede und Gerd Adolph von der bestehenden Website |
 | Fotos vom Laden und Wein-Taxi | fertig: 14 Fotos der bestehenden Website unter `assets/img/laden/` (Hero, Galerie-Laufband, Events, Präsente) |
 
 Annahmen, die der Laden bestätigen muss: Friday Uncorked freitags 14 bis 17 Uhr mit drei bis fünf offenen
