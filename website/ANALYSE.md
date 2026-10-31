@@ -104,10 +104,16 @@ Empfehlung: **B für den Shop** (Shopify Local Delivery deckt PLZ-Zonen, Mindest
 | Export aus dem Lexware-Artikelstamm | fertig (`webshop-export`); läuft mit Beispielpreisen, bis der Export unter `daten/weinstrasse_agentur/artikel.csv` liegt |
 | Bestell-Backend mit Prüfung, Ablage, Mail-Entwürfen | fertig (`webshop-server`), 33 Tests |
 | Rechtsseiten | Entwürfe mit Platzhaltern, rechtlich prüfen lassen |
-| Produktfotos | offen: Flaschen sind Grafiken, Fotos werden in `card-media` eingesetzt |
+| Produktfotos | fertig: 16 Originalflaschen aus dem Katalog (weinstrasseadolph.de, Weingüter-Seiten) unter `assets/img/produkte/` |
 | Online-Zahlung (PayPal, Karte) | offen: derzeit Zahlung bei Übergabe oder per Rechnung |
 | Hosting, Domain, TLS, SMTP | offen: Server hinter Reverse-Proxy stellen, `mail.smtp_host` setzen |
 | Übernahme der Bestellung in Lexware | offen: JSON liegt in `eingang/webshop/`, Anbindung an `pruefen`/`buchen` folgt |
+| Wein-Concierge (Firmenfeiern), Präsent-Service, Friday Uncorked, Events | fertig als Abschnitte; Anfragen gehen per `POST /api/anfrage` nach `eingang/webshop/anfragen/` |
+| Fotos vom Laden und Wein-Taxi | fertig: 14 Fotos der bestehenden Website unter `assets/img/laden/` (Hero, Galerie-Laufband, Events, Präsente) |
+
+Annahmen, die der Laden bestätigen muss: Friday Uncorked freitags 14 bis 17 Uhr mit drei bis fünf offenen
+Flaschen, kostenlos; die drei Präsent-Pakete (Duo, Holzkiste, Firmenpräsent ab 10 Stück); die sechs
+Concierge-Leistungen inklusive Rücknahme ungeöffneter Flaschen. Alle Texte stehen in `index.html`.
 
 ## 9. Sofortmaßnahmen auf der bestehenden Seite (ohne Neubau)
 

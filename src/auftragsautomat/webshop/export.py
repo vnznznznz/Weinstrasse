@@ -70,6 +70,7 @@ def produkt_aus_eintrag(
         "beispielpreis": beispielpreis,
         "farbe": farbe,
         "bg": hintergrund,
+        "bild": eintrag.bild,
     }
 
 

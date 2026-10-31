@@ -15,7 +15,12 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from auftragsautomat.webshop.bestellung import BestellFehler, Produktkatalog, nimm_bestellung_an
+from auftragsautomat.webshop.bestellung import (
+    BestellFehler,
+    Produktkatalog,
+    nimm_anfrage_an,
+    nimm_bestellung_an,
+)
 from auftragsautomat.webshop.konfig import WebshopKonfig
 
 logger = logging.getLogger(__name__)
@@ -62,8 +67,42 @@ class ShopHandler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def _lies_json(self) -> dict | None:
+        laenge = int(self.headers.get("Content-Length") or 0)
+        if laenge <= 0 or laenge > MAX_BODY:
+            self._json(HTTPStatus.BAD_REQUEST, {"fehler": "Ungültige Anfrage."})
+            return None
+        try:
+            roh = json.loads(self.rfile.read(laenge).decode("utf-8"))
+            if not isinstance(roh, dict):
+                raise ValueError("kein Objekt")
+        except (ValueError, UnicodeDecodeError):
+            self._json(HTTPStatus.BAD_REQUEST, {"fehler": "Die Daten konnten nicht gelesen werden."})
+            return None
+        return roh
+
+    def _anfrage(self) -> None:
+        roh = self._lies_json()
+        if roh is None:
+            return
+        try:
+            with self.lock:
+                annahme = nimm_anfrage_an(roh, self.konfig, jetzt=datetime.now())
+        except BestellFehler as exc:
+            self._json(HTTPStatus.UNPROCESSABLE_ENTITY, {"fehler": str(exc)})
+            return
+        except Exception:  # noqa: BLE001
+            logger.exception("Anfrage konnte nicht verarbeitet werden")
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"fehler": "Interner Fehler. Bitte per E-Mail anfragen."})
+            return
+        self._json(HTTPStatus.CREATED, {"nummer": annahme.anfrage.nummer, "mail_gesendet": annahme.gesendet})
+
     def do_POST(self) -> None:  # noqa: N802
-        if self.path.split("?", 1)[0] != "/api/bestellung":
+        pfad = self.path.split("?", 1)[0]
+        if pfad == "/api/anfrage":
+            self._anfrage()
+            return
+        if pfad != "/api/bestellung":
             self._json(HTTPStatus.NOT_FOUND, {"fehler": "Unbekannter Pfad."})
             return
         laenge = int(self.headers.get("Content-Length") or 0)

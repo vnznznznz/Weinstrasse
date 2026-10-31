@@ -39,7 +39,7 @@ def katalog(konfig: WebshopKonfig) -> b.Produktkatalog:
 def _anfrage(**aenderungen) -> dict:
     roh = {
         "lieferart": "lastenrad",
-        "positionen": [{"artikelnummer": "WS-ZENAS-01", "menge": 6}, {"artikelnummer": "WS-RIES-01", "menge": 6}],
+        "positionen": [{"artikelnummer": "WS-BOLL-ZENAS", "menge": 6}, {"artikelnummer": "WS-PFAFF-RIES", "menge": 6}],
         "kunde": {"name": "Frau Beispiel", "email": "beispiel@example.org", "strasse": "Musterweg 1", "plz": "50677"},
         "zeitfenster": "2026-11-03|vm",
         "alter_bestaetigt": True,
@@ -67,17 +67,17 @@ def test_brutto_rundet_kaufmaennisch():
 
 def test_export_nimmt_stammpreis_vor_beispielpreis(konfig: WebshopKonfig):
     artikel = Artikel(
-        firma_id="weinstrasse_agentur", artikelnummer="WS-ZENAS-01", bezeichnung="Zenas",
+        firma_id="weinstrasse_agentur", artikelnummer="WS-BOLL-ZENAS", bezeichnung="Zenas",
         vk_preis_1=Decimal("8.40"), volumen_cl=Decimal(75), jahrgang=2023,
     )
     gesperrt = Artikel(
-        firma_id="weinstrasse_agentur", artikelnummer="WS-RIES-01", bezeichnung="Riesling", vk_preis_1=Decimal("9"), aktiv=False,
+        firma_id="weinstrasse_agentur", artikelnummer="WS-PFAFF-RIES", bezeichnung="Riesling", vk_preis_1=Decimal("9"), aktiv=False,
     )
-    ergebnis = baue_produkte(konfig, {"WS-ZENAS-01": artikel, "WS-RIES-01": gesperrt})
-    zenas = next(p for p in ergebnis.produkte if p["id"] == "WS-ZENAS-01")
+    ergebnis = baue_produkte(konfig, {"WS-BOLL-ZENAS": artikel, "WS-PFAFF-RIES": gesperrt})
+    zenas = next(p for p in ergebnis.produkte if p["id"] == "WS-BOLL-ZENAS")
     assert zenas["preis"] == 10.0 and zenas["beispielpreis"] is False and zenas["jahrgang"] == 2023
     assert zenas["grundpreis_liter"] == pytest.approx(13.33)
-    assert "WS-RIES-01" in ergebnis.uebersprungen
+    assert "WS-PFAFF-RIES" in ergebnis.uebersprungen
     assert ergebnis.aus_stamm == 1 and ergebnis.beispielpreise == len(konfig.sortiment) - 2
 
 
@@ -129,7 +129,7 @@ def test_nummern_laufen_je_tag_fort(konfig: WebshopKonfig, katalog: b.Produktkat
 @pytest.mark.parametrize(
     ("aenderung", "erwartet"),
     [
-        ({"positionen": [{"artikelnummer": "WS-ZENAS-01", "menge": 11}]}, "ab 12 Flaschen"),
+        ({"positionen": [{"artikelnummer": "WS-BOLL-ZENAS", "menge": 11}]}, "ab 12 Flaschen"),
         ({"kunde": {"name": "Frau Beispiel", "email": "beispiel@example.org", "strasse": "Weg 1", "plz": "40210"}}, "außerhalb"),
         ({"zeitfenster": "2026-11-03|ab"}, "gibt es an dem Tag nicht"),  # Feierabend nur donnerstags
         ({"zeitfenster": "2026-11-02|vm"}, "außerhalb der angebotenen Tage"),  # heute selbst
@@ -158,7 +158,7 @@ def test_randgebiet_kostet_gebuehr_und_preise_kommen_vom_server(konfig: WebshopK
 
 def test_abholung_nur_an_oeffnungstagen(konfig: WebshopKonfig, katalog: b.Produktkatalog):
     best = b.nimm_bestellung_an(
-        _anfrage(lieferart="abholung", zeitfenster="2026-11-05", positionen=[{"artikelnummer": "WS-GIN-01", "menge": 1}]),
+        _anfrage(lieferart="abholung", zeitfenster="2026-11-05", positionen=[{"artikelnummer": "WS-GRAPPA-BAR", "menge": 1}]),
         konfig, katalog, jetzt=MONTAG_VORMITTAG, senden=False,
     ).bestellung
     assert best.lieferkosten == 0 and best.flaschen == 1 and "18:30" in best.zeitfenster_text
@@ -169,12 +169,12 @@ def test_abholung_nur_an_oeffnungstagen(konfig: WebshopKonfig, katalog: b.Produk
 def test_versand_mit_und_ohne_versandkosten(konfig: WebshopKonfig, katalog: b.Produktkatalog):
     kunde = {"name": "Frau Beispiel", "email": "beispiel@example.org", "strasse": "Weg 1", "plz": "10115", "ort": "Berlin"}
     klein = b.nimm_bestellung_an(
-        _anfrage(lieferart="versand", kunde=kunde, zeitfenster=None, positionen=[{"artikelnummer": "WS-ZENAS-01", "menge": 2}]),
+        _anfrage(lieferart="versand", kunde=kunde, zeitfenster=None, positionen=[{"artikelnummer": "WS-BOLL-ZENAS", "menge": 2}]),
         konfig, katalog, jetzt=MONTAG_VORMITTAG, senden=False,
     ).bestellung
     assert klein.lieferkosten == Decimal("6.90")
     gross = b.nimm_bestellung_an(
-        _anfrage(lieferart="versand", kunde=kunde, zeitfenster=None, positionen=[{"artikelnummer": "WS-CHAMP-01", "menge": 3}]),
+        _anfrage(lieferart="versand", kunde=kunde, zeitfenster=None, positionen=[{"artikelnummer": "WS-HOST-BDB", "menge": 3}]),
         konfig, katalog, jetzt=MONTAG_VORMITTAG, senden=False,
     ).bestellung
     assert gross.lieferkosten == Decimal("0.00") and gross.gesamt == Decimal("149.70")
@@ -221,7 +221,7 @@ def test_server_liefert_statische_dateien_und_status(server):
     status, daten = _request(server, "GET", "/")
     assert status == 200 and b"<title>Test</title>" in daten
     status, daten = _request(server, "GET", "/api/status")
-    assert status == 200 and json.loads(daten)["produkte"] == 12
+    assert status == 200 and json.loads(daten)["produkte"] == 16
 
 
 def test_server_nimmt_bestellung_an_und_lehnt_fehler_ab(server, konfig: WebshopKonfig):
@@ -241,3 +241,29 @@ def test_server_nimmt_bestellung_an_und_lehnt_fehler_ab(server, konfig: WebshopK
     conn.request("POST", "/api/bestellung", body=b"kein json", headers={"Content-Type": "application/json"})
     assert conn.getresponse().status == 400
     conn.close()
+
+
+# ---------------------------------------------------------------- Concierge-Anfragen
+
+
+def test_anfrage_wird_abgelegt_und_gemeldet(konfig: WebshopKonfig):
+    roh = {"anlass": "firmenfeier", "name": "Frau Beispiel", "email": "beispiel@example.org", "firma": "Beispiel GmbH",
+           "personen": 40, "datum": "Dezember", "budget": "bis 25 € p. P.", "nachricht": "Weihnachtsfeier mit Menü.", "datenschutz": True}
+    annahme = b.nimm_anfrage_an(roh, konfig, jetzt=MONTAG_VORMITTAG, senden=False)
+    assert annahme.anfrage.nummer == "ANF-261102-001" and annahme.datei.exists()
+    text = annahme.mail_entwurf.read_text(encoding="utf-8")
+    assert "Firmenfeier / Event" in text and "Personen: 40" in text and "Reply-To: beispiel@example.org" in text
+    zweite = b.nimm_anfrage_an(roh, konfig, jetzt=MONTAG_VORMITTAG, senden=False)
+    assert zweite.anfrage.nummer == "ANF-261102-002"
+    with pytest.raises(b.BestellFehler, match="Datenschutz"):
+        b.nimm_anfrage_an({**roh, "datenschutz": False}, konfig, jetzt=MONTAG_VORMITTAG, senden=False)
+    with pytest.raises(b.BestellFehler, match="Ungültige Angabe"):
+        b.nimm_anfrage_an({**roh, "anlass": "hochzeit"}, konfig, jetzt=MONTAG_VORMITTAG, senden=False)
+
+
+def test_server_nimmt_anfrage_an(server, konfig: WebshopKonfig):
+    status, daten = _request(server, "POST", "/api/anfrage", {"anlass": "praesente", "name": "Frau Beispiel", "email": "beispiel@example.org", "datenschutz": True})
+    assert status == 201 and json.loads(daten)["nummer"].startswith("ANF-")
+    assert list((konfig.bestellungen_ordner / "anfragen").glob("ANF-*.json"))
+    status, daten = _request(server, "POST", "/api/anfrage", {"anlass": "praesente", "name": "X", "email": "nix", "datenschutz": True})
+    assert status == 422

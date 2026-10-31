@@ -353,6 +353,131 @@ def sende_mails(mails: tuple[EmailMessage, EmailMessage], konfig: WebshopKonfig)
     return True
 
 
+# ---------------------------------------------------------------------------
+# Anfragen (Concierge: Firmenfeiern, Präsente, Verkostungen)
+# ---------------------------------------------------------------------------
+
+Anlass = Literal["firmenfeier", "praesente", "verkostung", "privat", "sonstiges"]
+
+
+class AnfrageDaten(BaseModel):
+    """Unverbindliche Anfrage über das Concierge-Formular."""
+
+    anlass: Anlass
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(max_length=120)
+    telefon: str = Field(default="", max_length=40)
+    firma: str = Field(default="", max_length=120)
+    personen: int | None = Field(default=None, ge=1, le=5000)
+    datum: str = Field(default="", max_length=40)
+    budget: str = Field(default="", max_length=40)
+    nachricht: str = Field(default="", max_length=2000)
+    datenschutz: bool = False
+
+    @field_validator("name", "email", "telefon", "firma", "datum", "budget", "nachricht", mode="before")
+    @classmethod
+    def _trim(cls, wert: object) -> object:
+        return wert.strip() if isinstance(wert, str) else wert
+
+    @field_validator("email")
+    @classmethod
+    def _email_form(cls, wert: str) -> str:
+        if not _EMAIL.match(wert):
+            raise ValueError("keine gültige E-Mail-Adresse")
+        return wert
+
+
+class Anfrage(AnfrageDaten):
+    nummer: str
+    eingegangen: datetime
+
+
+ANLASS_TEXT = {
+    "firmenfeier": "Firmenfeier / Event",
+    "praesente": "Präsente",
+    "verkostung": "Verkostung",
+    "privat": "Private Feier",
+    "sonstiges": "Sonstiges",
+}
+
+
+def naechste_anfragenummer(ordner: Path, jetzt: datetime) -> str:
+    praefix = f"ANF-{jetzt:%y%m%d}-"
+    vorhanden = [p.stem for p in ordner.glob(f"{praefix}*.json")] if ordner.exists() else []
+    nummern = [int(s[len(praefix):]) for s in vorhanden if s[len(praefix):].isdigit()]
+    return f"{praefix}{(max(nummern) + 1 if nummern else 1):03d}"
+
+
+def anfragetext(anfrage: Anfrage) -> str:
+    zeilen = [
+        f"Anfrage {anfrage.nummer} vom {anfrage.eingegangen:%d.%m.%Y %H:%M}",
+        f"Anlass: {ANLASS_TEXT[anfrage.anlass]}",
+        f"Name: {anfrage.name}" + (f" ({anfrage.firma})" if anfrage.firma else ""),
+        f"E-Mail: {anfrage.email}",
+    ]
+    if anfrage.telefon:
+        zeilen.append(f"Telefon: {anfrage.telefon}")
+    if anfrage.personen:
+        zeilen.append(f"Personen: {anfrage.personen}")
+    if anfrage.datum:
+        zeilen.append(f"Termin: {anfrage.datum}")
+    if anfrage.budget:
+        zeilen.append(f"Budget: {anfrage.budget}")
+    if anfrage.nachricht:
+        zeilen += ["", anfrage.nachricht]
+    return "\n".join(zeilen) + "\n"
+
+
+@dataclass
+class AnfrageAnnahme:
+    anfrage: Anfrage
+    datei: Path
+    mail_entwurf: Path
+    gesendet: bool
+
+
+def nimm_anfrage_an(roh: dict, konfig: WebshopKonfig, *, jetzt: datetime | None = None, senden: bool = True) -> AnfrageAnnahme:
+    """Concierge-Anfrage validieren, ablegen (``<bestellungen_ordner>/anfragen/``) und an den Laden melden."""
+    jetzt = jetzt or datetime.now()
+    try:
+        daten = AnfrageDaten.model_validate(roh)
+    except ValidationError as exc:
+        erster = exc.errors()[0]
+        ort = ".".join(str(t) for t in erster.get("loc", ()))
+        raise BestellFehler(f"Ungültige Angabe bei '{ort}': {erster.get('msg', 'unbekannt')}.") from exc
+    if not daten.datenschutz:
+        raise BestellFehler("Bitte bestätigen Sie die Datenschutzhinweise.")
+    ordner = konfig.bestellungen_ordner / "anfragen"
+    anfrage = Anfrage(**daten.model_dump(), nummer=naechste_anfragenummer(ordner, jetzt), eingegangen=jetzt)
+    ordner.mkdir(parents=True, exist_ok=True)
+    datei = ordner / f"{anfrage.nummer}.json"
+    datei.write_text(anfrage.model_dump_json(indent=2), encoding="utf-8")
+    absender = konfig.mail.absender or konfig.laden.email
+    mail = EmailMessage()
+    mail["From"] = absender
+    mail["To"] = konfig.mail.empfaenger_laden or konfig.laden.email
+    mail["Reply-To"] = anfrage.email
+    mail["Subject"] = f"Concierge-Anfrage {anfrage.nummer}: {ANLASS_TEXT[anfrage.anlass]}"
+    mail.set_content(anfragetext(anfrage))
+    konfig.mail_ordner.mkdir(parents=True, exist_ok=True)
+    entwurf = konfig.mail_ordner / f"{anfrage.nummer}_laden.eml"
+    entwurf.write_bytes(bytes(mail))
+    gesendet = False
+    if senden and konfig.mail.smtp_host:
+        try:
+            m = konfig.mail
+            with smtplib.SMTP(m.smtp_host, m.smtp_port, timeout=20) as smtp:
+                smtp.starttls()
+                if m.benutzer:
+                    smtp.login(m.benutzer, os.environ.get(m.passwort_env, ""))
+                smtp.send_message(mail)
+            gesendet = True
+        except (OSError, smtplib.SMTPException):
+            logger.exception("Anfrage %s: E-Mail-Versand fehlgeschlagen, Entwurf liegt vor", anfrage.nummer)
+    logger.info("Anfrage %s angenommen (%s)", anfrage.nummer, anfrage.anlass)
+    return AnfrageAnnahme(anfrage=anfrage, datei=datei, mail_entwurf=entwurf, gesendet=gesendet)
+
+
 @dataclass
 class Annahme:
     bestellung: Bestellung

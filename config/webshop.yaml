@@ -59,97 +59,144 @@ mail:
 # `preis_brutto` als Beispielpreis und das Produkt wird als solcher gekennzeichnet.
 # typ: rot | weiss | rose | schaum | spirit | alkoholfrei
 sortiment:
-  - artikelnummer: "WS-CHAMP-01"
+  - artikelnummer: "WS-HOST-BDB"
     name: "Blanc de Blancs Grand Cru Millésime"
     untertitel: "Champagne M. Hostomme · Chouilly"
     typ: schaum
     land: Frankreich
     badge: "Grand Cru"
-    text: "100 % Chardonnay aus Grand-Cru-Lagen, lange Hefelagerung, feine Perlage."
+    text: "Jahrgangschampagner aus eigenen Grand-Cru-Lagen, 72 Monate auf der Feinhefe. Balance aus Frucht und Säure, zarter Hefeton."
+    bild: "assets/img/produkte/hostomme-blanc-de-blancs.jpg"
     preis_brutto: 49.90
-  - artikelnummer: "WS-ZENAS-01"
+  - artikelnummer: "WS-BOLL-ZENAS"
     name: "Zenas Primitivo"
-    untertitel: "La Bollina · Süditalien"
+    untertitel: "La Bollina · Apulien"
     typ: rot
     land: Italien
     badge: "Bestseller"
-    text: "Saftig, dunkle Beeren, weiche Tannine. Hoch ausgezeichnet, ein absoluter Bestseller."
+    text: "Tiefes Rot mit purpurnen Reflexen. Reife Pflaume, schwarze Kirsche, Schokolade und Vanille. Hoch ausgezeichnet."
+    bild: "assets/img/produkte/zenas-primitivo.jpg"
     preis_brutto: 9.90
   - artikelnummer: "WS-ZUCC-Q"
     name: "Zuccardi Q Malbec"
-    untertitel: "Familia Zuccardi · Mendoza"
+    untertitel: "Familia Zuccardi · Uco Valley"
     typ: rot
     land: Argentinien
     badge: "Übersee"
-    text: "Malbec aus dem Uco Valley: Veilchen, Pflaume, feinkörniges Tannin, 12 Monate Barrique."
+    text: "Das Q steht für Qualität: Trauben aus den ältesten Parzellen des Uco Valley. Kühle Aromatik, Eleganz, feines Tannin."
+    bild: "assets/img/produkte/zuccardi-q-malbec.jpg"
     preis_brutto: 16.90
-  - artikelnummer: "WS-COCO-01"
+  - artikelnummer: "WS-RH-COCO"
     name: "Coco Rotie"
     untertitel: "RedHeads · Barossa"
     typ: rot
     land: Australien
     badge: "Kult"
-    text: "Shiraz mit einem Schuss Viognier nach Vorbild der Côte-Rôtie. Würzig, voll, lang."
+    text: "Shiraz mit Viognier nach dem Vorbild der Côte-Rôtie, erzählt mit der Legende des Affenkönigs. Würzig, voll, lang."
+    bild: "assets/img/produkte/redheads-coco-rotie.jpg"
     preis_brutto: 19.90
-  - artikelnummer: "WS-BARAJA-01"
-    name: "La Baraja Godello"
-    untertitel: "Valdeorras · Galicien"
-    typ: weiss
+  - artikelnummer: "WS-VIL-BARAJA"
+    name: "La Baraja"
+    untertitel: "Bodegas Vilano · Ribera del Duero"
+    typ: rot
     land: Spanien
     badge: "Falstaff-prämiert"
-    text: "Frischer Godello mit Steinobst, Mineralität und cremigem Schmelz."
-    preis_brutto: 11.90
-  - artikelnummer: "WS-CREM-01"
+    text: "75 % Tempranillo mit Cabernet Sauvignon und Merlot, 18 Monate französische Eiche. Dunkle Kirsche, Cassis, Pfeffer, Lakritz."
+    bild: "assets/img/produkte/vilano-la-baraja.jpg"
+    preis_brutto: 18.90
+  - artikelnummer: "WS-ACK-CREM"
     name: "Crémant de Loire Brut"
-    untertitel: "Loire · Frankreich"
+    untertitel: "Ackerman · Loire"
     typ: schaum
     land: Frankreich
-    text: "Traditionelle Flaschengärung, knackig und elegant. Der Alltags-Champagner."
+    badge: "Cuvée 1811"
+    text: "Chenin, Chardonnay und Cabernet Franc, von Hand gelesen und als ganze Trauben gekeltert. Fruchtig, fein, der Alltags-Champagner."
+    bild: "assets/img/produkte/ackerman-cremant-brut.jpg"
     preis_brutto: 14.90
-  - artikelnummer: "WS-XETAR-00"
-    name: "Viña Xétar 0,0 %"
-    untertitel: "Alkoholfrei · Spanien"
+  - artikelnummer: "WS-ACK-ZERO"
+    name: "Zéro Alcohol Blanc"
+    untertitel: "Ackerman · alkoholfrei"
     typ: alkoholfrei
-    land: Spanien
-    badge: "Gold"
-    text: "Goldprämiert und ohne Alkohol. Fruchtig, trocken, mit echter Weinaromatik."
-    preis_brutto: 7.90
-  - artikelnummer: "WS-VERDE-01"
-    name: "Vinho Verde Loureiro"
-    untertitel: "Minho · Portugal"
-    typ: weiss
-    land: Portugal
-    text: "Leicht, spritzig, Zitrus und Blüten. Perfekt für den Balkon."
+    land: Frankreich
+    badge: "0,0 %"
+    text: "Sanft entalkoholisierter Schaumwein aus vollreifen Trauben. Duft nach weißem Fruchtfleisch, Birne und Traube am Gaumen."
+    bild: "assets/img/produkte/ackerman-zero-blanc.jpg"
     preis_brutto: 8.90
-  - artikelnummer: "WS-GRAPPA-01"
-    name: "Grappa di Barolo"
-    untertitel: "Piemont · Italien"
-    typ: spirit
+  - artikelnummer: "WS-ARM-PROS"
+    name: "Prosecco DOC Extra Dry"
+    untertitel: "Villa Armellina · Venetien"
+    typ: schaum
     land: Italien
-    volumen_cl: 50
-    text: "Aus Nebbiolo-Trester, 24 Monate im Holz. Weich, nussig, warm."
-    preis_brutto: 34.90
-  - artikelnummer: "WS-RIOJA-RES"
-    name: "Rioja Reserva"
-    untertitel: "Rioja Alta · Spanien"
+    badge: "Top 3 Fachhandel"
+    text: "2021 zum drittbesten Prosecco im Fachhandel gewählt. Elegantes, fruchtiges Bouquet mit floralen Anklängen."
+    bild: "assets/img/produkte/villa-armellina-prosecco.jpg"
+    preis_brutto: 9.90
+  - artikelnummer: "WS-COL-GRILLO"
+    name: "Grillo"
+    untertitel: "Cantine Colosi · Sizilien"
+    typ: weiss
+    land: Italien
+    text: "Der Sommerwein Siziliens: kalkhaltige Sandböden geben Struktur und Frucht. Sonne im Glas."
+    bild: "assets/img/produkte/colosi-grillo.jpg"
+    preis_brutto: 8.90
+  - artikelnummer: "WS-PFAFF-RIES"
+    name: "Tradition Riesling"
+    untertitel: "Pfaff · Elsass"
+    typ: weiss
+    land: Frankreich
+    text: "Helles Gelb mit grünen Reflexen, trocken und mineralisch. Zitrus und gelbe Früchte, klarer, langer Abgang."
+    bild: "assets/img/produkte/pfaff-riesling.jpg"
+    preis_brutto: 10.90
+  - artikelnummer: "WS-CACH-TINTO"
+    name: "Cachão Douro Tinto"
+    untertitel: "Caves Messias · Douro"
+    typ: rot
+    land: Portugal
+    text: "Touriga Franca, Touriga Nacional und Tinta Roriz, sanft im Fass gereift. Rote Beeren und feine Gewürze."
+    bild: "assets/img/produkte/cachao-douro-tinto.jpg"
+    preis_brutto: 9.90
+  - artikelnummer: "WS-HERM-RES"
+    name: "Viña Herminia Reserva"
+    untertitel: "Bodegas Viña Herminia · Rioja"
     typ: rot
     land: Spanien
     badge: "Reserva"
-    text: "Tempranillo, 36 Monate Reifung. Vanille, Leder, reife Kirsche."
-    preis_brutto: 18.90
-  - artikelnummer: "WS-RIES-01"
-    name: "Riesling trocken"
-    untertitel: "Mosel · Deutschland"
-    typ: weiss
-    land: Deutschland
-    text: "Schiefer, Pfirsich, straffe Säure. Der Klassiker aus der Nachbarschaft."
-    preis_brutto: 10.90
-  - artikelnummer: "WS-GIN-01"
-    name: "Gin aus dem Veedel"
-    untertitel: "Köln · Deutschland"
+    text: "Tempranillo, Garnacha und Graciano, lange im Fass und auf der Flasche gereift. Schwarze Früchte, Pflaume, Zimt, Vanille."
+    bild: "assets/img/produkte/vina-herminia-reserva.jpg"
+    preis_brutto: 17.90
+  - artikelnummer: "WS-GRAPPA-BAR"
+    name: "Grappa di Barolo"
+    untertitel: "Piemont · Serralunga d’Alba"
     typ: spirit
-    land: Deutschland
+    land: Italien
     volumen_cl: 50
-    badge: "Lokal"
-    text: "Wacholder, Zitrus und ein Hauch Kölsch-Hopfen. Aus einer kleinen Destille."
+    text: "Nebbiolo-Trester, langsam in kleinen Kupferkesseln destilliert, drei Jahre im Barrique. Komplex, weich, warm."
+    bild: "assets/img/produkte/grappa-barolo.jpg"
+    preis_brutto: 34.90
+  - artikelnummer: "WS-MAL-SILVER"
+    name: "Tequila Silver La Malinche"
+    untertitel: "Jalisco · 100 % Blaue Agave"
+    typ: spirit
+    land: Mexiko
+    volumen_cl: 70
+    text: "Zweifach destilliert, kristallklar. Gekochte Agave, frische Zitrus- und Minznoten, seidig mit herbem Finale."
+    bild: "assets/img/produkte/la-malinche-silver.jpg"
     preis_brutto: 29.90
+  - artikelnummer: "WS-MAL-GOLD"
+    name: "Tequila Gold La Malinche"
+    untertitel: "Jalisco · 100 % Blaue Agave"
+    typ: spirit
+    land: Mexiko
+    volumen_cl: 70
+    text: "Bernsteinfarben mit silbrigen Reflexen. Gekochte und rohe Agave, Karamell, Zitrus und Kräuter."
+    bild: "assets/img/produkte/la-malinche-gold.jpg"
+    preis_brutto: 32.90
+  - artikelnummer: "WS-CONTRA-RUM"
+    name: "Contrabando Black Rum"
+    untertitel: "Dominikanische Republik · 15 Jahre Solera"
+    typ: spirit
+    land: Karibik
+    badge: "Sherryfass"
+    text: "Über 15 Jahre im Solera-System gereift, in Lustau-Sherryfässern veredelt. Vanille, Karamell, Schokolade."
+    bild: "assets/img/produkte/contrabando-black-rum.jpg"
+    preis_brutto: 39.90

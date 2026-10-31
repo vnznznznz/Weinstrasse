@@ -1,6 +1,6 @@
-/* Weinstrasse – Laden Köln-Süd. Frontend des Online-Shops.
+/* Weinstrasse – Laden Köln-Süd. Frontend: Effekte, Shop, Checkout, Concierge.
    Daten: data/produkte.json und data/lieferung.json (erzeugt von `auftragsautomat webshop-export`).
-   Bestellung: POST /api/bestellung (auftragsautomat webshop-server). Ohne Server: Bestelltext kopieren. */
+   Bestellung: POST /api/bestellung, Anfrage: POST /api/anfrage (auftragsautomat webshop-server). */
 (function () {
 "use strict";
 
@@ -10,22 +10,23 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let toastT;
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2400); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fein = matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 /* ===================== Daten ===================== */
 let PRODUKTE = [];
 let datenFehler = false;
-let LIEFERUNG = { mindestflaschen_lastenrad: 12, bestellschluss_uhr: 12, tage_voraus: 4, versandkosten: 6.9, versandkostenfrei_ab: 120, zonen: [], zeitfenster: [], laden: { oeffnungszeiten: {} } };
+let LIEFERUNG = { mindestflaschen_lastenrad: 12, bestellschluss_uhr: 12, tage_voraus: 4, versandkosten: 6.9, versandkostenfrei_ab: 120, zonen: [], zeitfenster: [], laden: { email: "laden@weinstrasseadolph.de", strasse: "Sachsenring 38", plz: "50677", ort: "Köln", oeffnungszeiten: {} } };
 
 async function ladeDaten() {
   try {
     const [p, l] = await Promise.all([fetch("data/produkte.json").then(r => r.json()), fetch("data/lieferung.json").then(r => r.json())]);
     PRODUKTE = p.produkte || [];
-    LIEFERUNG = { ...LIEFERUNG, ...l };
+    LIEFERUNG = { ...LIEFERUNG, ...l, laden: { ...LIEFERUNG.laden, ...(l.laden || {}) } };
     const stand = $("#preisStand");
     if (stand) stand.textContent = new Date(p.stand).toLocaleDateString("de-DE");
-    if (PRODUKTE.some(x => x.beispielpreis)) $("#shopNote").insertAdjacentHTML("beforeend", " <b>Einige Preise sind Beispielpreise (Artikelstamm noch nicht angebunden).</b>");
+    if (PRODUKTE.some(x => x.beispielpreis)) $("#shopNote").insertAdjacentHTML("beforeend", " <b>Preise sind Beispielpreise, bis der Artikelstamm angebunden ist.</b>");
   } catch (e) {
     datenFehler = true;
     console.error("Shop-Daten", e);
@@ -33,26 +34,44 @@ async function ladeDaten() {
   const min = $("#minFlaschen"); if (min) min.textContent = LIEFERUNG.mindestflaschen_lastenrad;
 }
 
-/* ===================== Navigation ===================== */
-const nav = $("#nav");
-addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 40), { passive: true });
+/* ===================== Navigation + Fortschritt ===================== */
+const nav = $("#nav"), progressTop = $("#progressTop");
+function navFx() {
+  nav.classList.toggle("scrolled", scrollY > 40);
+  const h = document.documentElement.scrollHeight - innerHeight;
+  progressTop.style.width = (h > 0 ? scrollY / h * 100 : 0) + "%";
+}
+addEventListener("scroll", navFx, { passive: true }); navFx();
 $("#burger").onclick = () => $("#mobileMenu").classList.toggle("open");
 $$("#mobileMenu a").forEach(a => a.onclick = () => $("#mobileMenu").classList.remove("open"));
 
-/* ===================== Hero-Scroll-Effekt ===================== */
-const heroBg = $("#heroBg"), heroContent = $("#heroContent"), hero = $(".hero");
-function heroFx() {
+/* ===================== Parallax-Bilder ===================== */
+const parallaxImgs = [["#heroImg", 0.12], ["#bikeImg", 0.08], ["#praesentImg", 0.1]].map(([s, f]) => [$(s), f]).filter(([el]) => el);
+function parallax() {
   if (reduced) return;
-  const h = hero.offsetHeight, y = Math.min(scrollY, h), p = y / h;
-  heroBg.style.transform = `translate3d(0,${y * 0.35}px,0) scale(${1 + p * 0.15})`;
-  heroContent.style.transform = `translate3d(0,${y * 0.18}px,0) scale(${1 - p * 0.08})`;
-  heroContent.style.opacity = 1 - p * 1.4;
+  for (const [img, f] of parallaxImgs) {
+    const r = img.parentElement.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight) continue;
+    const p = (r.top + r.height / 2 - innerHeight / 2) / innerHeight;
+    img.style.transform = `scale(1.12) translateY(${(-p * f * 100).toFixed(2)}%)`;
+  }
 }
-addEventListener("scroll", () => requestAnimationFrame(heroFx), { passive: true }); heroFx();
+addEventListener("scroll", () => requestAnimationFrame(parallax), { passive: true }); parallax();
+
+/* ===================== Wort-für-Wort-Reveal ===================== */
+$$("[data-words]").forEach(el => {
+  const nodes = [...el.childNodes];
+  el.innerHTML = "";
+  nodes.forEach(n => {
+    if (n.nodeType === 3) n.textContent.split(/(\s+)/).forEach(t => { if (!t) return; if (/^\s+$/.test(t)) el.appendChild(document.createTextNode(t)); else { const s = document.createElement("span"); s.className = "w"; s.textContent = t; el.appendChild(s); } });
+    else { const wrap = n.cloneNode(false); n.textContent.split(/(\s+)/).forEach(t => { if (!t) return; if (/^\s+$/.test(t)) wrap.appendChild(document.createTextNode(t)); else { const s = document.createElement("span"); s.className = "w"; s.textContent = t; wrap.appendChild(s); } }); el.appendChild(wrap); }
+  });
+  [...el.querySelectorAll(".w")].forEach((w, i) => w.style.transitionDelay = (i * 0.07) + "s");
+});
 
 /* ===================== Reveal beim Scrollen ===================== */
 const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15, rootMargin: "0px 0px -8% 0px" });
-$$(".reveal,.stagger").forEach(el => io.observe(el));
+$$(".reveal,.stagger,.words,.friday").forEach(el => io.observe(el));
 
 const cio = new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting) return; cio.unobserve(e.target);
@@ -61,32 +80,91 @@ const cio = new IntersectionObserver(es => es.forEach(e => {
 }), { threshold: .6 });
 $$("[data-count]").forEach(el => cio.observe(el));
 
+/* ===================== Magnet-Buttons, Tilt, Spotlight ===================== */
+function magnetic(btn) {
+  if (!fein || reduced) return;
+  btn.addEventListener("mousemove", e => { const r = btn.getBoundingClientRect(); const x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2; btn.style.transform = `translate(${x * 0.18}px,${y * 0.25}px)`; });
+  btn.addEventListener("mouseleave", () => btn.style.transform = "");
+}
+$$(".magnetic").forEach(magnetic);
+function tilt(card) {
+  if (!fein || reduced) return;
+  card.addEventListener("mousemove", e => { const r = card.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; card.style.transform = `perspective(900px) rotateX(${(-y * 10).toFixed(2)}deg) rotateY(${(x * 12).toFixed(2)}deg) translateY(-6px)`; });
+  card.addEventListener("mouseleave", () => card.style.transform = "");
+}
+$$(".tilt").forEach(tilt);
+function spotlight(el) {
+  if (!fein) return;
+  el.addEventListener("mousemove", e => { const r = el.getBoundingClientRect(); el.style.setProperty("--mx", (e.clientX - r.left) + "px"); el.style.setProperty("--my", (e.clientY - r.top) + "px"); });
+}
+$$(".spot").forEach(spotlight);
+
+/* ===================== Galerie (Laufband) ===================== */
+(function () {
+  const track = $("#galleryTrack"); if (!track) return;
+  const fotos = [30, 38, 41, 47, 54, 58, 70, 72, 75, 80, 81, 82].map(n => `assets/img/laden/laden-${n}.jpg`);
+  const html = fotos.map(f => `<img src="${f}" alt="Im Laden der Weinstrasse" loading="lazy" decoding="async">`).join("");
+  track.innerHTML = html + html; // zweimal für nahtloses Laufband
+})();
+
+/* ===================== Friday Uncorked: Countdown ===================== */
+(function () {
+  const el = $("#countdown"); if (!el) return;
+  const felder = el.querySelectorAll("b");
+  function naechsterFreitag() {
+    const jetzt = new Date(); const d = new Date(jetzt); d.setHours(14, 0, 0, 0);
+    let diff = (5 - d.getDay() + 7) % 7; // 5 = Freitag
+    if (diff === 0 && jetzt.getHours() >= 17) diff = 7;
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+  function tick() {
+    const ziel = naechsterFreitag(), jetzt = new Date();
+    if (jetzt.getDay() === 5 && jetzt.getHours() >= 14 && jetzt.getHours() < 17) { felder[0].textContent = "Jetzt"; felder[1].textContent = "🍾"; felder[2].textContent = "offen"; return; }
+    let s = Math.max(0, Math.floor((ziel - jetzt) / 1000));
+    const t = Math.floor(s / 86400); s -= t * 86400; const h = Math.floor(s / 3600); s -= h * 3600; const m = Math.floor(s / 60);
+    felder[0].textContent = t; felder[1].textContent = h; felder[2].textContent = m;
+  }
+  tick(); setInterval(tick, 30000);
+})();
+
 /* ===================== Scrollytelling Lastenrad ===================== */
 const road = $("#road"), trace = $("#trace"), bike = $("#bike"), steps = $$(".step"), stepsWrap = $("#steps");
 const roadLen = road.getTotalLength();
 function storyFx() {
   const r = stepsWrap.getBoundingClientRect(), vh = innerHeight;
   const total = r.height - vh * 0.4; const p = Math.min(1, Math.max(0, (vh * 0.6 - r.top) / total));
-  const pt = road.getPointAtLength(p * roadLen), ahead = road.getPointAtLength(Math.min(roadLen, p * roadLen + 4));
+  const pt = road.getPointAtLength(p * roadLen), ahead = road.getPointAtLength(Math.min(roadLen, p * roadLen + 3));
   const ang = Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180 / Math.PI;
-  bike.setAttribute("transform", `translate(${pt.x},${pt.y - 28}) rotate(${ang * 0.6})`);
+  bike.setAttribute("transform", `translate(${pt.x},${pt.y - 10}) rotate(${(ang * 0.5).toFixed(1)})`);
   trace.style.strokeDashoffset = 1 - p;
-  const spin = p * roadLen * 6; $("#w1").setAttribute("transform", `translate(12,40) rotate(${spin})`); $("#w2").setAttribute("transform", `translate(96,40) rotate(${spin})`);
+  const spin = p * roadLen * 4; $("#w1").setAttribute("transform", `translate(10,32) rotate(${spin})`); $("#w2").setAttribute("transform", `translate(72,32) rotate(${spin})`);
   [0, .33, .66, 1].forEach((s, i) => $("#pin" + i).classList.toggle("on", p >= s - 0.02));
   let active = 0; steps.forEach((s, i) => { if (s.getBoundingClientRect().top < vh * 0.55) active = i; }); steps.forEach((s, i) => s.classList.toggle("active", i === active));
 }
 addEventListener("scroll", () => requestAnimationFrame(storyFx), { passive: true }); addEventListener("resize", storyFx); storyFx();
 
+/* ===================== Konfetti ===================== */
+function konfetti() {
+  if (reduced) return;
+  const box = document.createElement("div"); box.className = "confetti";
+  const farben = ["#6b1a24", "#c9a24a", "#2f6b3a", "#f3c8a6", "#9a2b3a"];
+  for (let i = 0; i < 80; i++) { const k = document.createElement("i"); k.style.left = Math.random() * 100 + "vw"; k.style.background = farben[i % farben.length]; k.style.animationDelay = (Math.random() * .8) + "s"; k.style.animationDuration = (2 + Math.random() * 1.5) + "s"; box.appendChild(k); }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 4500);
+}
+
 /* ===================== Shop ===================== */
 const grid = $("#grid"); let filter = "alle";
 const bottleSvg = f => `<svg viewBox="0 0 60 200" aria-hidden="true"><use href="#bottle-${f}"/></svg>`;
+const media = p => p.bild ? `<div class="pic"><img src="${esc(p.bild)}" alt="${esc(p.name)}" loading="lazy" decoding="async"></div>` : bottleSvg(p.farbe);
+const thumb = p => p.bild ? `<img src="${esc(p.bild)}" alt="" loading="lazy">` : bottleSvg(p.farbe);
 function renderGrid() {
   grid.classList.remove("in");
   if (datenFehler) { grid.innerHTML = `<p class="empty">Das Sortiment konnte nicht geladen werden. Bitte später erneut versuchen oder per E-Mail bestellen.</p>`; return; }
   const liste = PRODUKTE.filter(p => filter === "alle" || p.typ === filter);
   grid.innerHTML = liste.length ? liste.map(p => `
     <article class="card" data-id="${esc(p.id)}">
-      <div class="card-media"><div class="bg" style="background:${esc(p.bg)}"></div>${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ""}${bottleSvg(p.farbe)}</div>
+      <div class="card-media"><div class="bg" style="background:${esc(p.bg)}"></div>${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ""}${media(p)}</div>
       <div class="card-body">
         <span class="meta">${esc(p.land)} · ${Number(p.liter).toLocaleString("de-DE")} l${p.jahrgang ? " · " + p.jahrgang : ""}</span>
         <h3>${esc(p.name)}</h3>
@@ -98,6 +176,7 @@ function renderGrid() {
       </div>
     </article>`).join("") : `<p class="empty">In dieser Kategorie ist gerade nichts im Shop.</p>`;
   requestAnimationFrame(() => requestAnimationFrame(() => grid.classList.add("in")));
+  $$("#grid .card").forEach(c => { c.classList.add("spot"); spotlight(c); });
 }
 $("#filters").addEventListener("click", e => { const b = e.target.closest(".chip-btn"); if (!b) return; $$("#filters .chip-btn").forEach(x => x.classList.remove("active")); b.classList.add("active"); filter = b.dataset.f; renderGrid(); });
 grid.addEventListener("click", e => { const b = e.target.closest(".add"); if (!b) return; add(b.dataset.id); b.textContent = "✓ Im Korb"; setTimeout(() => b.textContent = "In den Korb", 1200); });
@@ -119,7 +198,7 @@ function renderCart() {
   const lines = $("#cartLines"), MIN = LIEFERUNG.mindestflaschen_lastenrad;
   if (!n) lines.innerHTML = `<div class="empty"><p style="font-size:2.4rem">🍷</p><p>Noch nichts im Korb.</p></div>`;
   else lines.innerHTML = Object.entries(cart).map(([id, q]) => { const p = produkt(id); return `
-    <div class="line"><div class="thumb">${bottleSvg(p.farbe)}</div>
+    <div class="line"><div class="thumb">${thumb(p)}</div>
       <div><h4>${esc(p.name)}</h4><div class="sub">${esc(p.untertitel)} · ${eur(p.preis)}</div>
         <div class="qty" style="margin-top:.4rem"><button data-d="-1" data-id="${esc(id)}" aria-label="weniger">−</button><span>${q}</span><button data-d="1" data-id="${esc(id)}" aria-label="mehr">+</button></div></div>
       <div class="lp">${eur(p.preis * q)}</div></div>`; }).join("");
@@ -310,8 +389,36 @@ async function absenden() {
       <button class="btn btn-dark" id="copy">Bestelltext kopieren</button><button class="btn btn-ghost" id="done">Zurück zum Shop</button></div></div>`;
   $("#copy").onclick = () => { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast("Kopiert")).catch(() => toast("Kopieren nicht möglich")); };
   $("#done").onclick = closeAll;
-  if (!offline) { cart = {}; save(); renderCart(); }
+  if (!offline) { cart = {}; save(); renderCart(); konfetti(); }
 }
+
+/* ===================== Concierge-Anfrage ===================== */
+(function () {
+  const form = $("#anfrageForm"); if (!form) return;
+  $$("[data-anlass]").forEach(a => a.addEventListener("click", () => { $("#a-anlass").value = a.dataset.anlass; }));
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const daten = {
+      anlass: $("#a-anlass").value, name: $("#a-name").value.trim(), firma: $("#a-firma").value.trim(), email: $("#a-email").value.trim(), telefon: $("#a-tel").value.trim(),
+      personen: parseInt($("#a-personen").value, 10) || null, datum: $("#a-datum").value.trim(), budget: $("#a-budget").value.trim(), nachricht: $("#a-nachricht").value.trim(), datenschutz: $("#a-ds").checked,
+    };
+    if (daten.name.length < 2 || !/^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(daten.email)) { toast("Bitte Name und gültige E-Mail angeben"); return; }
+    if (!daten.datenschutz) { toast("Bitte Datenschutzhinweis bestätigen"); return; }
+    const btn = $("#anfrageSenden"); btn.disabled = true; btn.textContent = "Wird gesendet …";
+    const text = `Anfrage: ${$("#a-anlass").selectedOptions[0].textContent}\n${daten.name}${daten.firma ? " (" + daten.firma + ")" : ""}\n${daten.email} ${daten.telefon}\nPersonen: ${daten.personen || "-"} · Termin: ${daten.datum || "-"} · Budget: ${daten.budget || "-"}\n\n${daten.nachricht}`;
+    let ok = false, fehler = null;
+    try {
+      const r = await fetch("api/anfrage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(daten) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) ok = true; else fehler = d.fehler || "Die Anfrage wurde nicht angenommen.";
+    } catch { /* kein Server */ }
+    if (fehler) { toast(fehler); btn.disabled = false; btn.textContent = "Anfrage senden"; return; }
+    const mailto = `mailto:${LIEFERUNG.laden.email}?subject=${encodeURIComponent("Concierge-Anfrage")}&body=${encodeURIComponent(text)}`;
+    form.innerHTML = ok
+      ? `<div class="success" style="padding:1rem 0"><div class="ring"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><h3 style="font-size:1.5rem">Danke, ${esc(daten.name)}!</h3><p style="color:var(--ink-2);margin-top:.5rem">Ihre Anfrage ist bei uns. Wir melden uns innerhalb eines Werktags.</p></div>`
+      : `<div class="success" style="padding:1rem 0"><h3 style="font-size:1.4rem">Fast geschafft</h3><p style="color:var(--ink-2);margin:.5rem 0 1rem">Der Server ist gerade nicht erreichbar. Schicken Sie uns die Anfrage per E-Mail an <b>${esc(LIEFERUNG.laden.email)}</b>.</p><a class="btn btn-primary" href="${mailto}">Per E-Mail senden</a></div>`;
+  });
+})();
 
 /* ===================== Öffnungszeiten live ===================== */
 function oeffnungsstatus() {
@@ -320,7 +427,7 @@ function oeffnungsstatus() {
   const toMin = t => { const [h, mi] = t.split(":").map(Number); return h * 60 + mi; };
   const open = !!oz && m >= toMin(oz[0]) && m < toMin(oz[1]);
   el.classList.toggle("closed", !open);
-  el.querySelector("span").textContent = open ? "Jetzt geöffnet" : "Zurzeit geschlossen";
+  el.querySelector("span").textContent = open ? (tag === 5 && d.getHours() >= 14 ? "Jetzt geöffnet · Friday Uncorked läuft" : "Jetzt geöffnet") : "Zurzeit geschlossen";
 }
 
 /* ===================== Start ===================== */

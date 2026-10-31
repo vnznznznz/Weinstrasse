@@ -99,6 +99,7 @@ class SortimentEintrag(BaseModel):
     volumen_cl: Decimal | None = None  # None = aus dem Stamm, sonst 75
     preis_brutto: Decimal | None = None  # Beispielpreis, falls der Artikel nicht im Stamm steht
     jahrgang: int | None = None
+    bild: str | None = None  # Pfad relativ zu website/, z. B. assets/img/produkte/zenas-primitivo.jpg
 
 
 class WebshopKonfig(BaseModel):

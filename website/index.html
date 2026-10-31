@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weinstrasse – Weinladen Köln-Süd | Wein per Lastenrad geliefert</title>
-<meta name="description" content="Die Weinstrasse in der Kölner Südstadt: über 500 Weine, Champagner und Spirituosen. Online bestellen, per Lastenrad im Veedel geliefert oder im Laden am Sachsenring abholen.">
+<title>Weinstrasse – Weinladen Köln-Süd | Wein per Lastenrad, Friday Uncorked, Concierge</title>
+<meta name="description" content="Die Weinstrasse in der Kölner Südstadt: über 500 Weine, Champagner und Spirituosen. Online bestellen und per Lastenrad liefern lassen, freitags probieren bei Friday Uncorked, Wein-Concierge für Firmenfeiern und Präsente.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="canonical" href="https://www.weinstrasse.koeln/">
 <meta property="og:title" content="Weinstrasse – Weinladen Köln-Süd">
-<meta property="og:description" content="Über 500 Weine, Champagner und Spirituosen. Online bestellen, per Lastenrad im Veedel geliefert.">
+<meta property="og:description" content="Über 500 Weine, Champagner und Spirituosen. Online bestellen, per Lastenrad im Veedel geliefert. Freitags: Friday Uncorked.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
+<meta property="og:image" content="assets/img/laden/hero.jpg">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -21,6 +22,7 @@
   "name": "Weinstrasse – Weinladen Köln-Süd",
   "url": "https://www.weinstrasse.koeln/",
   "email": "laden@weinstrasseadolph.de",
+  "image": "https://www.weinstrasse.koeln/assets/img/laden/hero.jpg",
   "address": {"@type": "PostalAddress", "streetAddress": "Sachsenring 38", "postalCode": "50677", "addressLocality": "Köln", "addressCountry": "DE"},
   "openingHoursSpecification": [
     {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Friday"], "opens": "09:00", "closes": "17:00"},
@@ -32,13 +34,14 @@
 </script>
 </head>
 <body>
+<div class="progress-top" id="progressTop"></div>
 
 <!-- ============ NAVIGATION ============ -->
 <header class="nav" id="nav">
   <div class="container">
     <a class="logo" href="#top" aria-label="Weinstrasse Startseite">Weinstrasse <small>Weinladen Köln-Süd</small></a>
     <nav class="nav-links" aria-label="Hauptnavigation">
-      <a href="#laden">Laden</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#zeiten">Zeiten &amp; Kontakt</a>
+      <a href="#laden">Laden</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
     </nav>
     <div style="display:flex;gap:.5rem;align-items:center">
       <button class="cart-btn" id="cartBtn" aria-label="Warenkorb öffnen">
@@ -50,39 +53,40 @@
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#laden">Laden</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#zeiten">Zeiten &amp; Kontakt</a>
+  <a href="#laden">Laden</a><a href="#friday">Friday Uncorked</a><a href="#lastenrad">Lastenrad</a><a href="#shop">Shop</a><a href="#events">Events</a><a href="#concierge">Concierge</a><a href="#praesente">Präsente</a><a href="#zeiten">Kontakt</a>
 </div>
 
 <!-- ============ HERO ============ -->
 <section class="hero" id="top">
-  <div class="hero-bg" id="heroBg">
-    <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
-  </div>
-  <div class="grain"></div>
-  <div class="bottles" aria-hidden="true">
-    <svg class="bottle b1" viewBox="0 0 60 200"><use href="#bottle-red"/></svg>
-    <svg class="bottle b2" viewBox="0 0 60 200"><use href="#bottle-white"/></svg>
-    <svg class="bottle b3" viewBox="0 0 60 200"><use href="#bottle-sparkling"/></svg>
-    <svg class="bottle b4" viewBox="0 0 60 200"><use href="#bottle-red"/></svg>
-  </div>
-  <div class="hero-content" id="heroContent">
-    <p class="eyebrow" style="color:#f3c8a6;margin-bottom:1rem">Sachsenring 38 · Kölner Südstadt</p>
-    <h1>Guter Wein. <em>Direkt ins Veedel.</em></h1>
-    <p>Über 500 Weine aus sieben Ländern, persönlich ausgesucht. Online bestellen und per Lastenrad liefern lassen, oder einfach vorbeikommen.</p>
-    <div class="cta">
-      <a class="btn btn-primary" href="#shop">Jetzt Wein bestellen</a>
-      <a class="btn btn-ghost" href="#lastenrad">So funktioniert das Lastenrad</a>
+  <div class="blobs" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div class="container hero-grid">
+    <div>
+      <p class="eyebrow" style="margin-bottom:1rem">Sachsenring 38 · direkt an der Ulrepforte</p>
+      <h1 class="words" data-words>Guter Wein. <em>Direkt ins Veedel.</em></h1>
+      <p class="lead">Über 500 Weine aus sieben Ländern, persönlich ausgesucht. Online bestellen und per Lastenrad liefern lassen, freitags bei uns probieren oder einfach vorbeikommen.</p>
+      <div class="cta">
+        <a class="btn btn-primary magnetic" href="#shop">Jetzt Wein bestellen</a>
+        <a class="btn btn-ghost magnetic" href="#friday">Freitag probieren</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="window"><img id="heroImg" src="assets/img/laden/hero.jpg" alt="Eingang der Weinstrasse am Sachsenring, umrankt von Wein" fetchpriority="high"></div>
+      <div class="float-card fc1"><span class="ico">🚲</span><div><b>Wein-Taxi</b>Lastenrad-Lieferung ab 12 Flaschen</div></div>
+      <div class="float-card fc2"><span class="ico">🍾</span><div><b>Friday Uncorked</b>Jeden Freitag offene Flaschen</div></div>
+      <div class="float-card fc3"><span class="ico">🎁</span><div><b>Präsent-Service</b>Verpackt, mit Gruß, versandt</div></div>
     </div>
   </div>
   <div class="scroll-hint"><span>Scrollen</span><i></i></div>
 </section>
 
+<div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee"><span>Kölner Südstadt <i>✦</i> Familienunternehmen seit 1980 <i>✦</i> über 500 Weine <i>✦</i> Wein-Taxi per Lastenrad <i>✦</i> Friday Uncorked <i>✦</i> Champagner &amp; Crémant <i>✦</i> Präsent-Service <i>✦</i> Wein-Concierge für Firmenfeiern <i>✦</i> Direkt vom Weingut <i>✦</i></span></div></div>
+
 <!-- ============ KENNZAHLEN ============ -->
 <section class="stats">
   <div class="container stats-grid stagger">
     <div class="stat"><b data-count="500" data-suffix="+">0</b><span>Weine, Champagner &amp; Spirituosen</span></div>
-    <div class="stat"><b data-count="7">0</b><span>Länder im Sortiment</span></div>
-    <div class="stat"><b data-count="12">0</b><span>Flaschen – ab dann liefert das Lastenrad</span></div>
+    <div class="stat"><b data-count="30" data-suffix="+">0</b><span>Weingüter, direkt importiert</span></div>
+    <div class="stat"><b data-count="12">0</b><span>Flaschen – ab dann fährt das Wein-Taxi</span></div>
     <div class="stat"><b data-count="1980" data-plain="1">0</b><span>Familienunternehmen seit</span></div>
   </div>
 </section>
@@ -92,78 +96,99 @@
   <div class="container">
     <div class="section-head reveal">
       <p class="eyebrow">Der Laden</p>
-      <h2>Außergewöhnlich anders, außergewöhnlich gut.</h2>
-      <p class="lead">Kleiner Laden, große Auswahl: Italien, Spanien, Frankreich, Portugal, Deutschland, Australien und Argentinien. Direkt neben der Ulrepforte, Parkplätze vor der Tür, Bahnlinien 15 und 16 an der Haltestelle.</p>
+      <h2 class="words" data-words>Außergewöhnlich anders, außergewöhnlich gut.</h2>
+      <p class="lead">Kleiner Laden, große Auswahl: Italien, Spanien, Frankreich, Portugal, Deutschland, Australien und Argentinien. Parkplätze vor der Tür, Linien 15 und 16 an der Haltestelle Ulrepforte.</p>
     </div>
     <div class="features stagger">
-      <article class="feature">
+      <article class="feature spot">
         <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3h8l-1 7a3 3 0 0 1-6 0z"/><path d="M12 13v7M9 20h6"/></svg></div>
         <h3>Direkt vom Weingut</h3>
-        <p>Als Importeur sitzen wir an der Quelle: Über 30 Weingüter aus Europa und Übersee, ohne Zwischenhändler. Das merkt man am Preis.</p>
+        <p>Als Importeur sitzen wir an der Quelle: über 30 Weingüter aus Europa und Übersee, ohne Zwischenhändler. Das merkt man am Preis.</p>
       </article>
-      <article class="feature">
+      <article class="feature spot">
         <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.5-7-11a7 7 0 0 1 14 0c0 6.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
         <h3>Ein Preis für alle</h3>
-        <p>Faire, transparente Preise unabhängig von Menge oder Umsatz. Das gilt im Laden genauso wie im Online-Shop.</p>
+        <p>Faire, transparente Preise unabhängig von Menge oder Umsatz. Im Laden genauso wie im Online-Shop.</p>
       </article>
-      <article class="feature">
+      <article class="feature spot">
         <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg></div>
         <h3>Beratung mit Leidenschaft</h3>
-        <p>Verkostungen, Weinseminare, Präsent-Service mit persönlichem Gruß. Wir finden den passenden Wein, nicht den teuersten.</p>
+        <p>Verkostungen, Seminare, Präsente mit persönlichem Gruß. Wir finden den passenden Wein, nicht den teuersten.</p>
       </article>
+    </div>
+  </div>
+  <div class="gallery reveal" aria-label="Fotos aus dem Laden">
+    <div class="gallery-track" id="galleryTrack"></div>
+  </div>
+</section>
+
+<!-- ============ FRIDAY UNCORKED ============ -->
+<section class="friday" id="friday">
+  <div class="container">
+    <div>
+      <p class="eyebrow" style="color:var(--wein)">Jeden Freitag im Laden</p>
+      <h2>Friday <span>Uncorked.</span></h2>
+      <p class="lead" style="margin-top:1rem">Freitags ziehen wir die Korken. Drei bis fünf offene Flaschen aus dem Sortiment, zum Probieren, Fachsimpeln und Wochenende einläuten. Ohne Anmeldung, ohne Eintritt, mit Beratung.</p>
+      <div class="chips">
+        <span class="chip">🕓 Freitags, 14 bis 17 Uhr</span><span class="chip">🍷 3 bis 5 offene Weine</span><span class="chip">🆓 Kostenlos</span><span class="chip">📍 Sachsenring 38</span>
+      </div>
+      <p style="font-size:.85rem;color:#6b5a33;margin-bottom:.6rem">Nächster Friday Uncorked in</p>
+      <div class="countdown" id="countdown"><div><b>0</b><span>Tage</span></div><div><b>0</b><span>Std.</span></div><div><b>0</b><span>Min.</span></div></div>
+      <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.8rem">
+        <a class="btn btn-primary magnetic" href="#zeiten">Ich komme vorbei</a>
+        <a class="btn btn-ghost magnetic" href="https://www.instagram.com/die_weinstrasse/" target="_blank" rel="noopener">Welche Weine? Auf Instagram</a>
+      </div>
+    </div>
+    <div class="cork-stage" aria-hidden="true">
+      <svg viewBox="0 0 300 300">
+        <defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#6d8653"/><stop offset=".5" stop-color="#9ab07a"/><stop offset="1" stop-color="#4f6a3a"/></linearGradient></defs>
+        <g class="bubbles" transform="translate(150,120)">
+          <circle class="bubble" cx="-14" cy="0" r="5" fill="#fff" opacity=".9"/><circle class="bubble" cx="8" cy="10" r="3.5" fill="#fff"/><circle class="bubble" cx="20" cy="-6" r="4" fill="#fff"/><circle class="bubble" cx="-4" cy="-10" r="3" fill="#fff"/><circle class="bubble" cx="2" cy="4" r="6" fill="#fff" opacity=".8"/>
+        </g>
+        <g transform="translate(150,300)">
+          <path d="M-18,-180 h36 v40 c0,18 26,26 26,50 v80 a10,10 0 0 1 -10,10 h-68 a10,10 0 0 1 -10,-10 v-80 c0,-24 26,-32 26,-50z" fill="url(#gl)"/>
+          <rect x="-30" y="-78" width="60" height="44" rx="4" fill="#f7f1e3"/><rect x="-22" y="-66" width="44" height="4" fill="#6b1a24"/><rect x="-22" y="-56" width="30" height="3" fill="#8a8380"/>
+          <path d="M-18,-180 h36 v40 c0,18 26,26 26,50 v80 a10,10 0 0 1 -10,10 h-68 a10,10 0 0 1 -10,-10 v-80 c0,-24 26,-32 26,-50z" fill="url(#shine)"/>
+          <path d="M-20,-186 h40 v10 c0,4 -2,8 -4,10 h-32 c-2,-2 -4,-6 -4,-10z" fill="#d9b86a"/>
+        </g>
+        <g class="cork" transform="translate(150,114)"><rect x="-12" y="-30" width="24" height="34" rx="6" fill="#c89a5a"/><rect x="-12" y="-30" width="24" height="10" rx="5" fill="#b4834a"/><text x="0" y="-12" text-anchor="middle" font-size="7" fill="#6b4a22" font-family="Inter">W</text></g>
+      </svg>
     </div>
   </div>
 </section>
 
-<!-- ============ LASTENRAD SCROLLYTELLING ============ -->
-<section class="story" id="lastenrad">
+<!-- ============ LASTENRAD ============ -->
+<section class="section story" id="lastenrad">
   <div class="container story-inner">
     <div class="story-sticky">
-      <div class="story-stage" aria-hidden="true">
-        <svg viewBox="0 0 600 600" id="stage">
-          <defs>
-            <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2a1216"/><stop offset="1" stop-color="#141212"/></linearGradient>
-          </defs>
-          <!-- Stadt-Silhouette -->
-          <g fill="#23201f">
-            <rect x="40" y="300" width="60" height="140"/><rect x="110" y="260" width="40" height="180"/><rect x="160" y="320" width="90" height="120"/>
-            <polygon points="270,440 270,250 300,200 330,250 330,440"/><rect x="350" y="290" width="70" height="150"/><rect x="430" y="330" width="50" height="110"/><rect x="490" y="280" width="80" height="160"/>
-          </g>
-          <g fill="#f3c8a6" opacity=".35"><rect x="52" y="320" width="8" height="10"/><rect x="72" y="340" width="8" height="10"/><rect x="120" y="290" width="8" height="10"/><rect x="365" y="310" width="8" height="10"/><rect x="505" y="300" width="8" height="10"/><rect x="530" y="330" width="8" height="10"/></g>
-          <!-- Weg -->
-          <path id="road" class="road" d="M60,470 C150,470 160,380 260,380 S370,470 470,470 S560,400 560,400"/>
-          <path id="trace" class="trace" d="M60,470 C150,470 160,380 260,380 S370,470 470,470 S560,400 560,400"/>
-          <!-- Stationen -->
-          <g class="pin" id="pin0" transform="translate(60,470)"><circle r="7" fill="#f3c8a6"/><text y="-16" text-anchor="middle" fill="#f3c8a6" font-size="13" font-family="Inter">Laden</text></g>
-          <g class="pin" id="pin1" transform="translate(260,380)"><circle r="7" fill="#f3c8a6"/><text y="-16" text-anchor="middle" fill="#f3c8a6" font-size="13" font-family="Inter">Südstadt</text></g>
-          <g class="pin" id="pin2" transform="translate(470,470)"><circle r="7" fill="#f3c8a6"/><text y="-16" text-anchor="middle" fill="#f3c8a6" font-size="13" font-family="Inter">Zeitfenster</text></g>
-          <g class="pin" id="pin3" transform="translate(560,400)"><circle r="7" fill="#f3c8a6"/><text y="-16" text-anchor="middle" fill="#f3c8a6" font-size="13" font-family="Inter">Haustür</text></g>
-          <!-- Lastenrad -->
-          <g class="bike" id="bike">
-            <g transform="translate(-60,-40) scale(1)">
-              <!-- Box -->
-              <rect x="0" y="4" width="46" height="26" rx="4" fill="#5b141b" stroke="#f3c8a6" stroke-width="2"/>
-              <text x="23" y="22" text-anchor="middle" fill="#f3c8a6" font-size="11" font-weight="700" font-family="Inter">WEIN</text>
-              <!-- Rahmen -->
-              <path d="M46,28 L70,12 L96,30 M70,12 L74,2 M46,30 L74,30" fill="none" stroke="#f3c8a6" stroke-width="3" stroke-linecap="round"/>
-              <path d="M70,12 L62,30" stroke="#f3c8a6" stroke-width="3"/>
-              <!-- Fahrer -->
-              <circle cx="78" cy="-10" r="7" fill="#f3c8a6"/>
-              <path d="M78,-3 C74,8 72,12 74,20 M78,-2 L64,10" fill="none" stroke="#f3c8a6" stroke-width="4" stroke-linecap="round"/>
-              <!-- Räder -->
-              <g class="wheel" id="w1" transform="translate(12,40)"><circle r="12" fill="none" stroke="#f3c8a6" stroke-width="3"/><path d="M-12,0H12M0,-12V12M-8,-8L8,8M-8,8L8,-8" stroke="#f3c8a6" stroke-width="1.5"/></g>
-              <g class="wheel" id="w2" transform="translate(96,40)"><circle r="12" fill="none" stroke="#f3c8a6" stroke-width="3"/><path d="M-12,0H12M0,-12V12M-8,-8L8,8M-8,8L8,-8" stroke="#f3c8a6" stroke-width="1.5"/></g>
-            </g>
-          </g>
-        </svg>
+      <div class="story-stage">
+        <img id="bikeImg" src="assets/img/laden/lastenrad.jpg" alt="Das Wein-Taxi: unser Lastenrad vor dem Laden">
+        <div class="eco">🌿 emissionsfrei im Veedel</div>
+        <div class="route" aria-hidden="true">
+          <svg viewBox="0 0 400 110" id="stage">
+            <path id="road" class="road" d="M20,80 C90,80 100,30 180,30 S260,85 320,85 S380,50 380,50"/>
+            <path id="trace" class="trace" d="M20,80 C90,80 100,30 180,30 S260,85 320,85 S380,50 380,50"/>
+            <g class="pin" id="pin0" transform="translate(20,80)"><circle r="5" fill="var(--gruen)"/><text y="-11" text-anchor="middle">Laden</text></g>
+            <g class="pin" id="pin1" transform="translate(180,30)"><circle r="5" fill="var(--gruen)"/><text y="-11" text-anchor="middle">PLZ</text></g>
+            <g class="pin" id="pin2" transform="translate(320,85)"><circle r="5" fill="var(--gruen)"/><text y="-11" text-anchor="middle">Zeitfenster</text></g>
+            <g class="pin" id="pin3" transform="translate(380,50)"><circle r="5" fill="var(--gruen)"/><text y="-11" text-anchor="middle">Haustür</text></g>
+            <g id="bike"><g transform="translate(-20,-14) scale(.55)">
+              <rect x="0" y="4" width="34" height="20" rx="4" fill="#6b1a24"/><text x="17" y="18" text-anchor="middle" fill="#f3e2b3" font-size="9" font-weight="700" font-family="Inter">WEIN</text>
+              <path d="M34,22 L52,10 L72,24 M52,10 L55,2 M34,24 L55,24" fill="none" stroke="#1d1b1a" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="58" cy="-8" r="6" fill="#1d1b1a"/><path d="M58,-2 C55,6 54,10 56,16 M58,-1 L48,8" fill="none" stroke="#1d1b1a" stroke-width="3.5" stroke-linecap="round"/>
+              <g id="w1" transform="translate(10,32)"><circle r="10" fill="none" stroke="#1d1b1a" stroke-width="3"/><path d="M-10,0H10M0,-10V10" stroke="#1d1b1a" stroke-width="1.5"/></g>
+              <g id="w2" transform="translate(72,32)"><circle r="10" fill="none" stroke="#1d1b1a" stroke-width="3"/><path d="M-10,0H10M0,-10V10" stroke="#1d1b1a" stroke-width="1.5"/></g>
+            </g></g>
+          </svg>
+        </div>
       </div>
     </div>
     <div class="story-steps" id="steps">
       <div class="step active" data-step="0">
         <div class="num">01</div>
         <h3>Sie wählen aus über 500 Weinen.</h3>
-        <p>Im Online-Shop stöbern, Lieblingswein in den Korb legen. Ab 12 Flaschen, gern gemischt, rollt das Lastenrad los. Wir nennen es Wein-Taxi.</p>
-        <span class="chip">Mindestmenge: <span id="minFlaschen">12</span> Flaschen, beliebig gemischt</span>
+        <p>Im Shop stöbern, Lieblingswein in den Korb legen. Ab <span id="minFlaschen">12</span> Flaschen, gern gemischt, rollt das Wein-Taxi los.</p>
+        <span class="chip">Mindestmenge: 12 Flaschen, beliebig gemischt</span>
       </div>
       <div class="step" data-step="1">
         <div class="num">02</div>
@@ -175,31 +200,31 @@
         <div class="num">03</div>
         <h3>Zeitfenster aussuchen.</h3>
         <p>Vormittags, nachmittags oder Feierabend am Donnerstag. Sie bekommen eine Bestätigung und wissen, wann es klingelt.</p>
-        <span class="chip">Lieferung an Werktagen, Bestellung bis 12 Uhr für den Folgetag</span>
+        <span class="chip">Bestellung bis 12 Uhr, Lieferung am nächsten Werktag</span>
       </div>
       <div class="step" data-step="3">
         <div class="num">04</div>
         <h3>Emissionsfrei bis an die Haustür.</h3>
-        <p>Kein Lieferwagen, kein Parkplatz-Suchen, kein Karton auf dem Treppenabsatz. Wir übergeben persönlich, mit Altersnachweis ab 18.</p>
-        <a class="btn btn-primary" href="#shop" style="margin-top:1.4rem;align-self:flex-start">Zum Shop</a>
+        <p>Kein Lieferwagen, kein Parkplatz-Suchen, kein Karton im Treppenhaus. Wir übergeben persönlich, mit Altersnachweis ab 18.</p>
+        <a class="btn btn-primary magnetic" href="#shop" style="margin-top:1.4rem;align-self:flex-start">Zum Shop</a>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ============ SHOP ============ -->
-<section class="section shop" id="shop">
+<section class="section" id="shop">
   <div class="container">
     <div class="section-head reveal">
       <p class="eyebrow">Online-Shop</p>
-      <h2>Aktuelle Highlights im Sortiment.</h2>
-      <p class="lead">Eine Auswahl aus dem Laden. Alle Preise inkl. MwSt., Grundpreis je Liter, zzgl. Versand, sofern nicht per Lastenrad oder Abholung.</p>
+      <h2 class="words" data-words>Highlights aus dem Sortiment.</h2>
+      <p class="lead">Eine Auswahl aus dem Laden, mit Originalflaschen aus unserem Katalog. Alle Preise inkl. MwSt. und Grundpreis je Liter, zzgl. Versand, sofern nicht per Lastenrad oder Abholung.</p>
     </div>
     <div class="filters reveal" id="filters" role="tablist" aria-label="Filter">
       <button class="chip-btn active" data-f="alle">Alle</button>
       <button class="chip-btn" data-f="rot">Rotwein</button>
       <button class="chip-btn" data-f="weiss">Weißwein</button>
-      <button class="chip-btn" data-f="schaum">Champagner &amp; Crémant</button>
+      <button class="chip-btn" data-f="schaum">Champagner, Crémant &amp; Prosecco</button>
       <button class="chip-btn" data-f="spirit">Spirituosen</button>
       <button class="chip-btn" data-f="alkoholfrei">Alkoholfrei</button>
     </div>
@@ -208,39 +233,120 @@
   </div>
 </section>
 
-<!-- ============ EVENTS + ZEITEN ============ -->
+<!-- ============ EVENTS ============ -->
 <section class="section" id="events" style="padding-top:0">
-  <div class="container split">
-    <div class="panel reveal">
+  <div class="container">
+    <div class="section-head reveal">
       <p class="eyebrow">Events &amp; Verkostungen</p>
-      <h3>Werte Wein-Genießer, aufgepasst.</h3>
-      <div class="event">
-        <div class="date"><b>05</b><span>Nov</span></div>
-        <div><h4>Die große Versteigerung</h4><p>Donnerstag, 18:00 Uhr (Einlass 17:30). 10 € p. P. inkl. Verkostung und Snacks, Startpreis 1 € pro Wein. Anmeldung bis 02.11.</p><a class="btn btn-dark btn-sm" href="#zeiten" style="margin-top:.6rem">Platz reservieren</a></div>
-      </div>
-      <div class="event">
-        <div class="date"><b>19</b><span>Nov</span></div>
-        <div><h4>Weinseminar: ¡Salud &amp; Saúde! – Die iberische Halbinsel</h4><p>Donnerstag, 18:30 Uhr. 59,90 € p. P., 8 bis 16 Teilnehmer.</p><span class="badge" style="position:static;display:inline-block;margin-top:.6rem;background:var(--creme)">Ausverkauft – Warteliste</span></div>
-      </div>
-      <div class="event">
-        <div class="date"><b>?</b><span>Sie</span></div>
-        <div><h4>Private Verkostung</h4><p>Firmenevent, Geburtstag oder einfach ein Abend mit Freunden: Wir stellen die Weine zusammen und moderieren.</p></div>
+      <h2 class="words" data-words>Werte Wein-Genießer, aufgepasst.</h2>
+      <p class="lead">Versteigerung, Seminare, Friday Uncorked und private Verkostungen: Bei uns wird Wein nicht nur verkauft, sondern erlebt.</p>
+    </div>
+    <div class="events-grid stagger">
+      <article class="event-card tilt" style="--img:url(assets/img/laden/laden-41.jpg)">
+        <div class="bgp" style="background-image:var(--img)"></div><div class="shade"></div>
+        <span class="when">🔨 Do, 05.11. · 18:00</span>
+        <h3>Die große Versteigerung</h3>
+        <p>Startpreis 1 € pro Wein. 10 € p. P. inkl. Verkostung und Snacks, Einlass 17:30. Anmeldung bis 02.11.</p>
+        <span class="tag">Plätze begrenzt</span>
+      </article>
+      <article class="event-card tilt soldout" style="--img:url(assets/img/laden/laden-47.jpg)">
+        <div class="bgp" style="background-image:var(--img)"></div><div class="shade"></div>
+        <span class="when">🇪🇸 Do, 19.11. · 18:30</span>
+        <h3>¡Salud &amp; Saúde! Die iberische Halbinsel</h3>
+        <p>Weinseminar mit 8 bis 16 Teilnehmern, 59,90 € p. P. Spanien und Portugal im Glas.</p>
+        <span class="tag">Ausverkauft · Warteliste</span>
+      </article>
+      <article class="event-card tilt" style="--img:url(assets/img/laden/laden-80.jpg)">
+        <div class="bgp" style="background-image:var(--img)"></div><div class="shade"></div>
+        <span class="when">🍾 Jeden Freitag · 14 bis 17</span>
+        <h3>Friday Uncorked</h3>
+        <p>Offene Flaschen, kostenlos probieren, keine Anmeldung. Der beste Start ins Wochenende.</p>
+        <span class="tag">Wöchentlich</span>
+      </article>
+      <article class="event-card tilt" style="--img:url(assets/img/laden/laden-38.jpg)">
+        <div class="bgp" style="background-image:var(--img)"></div><div class="shade"></div>
+        <span class="when">✨ Ihr Termin</span>
+        <h3>Private Verkostung</h3>
+        <p>Geburtstag, Team-Abend oder einfach Freunde: Wir stellen die Weine zusammen und moderieren, im Laden oder bei Ihnen.</p>
+        <a class="tag" href="#concierge">Anfragen</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONCIERGE ============ -->
+<section class="section concierge" id="concierge">
+  <div class="container concierge-grid">
+    <div class="reveal">
+      <p class="eyebrow">Wein-Concierge</p>
+      <h2 class="words" data-words style="font-size:clamp(2.2rem,4.6vw,3.8rem)">Ihre Firmenfeier. Unser Wein. Null Stress.</h2>
+      <p class="lead" style="margin-top:1rem">Weihnachtsfeier, Sommerfest, Jubiläum oder Kundenabend: Wir beraten persönlich, stellen die Weine passend zu Menü, Anlass und Budget zusammen und liefern bis an den Tisch. Auf Wunsch moderieren wir eine Verkostung als Programmpunkt.</p>
+      <div class="services stagger">
+        <div class="service"><div class="ico">🥂</div><b>Beratung &amp; Auswahl</b><span>Passend zu Menü, Jahreszeit und Gästezahl. Mit Alternativen ohne Alkohol.</span></div>
+        <div class="service"><div class="ico">🚲</div><b>Lieferung bis zum Tisch</b><span>Im Veedel per Wein-Taxi, sonst per Spedition. Gekühlt, pünktlich, zum Wunschtermin.</span></div>
+        <div class="service"><div class="ico">🎤</div><b>Moderierte Verkostung</b><span>30 bis 60 Minuten Programm mit Geschichten vom Weingut. Im Laden oder bei Ihnen.</span></div>
+        <div class="service"><div class="ico">🎁</div><b>Gastgeschenke</b><span>Eine Flasche mit persönlichem Gruß für jeden Gast. Verpackt und beschriftet.</span></div>
+        <div class="service"><div class="ico">🍷</div><b>Gläser &amp; Kühlung</b><span>Leihgläser, Kühlwannen und Eis organisieren wir auf Wunsch mit.</span></div>
+        <div class="service"><div class="ico">↩️</div><b>Rücknahme</b><span>Ungeöffnete Flaschen nehmen wir nach der Feier zurück. Sie zahlen, was getrunken wurde.</span></div>
       </div>
     </div>
-    <div class="panel dark reveal" id="zeiten">
-      <p class="eyebrow">Öffnungszeiten &amp; Kontakt</p>
+    <div class="form-card reveal" id="anfrage">
+      <h3>Unverbindlich anfragen</h3>
+      <p class="hint">Wir melden uns innerhalb eines Werktags mit einem Vorschlag.</p>
+      <form id="anfrageForm" novalidate>
+        <div class="field"><label for="a-anlass">Anlass</label>
+          <select id="a-anlass"><option value="firmenfeier">Firmenfeier / Event</option><option value="praesente">Präsente</option><option value="verkostung">Verkostung</option><option value="privat">Private Feier</option><option value="sonstiges">Sonstiges</option></select></div>
+        <div class="row2"><div class="field"><label for="a-name">Name</label><input id="a-name" autocomplete="name" required></div><div class="field"><label for="a-firma">Firma (optional)</label><input id="a-firma" autocomplete="organization"></div></div>
+        <div class="row2"><div class="field"><label for="a-email">E-Mail</label><input id="a-email" type="email" autocomplete="email" required></div><div class="field"><label for="a-tel">Telefon (optional)</label><input id="a-tel" type="tel" autocomplete="tel"></div></div>
+        <div class="row3"><div class="field"><label for="a-personen">Personen</label><input id="a-personen" inputmode="numeric" placeholder="z. B. 40"></div><div class="field"><label for="a-datum">Termin</label><input id="a-datum" placeholder="z. B. 12. Dezember"></div><div class="field"><label for="a-budget">Budget p. P.</label><input id="a-budget" placeholder="z. B. 20 €"></div></div>
+        <div class="field"><label for="a-nachricht">Was schwebt Ihnen vor?</label><textarea id="a-nachricht" rows="3" placeholder="Menü, Ort, Wünsche, Lieblingsweine …"></textarea></div>
+        <label class="check"><input type="checkbox" id="a-ds"><span>Ich bin mit der Verarbeitung meiner Angaben zur Beantwortung der Anfrage einverstanden (<a href="datenschutz.html" target="_blank" style="text-decoration:underline">Datenschutz</a>).</span></label>
+        <button class="btn btn-primary magnetic" type="submit" id="anfrageSenden" style="width:100%;justify-content:center;margin-top:1.2rem">Anfrage senden</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRÄSENTE ============ -->
+<section class="section" id="praesente">
+  <div class="container praesente-grid">
+    <div class="photo-card reveal"><img id="praesentImg" src="assets/img/laden/praesent.jpg" alt="Weinpräsent in der Holzkiste mit Schleife"><span class="ribbon">Mit persönlichem Gruß</span></div>
+    <div class="reveal">
+      <p class="eyebrow">Präsent-Service</p>
+      <h2 class="words" data-words>Schenken, was man selbst gern bekäme.</h2>
+      <p class="lead" style="margin-top:1rem">Für Kunden, Mitarbeitende, Gastgeber oder einfach so: Wir stellen das Präsent zusammen, verpacken es in Holzkiste oder Karton, legen Ihre Grußkarte bei und versenden deutschlandweit. Oder das Wein-Taxi bringt es im Veedel vorbei.</p>
+      <div class="packages stagger">
+        <div class="package"><span class="ico">🍾</span><div><b>Das Duo</b><span>Zwei Flaschen nach Wunsch, Karton mit Schleife und Karte.</span></div><em>ab 2 Flaschen</em></div>
+        <div class="package"><span class="ico">🪵</span><div><b>Die Holzkiste</b><span>Drei bis sechs Flaschen in der Holzkiste, Holzwolle, Grußkarte.</span></div><em>3 bis 6 Flaschen</em></div>
+        <div class="package"><span class="ico">🏢</span><div><b>Firmenpräsent</b><span>Ab 10 Stück mit Ihrem Logo auf Karte oder Banderole, Versand an mehrere Adressen.</span></div><em>ab 10 Stück</em></div>
+      </div>
+      <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.6rem">
+        <a class="btn btn-primary magnetic" href="#concierge" data-anlass="praesente">Präsent anfragen</a>
+        <a class="btn btn-ghost magnetic" href="#shop">Selbst zusammenstellen</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ZEITEN + KONTAKT ============ -->
+<section class="section" id="zeiten" style="padding-top:0">
+  <div class="container split">
+    <div class="panel reveal">
+      <p class="eyebrow">Öffnungszeiten</p>
       <h3>Wir sind für Sie da.</h3>
       <div class="open-now" id="openNow"><i></i><span>…</span></div>
       <div class="hours">
         <span>Montag, Dienstag, Mittwoch</span><span>09:00 – 17:00</span>
         <span>Donnerstag</span><span>09:00 – 18:30</span>
-        <span>Freitag</span><span>09:00 – 17:00</span>
+        <span class="friday-row">Freitag · Friday Uncorked ab 14 Uhr</span><span class="friday-row">09:00 – 17:00</span>
         <span class="closed">Samstag, Sonntag</span><span class="closed">geschlossen</span>
       </div>
-      <p style="margin-top:1.6rem;font-size:.95rem;line-height:1.7">Weinstrasse Köln, Ladengeschäft<br>Sachsenring 38, 50677 Köln<br>Direkt neben der Ulrepforte · Linien 15 &amp; 16<br>E-Mail: laden@weinstrasseadolph.de</p>
-      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.4rem">
-        <a class="btn btn-primary btn-sm" style="background:#fff;color:var(--wein)" href="https://www.google.com/maps/search/?api=1&query=Sachsenring+38+50677+K%C3%B6ln" target="_blank" rel="noopener">Route planen</a>
-        <a class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1)" href="#shop">Lastenrad-Lieferung</a>
+      <p style="margin-top:1.6rem;font-size:.95rem;line-height:1.7;color:var(--ink-2)">Weinstrasse Köln, Ladengeschäft<br>Sachsenring 38, 50677 Köln<br>E-Mail: laden@weinstrasseadolph.de</p>
+    </div>
+    <div class="map-card reveal">
+      <img src="assets/img/laden/laden-30.jpg" alt="Die Weinstrasse von außen">
+      <div class="over"><b>Direkt an der Ulrepforte.</b> Parkplätze vor der Tür, Bahnlinien 15 und 16, Haltestelle Ulrepforte.<br>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.7rem"><a class="btn btn-primary btn-sm" href="https://www.google.com/maps/search/?api=1&query=Sachsenring+38+50677+K%C3%B6ln" target="_blank" rel="noopener">Route planen</a><a class="btn btn-ghost btn-sm" href="https://www.instagram.com/die_weinstrasse/" target="_blank" rel="noopener">Instagram</a></div>
       </div>
     </div>
   </div>
@@ -255,10 +361,10 @@
         <p style="max-width:38ch">Familienunternehmen seit 1980. Weinhandlung in der Kölner Südstadt, Direktimporteur für den Fachhandel.</p>
       </div>
       <div><h4>Laden</h4><ul><li><a href="#laden">Über uns</a></li><li><a href="#shop">Shop</a></li><li><a href="#events">Events</a></li><li><a href="#zeiten">Öffnungszeiten</a></li></ul></div>
-      <div><h4>Service</h4><ul><li><a href="#lastenrad">Lastenrad-Lieferung</a></li><li><a href="#events">Verkostungen</a></li><li><a href="#zeiten">Präsent-Service</a></li></ul></div>
+      <div><h4>Service</h4><ul><li><a href="#lastenrad">Lastenrad-Lieferung</a></li><li><a href="#friday">Friday Uncorked</a></li><li><a href="#concierge">Wein-Concierge</a></li><li><a href="#praesente">Präsent-Service</a></li></ul></div>
       <div><h4>Rechtliches</h4><ul><li><a href="impressum.html">Impressum</a></li><li><a href="datenschutz.html">Datenschutz</a></li><li><a href="agb.html">AGB</a></li><li><a href="widerruf.html">Widerrufsbelehrung</a></li></ul></div>
     </div>
-    <div class="foot-bottom"><span>© Weinstrasse Adolph GmbH</span><span>Instagram · Facebook · YouTube</span></div>
+    <div class="foot-bottom"><span>© Weinstrasse Adolph GmbH</span><span><a href="https://www.instagram.com/die_weinstrasse/" target="_blank" rel="noopener">Instagram</a> · <a href="https://www.facebook.com/weinstrasse.suedstadt.koeln" target="_blank" rel="noopener">Facebook</a> · <a href="https://www.weinstrasseadolph.de/" target="_blank" rel="noopener">Fachhandel: Weinstrasse Adolph</a></span></div>
   </div>
 </footer>
 
@@ -285,7 +391,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- ============ SVG-Symbole (Flaschen) ============ -->
+<!-- SVG-Symbole (Rückfall ohne Produktfoto) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="gl-red" x1="0" x2="1"><stop offset="0" stop-color="#2a0a0e"/><stop offset=".5" stop-color="#4a1018"/><stop offset="1" stop-color="#1c0609"/></linearGradient>
@@ -293,15 +399,16 @@
     <linearGradient id="gl-sparkling" x1="0" x2="1"><stop offset="0" stop-color="#1f3a2c"/><stop offset=".5" stop-color="#3b6b50"/><stop offset="1" stop-color="#15291f"/></linearGradient>
     <linearGradient id="gl-spirit" x1="0" x2="1"><stop offset="0" stop-color="#7a4a1c"/><stop offset=".5" stop-color="#c8862f"/><stop offset="1" stop-color="#5a3412"/></linearGradient>
     <linearGradient id="gl-zero" x1="0" x2="1"><stop offset="0" stop-color="#5b6f8a"/><stop offset=".5" stop-color="#a9bdd6"/><stop offset="1" stop-color="#43556b"/></linearGradient>
+    <linearGradient id="gl-rose" x1="0" x2="1"><stop offset="0" stop-color="#b86a7a"/><stop offset=".5" stop-color="#f0b7c2"/><stop offset="1" stop-color="#9c5262"/></linearGradient>
     <linearGradient id="shine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
-    <symbol id="bottle-red" viewBox="0 0 60 200"><path d="M22,0h16v38c0,10 14,16 14,34v118a10,10 0 0 1-10,10H18a10,10 0 0 1-10,-10V72c0,-18 14,-24 14,-34z" fill="url(#gl-red)"/><rect x="22" y="0" width="16" height="22" fill="#7a1b26"/><rect x="12" y="100" width="36" height="46" rx="3" fill="#f3ead9"/><rect x="18" y="110" width="24" height="3" fill="#5b141b"/><rect x="18" y="118" width="24" height="2" fill="#8a8380"/><rect x="18" y="124" width="16" height="2" fill="#8a8380"/><path d="M22,0h16v38c0,10 14,16 14,34v118a10,10 0 0 1-10,10H18a10,10 0 0 1-10,-10V72c0,-18 14,-24 14,-34z" fill="url(#shine)"/></symbol>
-    <symbol id="bottle-white" viewBox="0 0 60 200"><path d="M22,0h16v46c0,14 12,20 12,38v106a10,10 0 0 1-10,10H20a10,10 0 0 1-10,-10V84c0,-18 12,-24 12,-38z" fill="url(#gl-white)"/><rect x="22" y="0" width="16" height="22" fill="#d9c28a"/><rect x="14" y="104" width="32" height="44" rx="3" fill="#fff"/><rect x="19" y="114" width="22" height="3" fill="#2f6b3a"/><rect x="19" y="122" width="22" height="2" fill="#8a8380"/><path d="M22,0h16v46c0,14 12,20 12,38v106a10,10 0 0 1-10,10H20a10,10 0 0 1-10,-10V84c0,-18 12,-24 12,-38z" fill="url(#shine)"/></symbol>
-    <symbol id="bottle-sparkling" viewBox="0 0 60 200"><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#gl-sparkling)"/><path d="M19,0h22v26c0,4-2,8-4,10H23c-2,-2-4,-6-4,-10z" fill="#d9b86a"/><rect x="12" y="104" width="36" height="46" rx="3" fill="#f7f1e3"/><rect x="18" y="114" width="24" height="3" fill="#1f3a2c"/><rect x="18" y="122" width="24" height="2" fill="#8a8380"/><rect x="18" y="128" width="14" height="2" fill="#d9b86a"/><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#shine)"/></symbol>
-    <symbol id="bottle-spirit" viewBox="0 0 60 200"><path d="M24,0h12v40c0,8 18,10 18,26v124a10,10 0 0 1-10,10H16a10,10 0 0 1-10,-10V66c0,-16 18,-18 18,-26z" fill="url(#gl-spirit)"/><rect x="22" y="0" width="16" height="16" rx="3" fill="#3a2410"/><rect x="12" y="96" width="36" height="54" rx="3" fill="#f0e6cf"/><rect x="18" y="108" width="24" height="3" fill="#5a3412"/><rect x="18" y="116" width="24" height="2" fill="#8a8380"/><path d="M24,0h12v40c0,8 18,10 18,26v124a10,10 0 0 1-10,10H16a10,10 0 0 1-10,-10V66c0,-16 18,-18 18,-26z" fill="url(#shine)"/></symbol>
-    <symbol id="bottle-zero" viewBox="0 0 60 200"><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#gl-zero)"/><path d="M19,0h22v26c0,4-2,8-4,10H23c-2,-2-4,-6-4,-10z" fill="#e9eef5"/><rect x="12" y="104" width="36" height="46" rx="3" fill="#fff"/><rect x="18" y="114" width="24" height="3" fill="#43556b"/><text x="30" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#43556b" font-family="Inter">0,0%</text><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#shine)"/></symbol>
+    <symbol id="bottle-red" viewBox="0 0 60 200"><path d="M22,0h16v38c0,10 14,16 14,34v118a10,10 0 0 1-10,10H18a10,10 0 0 1-10,-10V72c0,-18 14,-24 14,-34z" fill="url(#gl-red)"/><rect x="22" y="0" width="16" height="22" fill="#7a1b26"/><rect x="12" y="100" width="36" height="46" rx="3" fill="#f3ead9"/><path d="M22,0h16v38c0,10 14,16 14,34v118a10,10 0 0 1-10,10H18a10,10 0 0 1-10,-10V72c0,-18 14,-24 14,-34z" fill="url(#shine)"/></symbol>
+    <symbol id="bottle-white" viewBox="0 0 60 200"><path d="M22,0h16v46c0,14 12,20 12,38v106a10,10 0 0 1-10,10H20a10,10 0 0 1-10,-10V84c0,-18 12,-24 12,-38z" fill="url(#gl-white)"/><rect x="22" y="0" width="16" height="22" fill="#d9c28a"/><rect x="14" y="104" width="32" height="44" rx="3" fill="#fff"/><path d="M22,0h16v46c0,14 12,20 12,38v106a10,10 0 0 1-10,10H20a10,10 0 0 1-10,-10V84c0,-18 12,-24 12,-38z" fill="url(#shine)"/></symbol>
+    <symbol id="bottle-rose" viewBox="0 0 60 200"><path d="M22,0h16v46c0,14 12,20 12,38v106a10,10 0 0 1-10,10H20a10,10 0 0 1-10,-10V84c0,-18 12,-24 12,-38z" fill="url(#gl-rose)"/><rect x="22" y="0" width="16" height="22" fill="#d9c28a"/><rect x="14" y="104" width="32" height="44" rx="3" fill="#fff"/></symbol>
+    <symbol id="bottle-sparkling" viewBox="0 0 60 200"><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#gl-sparkling)"/><path d="M19,0h22v26c0,4-2,8-4,10H23c-2,-2-4,-6-4,-10z" fill="#d9b86a"/><rect x="12" y="104" width="36" height="46" rx="3" fill="#f7f1e3"/><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#shine)"/></symbol>
+    <symbol id="bottle-spirit" viewBox="0 0 60 200"><path d="M24,0h12v40c0,8 18,10 18,26v124a10,10 0 0 1-10,10H16a10,10 0 0 1-10,-10V66c0,-16 18,-18 18,-26z" fill="url(#gl-spirit)"/><rect x="22" y="0" width="16" height="16" rx="3" fill="#3a2410"/><rect x="12" y="96" width="36" height="54" rx="3" fill="#f0e6cf"/></symbol>
+    <symbol id="bottle-zero" viewBox="0 0 60 200"><path d="M21,0h18v30c0,16 17,22 17,44v116a10,10 0 0 1-10,10H14a10,10 0 0 1-10,-10V74c0,-22 17,-28 17,-44z" fill="url(#gl-zero)"/><rect x="12" y="104" width="36" height="46" rx="3" fill="#fff"/></symbol>
   </defs>
 </svg>
-
 <script src="assets/app.js" defer></script>
 </body>
 </html>
