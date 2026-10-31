@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titel %}Katalog &amp; Preisliste 2026 · Weinstrasse Adolph{% endblock %}
+{% block inhalt %}
+<section class="seiten-kopf kompakt">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/regal-warm.webp')"></div>
+  <div class="wrap">
+    <span class="eyebrow gold">Katalog 2026</span>
+    <h1>{{ anzahl_produkte }} Artikel. Ein Preis für alle.</h1>
+    <p class="lead hell">Netto ab Keller, spätestens gültig ab 1. März 2026. Filtern, vergleichen, in die Bestellung legen.</p>
+  </div>
+</section>
+<section class="band on-weiss katalog">
+  <div class="wrap katalog-layout">
+    <aside class="filter" id="filter">
+      <input class="suche" id="kSuche" type="search" placeholder="Wein, Rebsorte, Weingut …" aria-label="Im Katalog suchen">
+      <div class="filter-gruppe"><b>Land</b><div id="fLand" class="chips klein"></div></div>
+      <div class="filter-gruppe"><b>Art</b><div id="fKat" class="chips klein"></div></div>
+      <div class="filter-gruppe"><b>Einkaufspreis</b><div class="range"><input type="range" id="fPreis" min="0" max="100" value="100"><span id="fPreisWert">bis 100 €</span></div></div>
+      <div class="filter-gruppe"><label class="chk"><input type="checkbox" id="fAwards"><span>Nur ausgezeichnete Weine</span></label><label class="chk"><input type="checkbox" id="fBio"><span>Nur Bio</span></label><label class="chk"><input type="checkbox" id="fAktion"><span>Nur mit Aktion</span></label></div>
+      <div class="filter-gruppe"><b>Sortierung</b><select id="fSort"><option value="weingut">Weingut</option><option value="preis-auf">Preis aufsteigend</option><option value="preis-ab">Preis absteigend</option><option value="name">Name</option></select></div>
+      <button class="btn ghost klein" type="button" id="fReset">Filter zurücksetzen</button>
+    </aside>
+    <div class="katalog-liste">
+      <div class="katalog-kopf"><span id="kAnzahl"></span><div class="ansicht"><button type="button" data-ansicht="karten" aria-pressed="true" title="Karten">▦</button><button type="button" data-ansicht="liste" aria-pressed="false" title="Liste">☰</button></div></div>
+      <div id="kListe" class="karten"></div>
+      <button class="btn ghost" type="button" id="kMehr" hidden>Mehr anzeigen</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block skripte %}<script src="{{ root }}static/js/portal.js"></script>{% endblock %}

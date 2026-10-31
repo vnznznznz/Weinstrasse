@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titel %}Bestellportal für den Fachhandel · Weinstrasse Adolph{% endblock %}
+{% block inhalt %}
+<section class="seiten-kopf kompakt">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/regal.webp')"></div>
+  <div class="wrap">
+    <span class="eyebrow gold">Bestellportal</span>
+    <h1>Ihre Palette. Selbst zusammengestellt.</h1>
+    <p class="lead hell">Legen Sie Weine aus dem Katalog oder von den Weingut-Seiten in die Bestellung. Das Portal prüft die Mindestmengen je Weingut und zeigt, wann die Palette voll ist.</p>
+  </div>
+</section>
+<section class="band on-weiss portal">
+  <div class="wrap portal-layout">
+    <div class="portal-haupt">
+      <div id="bestellLeer" class="leer gross" hidden>
+        <b>Noch nichts in der Bestellung.</b>
+        <p>Stöbern Sie im <a href="{{ root }}katalog/">Katalog</a>, bei den <a href="{{ root }}weingueter/">Weingütern</a> oder lassen Sie sich vom <a href="{{ root }}#weinberater">Weinberater</a> drei Weine vorschlagen.</p>
+      </div>
+      <div id="bestellGruppen"></div>
+      <section class="kunde" id="kunde">
+        <h2>Ihre Daten</h2>
+        <form class="form" id="bestellForm" novalidate>
+          <div class="row"><input id="b-firma" placeholder="Fachgeschäft / Firma *" autocomplete="organization" required><input id="b-kdnr" placeholder="Kundennummer (falls bekannt)"></div>
+          <div class="row"><input id="b-name" placeholder="Ansprechpartner *" autocomplete="name" required><input id="b-mail" type="email" placeholder="E-Mail *" autocomplete="email" required></div>
+          <div class="row"><input id="b-tel" type="tel" placeholder="Telefon / Annahmezeit" autocomplete="tel"><input id="b-termin" type="date" aria-label="Wunschtermin"></div>
+          <input id="b-adresse" placeholder="Lieferadresse (Straße, PLZ, Ort) *" autocomplete="street-address" required>
+          <textarea id="b-bem" placeholder="Bemerkungen, z. B. Avis gewünscht, Hebebühne, Zollservice"></textarea>
+          <label class="chk"><input id="b-agb" type="checkbox"><span>Ich bestelle verbindlich zu den Konditionen des Katalogs 2026 (Preise netto ab Keller, zzgl. Fracht und Steuern). Die Weinstrasse bestätigt die Bestellung per E-Mail.</span></label>
+          <div class="actions"><button class="btn" type="submit" id="bSenden">Bestellung absenden</button><button class="btn ghost" type="button" id="bLeeren">Bestellung leeren</button></div>
+        </form>
+        <div class="bestaetigung" id="bestaetigung" hidden>
+          <h3>Vielen Dank. Ihre Bestellung ist vorbereitet.</h3>
+          <p>Im Entwurf wird noch nichts automatisch versendet. Die Bestellung steht unten als Text bereit: kopieren und per E-Mail an <b>{{ texte.bestell_email }}</b> schicken, oder den Mail-Button nutzen. Auf der echten Seite geht sie direkt an die Weinstrasse und in den Auftragsautomaten.</p>
+          <textarea id="bText" rows="14" readonly></textarea>
+          <div class="actions"><button class="btn" type="button" id="bKopieren">Text kopieren</button><a class="btn ghost" id="bMail" href="#">Per E-Mail senden</a><button class="btn ghost klein" type="button" id="bJson">Als JSON kopieren (Auftragsautomat)</button></div>
+        </div>
+      </section>
+    </div>
+    <aside class="portal-seite">
+      <div class="palette-karte">
+        <h3>Palettenstand</h3>
+        <div class="palette" id="palette" aria-hidden="true"></div>
+        <div class="palette-zahlen"><b id="pFlaschen">0</b> Flaschen gesamt · <span id="pPaletten">0,0</span> Paletten à 600</div>
+        <div id="minCheck" class="min-check"></div>
+      </div>
+      <div class="summen">
+        <div><span>Warenwert ab Keller</span><b id="sWaren">0,00 €</b></div>
+        <div><span>Frachtschätzung</span><b id="sFracht">–</b></div>
+        <div><span>Zusatzsteuern</span><b id="sSteuer">siehe Artikel</b></div>
+        <div class="gesamt"><span>Geschätzt netto</span><b id="sGesamt">0,00 €</b></div>
+        <p class="klein">Fracht wird je Weingut nach den Staffeln des Katalogs geschätzt, inkl. Hebebühnenzustellung. Zoll, Steueranmeldung und Avis auf Wunsch. Verbindlich ist die Auftragsbestätigung.</p>
+      </div>
+      <div class="hilfe"><b>Fragen?</b> {{ texte.telefon }}<br>Mo bis Fr, 9 bis 17 Uhr</div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+{% block skripte %}<script src="{{ root }}static/js/portal.js"></script>{% endblock %}

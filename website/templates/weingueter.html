@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titel %}Alle {{ anzahl_weingueter }} Weingüter · Weinstrasse Adolph{% endblock %}
+{% block inhalt %}
+<section class="seiten-kopf">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/montalbera-weingut.webp')"></div>
+  <div class="wrap">
+    <span class="eyebrow gold">Unsere Weingüter</span>
+    <h1>{{ anzahl_weingueter }} Weingüter aus 8 Ländern.</h1>
+    <p class="lead hell">Exklusiv für den deutschen Fachhandel. Jede Seite mit allen Weinen, Preisen und Auszeichnungen aus dem Katalog 2026.</p>
+    <div class="chips hell" id="landChips">
+      <button class="chip" type="button" data-land="alle" aria-pressed="true">Alle ({{ anzahl_weingueter }})</button>
+      {% for land, ws in nach_land.items() %}<button class="chip" type="button" data-land="{{ ws[0].land_slug }}">{{ LAND_FLAGGE[land] }} {{ land }} ({{ ws|length }})</button>{% endfor %}
+    </div>
+    <input class="suche" id="wgSuche" type="search" placeholder="Weingut, Region oder Ort suchen …" aria-label="Weingut suchen">
+  </div>
+</section>
+
+<section class="band on-weiss">
+  <div class="wrap">
+    {% for land, ws in nach_land.items() %}
+    <div class="land-gruppe" id="{{ ws[0].land_slug }}" data-land="{{ ws[0].land_slug }}">
+      <h2 class="land-titel"><span class="flagge">{{ LAND_FLAGGE[land] }}</span> {{ land }} <small>{{ ws|length }} Weingüter</small></h2>
+      <div class="wg-grid">
+        {% for w in ws %}
+        <a class="wg-karte rv tilt" data-tilt href="{{ root }}weingueter/{{ w.land_slug }}/{{ w.slug }}/" data-such="{{ (w.name ~ ' ' ~ w.ort ~ ' ' ~ w.region_titel ~ ' ' ~ w.land)|lower }}">
+          <div class="wg-karte-bild" style="background-image:url('{{ root }}static/img/{{ w.hero or 'site/regal-warm.webp' }}')"><img class="wg-karte-logo" src="{{ root }}static/img/{{ w.logo }}" alt="" loading="lazy"></div>
+          <div class="wg-karte-body">
+            <b>{{ w.name }}</b>
+            <span class="ort">{{ w.ort or w.region_titel or w.land }}</span>
+            <span class="zeile">{{ w.anzahl_produkte }} Artikel{% if w.preis_ab %} · ab {{ w.preis_ab_text }}{% endif %} · ab {{ w.mindestmenge }} Fl.</span>
+            {% if w.neuentdeckung %}<span class="tag neu">Neuentdeckung</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <p class="leer" id="wgLeer" hidden>Kein Weingut gefunden.</p>
+  </div>
+</section>
+{% endblock %}
+{% block skripte %}
+<script>
+(function(){
+  var chips=document.querySelectorAll('#landChips .chip'), gruppen=document.querySelectorAll('.land-gruppe'), karten=document.querySelectorAll('.wg-karte'), suche=document.getElementById('wgSuche'), leer=document.getElementById('wgLeer');
+  var land='alle';
+  function anwenden(){
+    var q=(suche.value||'').trim().toLowerCase(), n=0;
+    gruppen.forEach(function(g){var sichtbar=0; g.querySelectorAll('.wg-karte').forEach(function(k){var ok=(land==='alle'||g.dataset.land===land)&&(!q||k.dataset.such.indexOf(q)>-1); k.classList.toggle('hide',!ok); if(ok)sichtbar++;}); g.classList.toggle('hide',sichtbar===0); n+=sichtbar;});
+    leer.hidden=n>0;
+  }
+  chips.forEach(function(c){c.addEventListener('click',function(){chips.forEach(function(x){x.setAttribute('aria-pressed','false');});c.setAttribute('aria-pressed','true');land=c.dataset.land;anwenden();if(land!=='alle'){var z=document.getElementById(land);if(z)z.scrollIntoView({behavior:'smooth',block:'start'});}});});
+  suche.addEventListener('input',anwenden);
+  if(location.hash){var h=location.hash.slice(1);chips.forEach(function(c){if(c.dataset.land===h)c.click();});}
+})();
+</script>
+{% endblock %}

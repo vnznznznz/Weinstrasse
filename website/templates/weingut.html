@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block titel %}{{ w.name }} · {{ w.land }} · Weinstrasse Adolph{% endblock %}
+{% block beschreibung %}{{ w.name }} aus {{ w.ort or w.land }}: {{ w.anzahl_produkte }} Weine im Direktimport für den Fachhandel, ab {{ w.mindestmenge }} Flaschen. {{ w.claim }}{% endblock %}
+{% block inhalt %}
+<section class="wg-hero">
+  <div class="wg-hero-bg" data-parallax style="background-image:url('{{ root }}static/img/{{ w.hero or 'site/regal-warm.webp' }}')"></div>
+  <div class="wg-hero-tint"></div>
+  <div class="wrap wg-hero-inner">
+    <nav class="krumen" aria-label="Pfad"><a href="{{ root }}">Home</a> › <a href="{{ root }}weingueter/">Weingüter</a> › <a href="{{ root }}weingueter/#{{ w.land_slug }}">{{ w.land }}</a></nav>
+    <div class="wg-kopf">
+      <div class="wg-logo tilt" data-tilt><img src="{{ root }}static/img/{{ w.logo }}" alt="Logo {{ w.name }}"></div>
+      <div>
+        <span class="eyebrow gold">{{ LAND_FLAGGE[w.land] }} {{ w.land }}{% if w.region_titel %} · {{ w.region_titel }}{% endif %}{% if w.neuentdeckung %} · <em class="neu-tag">Neuentdeckung</em>{% endif %}</span>
+        <h1>{{ w.name }}</h1>
+        {% if w.claim %}<p class="wg-claim">{{ w.claim }}</p>{% endif %}
+        <div class="wg-fakten">
+          {% if w.ort %}<span>📍 {{ w.ort }}</span>{% endif %}
+          {% if w.inhaber %}<span>👤 {{ w.inhaber }}</span>{% endif %}
+          <span>📦 ab {{ w.mindestmenge }} Flaschen</span>
+          <span>🍷 {{ w.anzahl_produkte }} Artikel{% if w.preis_ab %} ab {{ w.preis_ab_text }}{% endif %}</span>
+          {% if w.auszeichnungen %}<span>🏅 {{ w.auszeichnungen }} Auszeichnungen</span>{% endif %}
+          {% if w.abwicklung == 'WIK' %}<span title="Abwicklung über die Wein-Import-Kreis GmbH">WIK</span>{% endif %}
+        </div>
+        <div class="actions"><a class="btn weiss" href="#weine">Weine &amp; Preise</a><a class="btn ghost hell" href="{{ root }}bestellen/">Zur Bestellung</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band wg-portraet">
+  <div class="wrap grid2">
+    <div class="rv">
+      <span class="eyebrow">Das Weingut</span>
+      <h2>{{ w.claim or w.name }}</h2>
+      <p class="lead">{{ w.portraet }}</p>
+      {% if w.besonderheiten %}
+      <ul class="haken kompakt">{% for b in w.besonderheiten %}<li>{{ b }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    <div class="wg-galerie rv d1">
+      {% for g in w.galerie %}<a href="{{ root }}static/img/{{ g }}" class="lb" data-lightbox><img src="{{ root }}static/img/{{ g }}" alt="{{ w.name }}, Bild {{ loop.index }}" loading="lazy"></a>{% endfor %}
+      {% if not w.galerie %}<img src="{{ root }}static/img/{{ w.hero or 'site/regal-warm.webp' }}" alt="{{ w.name }}" loading="lazy">{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="band on-weiss wg-weine" id="weine">
+  <div class="wrap">
+    <div class="rail-head"><div><span class="eyebrow">Sortiment {{ w.name }}</span><h2>Weine &amp; Preise 2026</h2></div>
+      <div class="wg-kond"><b>Mindestmenge {{ w.mindestmenge }} Flaschen</b><span>{{ w.mindestmenge_text or 'Bestellen Sie die Weine dieses Weinguts palettenweise ab Weingut, gemischt.' }}</span></div></div>
+    {% if w.produkte %}
+    {% for region, ps in w.regionen %}
+    <div class="region-block rv">
+      {% if region %}<h3 class="region-titel">{{ region }}</h3>{% endif %}
+      <div class="ptab" role="table">
+        {% for p in ps %}
+        <div class="prow" role="row" data-id="{{ p.id }}">
+          <div class="pname"><b>{{ p.name }}</b>
+            <span class="pmeta">{% if p.jahrgang %}{{ p.jahrgang }} · {% endif %}{{ p.groesse_cl }} cl{% if p.rebsorte %} · {{ p.rebsorte }}{% endif %}{% if p.bio %} · <i class="bio">BIO</i>{% endif %}{% if p.hinweis %} · {{ p.hinweis }}{% endif %}</span>
+            {% if p.beschreibung %}<details class="pdet"><summary>Beschreibung &amp; Auszeichnungen</summary><p>{{ p.beschreibung }}</p>{% if p.auszeichnungen %}<ul class="awards">{% for a in p.auszeichnungen %}<li>🏅 {{ a }}</li>{% endfor %}</ul>{% endif %}</details>
+            {% elif p.auszeichnungen %}<ul class="awards inline">{% for a in p.auszeichnungen[:3] %}<li>🏅 {{ a }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="ppreis"><b>{{ p.preis_text }}</b>{% if p.zusatzsteuer %}<span class="stern" title="{{ p.zusatzsteuer }}">*</span>{% endif %}{% if p.uvp %}<span class="uvp">UVP {{ p.uvp_text }}</span>{% endif %}{% if p.aktion %}<span class="aktion">{{ p.aktion }}{% if p.aktionspreis %} → {{ p.aktionspreis|preis }}{% endif %}</span>{% endif %}</div>
+          <div class="pmenge"><button type="button" class="qty-minus" aria-label="weniger">−</button><input type="number" min="0" step="{{ p.ve }}" value="0" data-ve="{{ p.ve }}" aria-label="Flaschen"><button type="button" class="qty-plus" aria-label="mehr">+</button></div>
+          <button type="button" class="btn klein add" data-id="{{ p.id }}">In die Bestellung</button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <p class="fuss-hinweis">Alle Preise netto ab Keller, spätestens gültig ab 1.3.2026, Änderungen vorbehalten. * zzgl. Schaumwein- bzw. Branntweinsteuer, siehe Artikel. Mengen in Flaschen, Schritt = Karton ({{ w.produkte[0].ve }}).</p>
+    {% else %}
+    <div class="leer">Die Preise dieses Weinguts werden gerade aus dem Katalog 2026 übernommen. <a href="{{ w.url_alt }}" target="_blank" rel="noopener">Bisherige Seite ansehen</a></div>
+    {% endif %}
+  </div>
+</section>
+
+{% if w.absaetze|length > 1 %}
+<section class="band wg-texte">
+  <div class="wrap narrow">
+    <span class="eyebrow">Im Detail</span>
+    <h2>Die Weine von {{ w.name }}</h2>
+    <div class="akkordeon">
+      {% for a in w.absaetze[1:] %}<details class="rv"{% if loop.first %} open{% endif %}><summary>{{ a.split('.')[0][:90] }}{% if a.split('.')[0]|length > 90 %}…{% endif %}</summary><p>{{ a }}</p></details>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="band on-beige wg-kondis">
+  <div class="wrap grid3">
+    <div class="rv"><span class="eyebrow">Mindestmenge</span><h3>{{ w.mindestmenge }} Flaschen</h3><p>{{ w.mindestmenge_text or 'Palettenweise, gemischt, direkt ab Weingut.' }}</p></div>
+    <div class="rv d1"><span class="eyebrow">Fracht</span><h3>Bis an Ihre Rampe</h3>{% if w.frachtkosten %}<ul class="kompakt-liste">{% for f in w.frachtkosten %}<li>{{ f }}</li>{% endfor %}</ul>{% else %}<p>Frachtkosten je nach Menge, inklusive Hebebühnenzustellung. Details im Bestellportal.</p>{% endif %}</div>
+    <div class="rv d2"><span class="eyebrow">Service</span><h3>Auf Wunsch komplett</h3><p>{{ w.service or 'Zollabwicklung, Steueranmeldung und telefonische Avisierung übernehmen wir auf Wunsch.' }}</p>{% if w.abwicklung == 'WIK' %}<p class="klein">Abwicklung über die Wein-Import-Kreis GmbH (Vorauskasse, SEPA-Lastschrift).</p>{% endif %}</div>
+  </div>
+</section>
+
+<nav class="wg-naechste wrap" aria-label="Weitere Weingüter">
+  <a href="{{ root }}weingueter/{{ zurueck.land_slug }}/{{ zurueck.slug }}/" class="prev"><span>← Vorheriges Weingut</span><b>{{ zurueck.name }}</b></a>
+  <a href="{{ root }}weingueter/" class="alle">Alle {{ anzahl_weingueter }}</a>
+  <a href="{{ root }}weingueter/{{ weiter.land_slug }}/{{ weiter.slug }}/" class="next"><span>Nächstes Weingut →</span><b>{{ weiter.name }}</b></a>
+</nav>
+{% endblock %}

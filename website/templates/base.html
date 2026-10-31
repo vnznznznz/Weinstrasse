@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block titel %}Weinstrasse Adolph · Direktimporte für den Fachhandel{% endblock %}</title>
+<meta name="description" content="{% block beschreibung %}Weinstrasse Adolph, Köln: Wein-Direktimporte von {{ anzahl_weingueter }} Weingütern für den deutschen Fachhandel. Beste Qualität, absolut preiswert, direkt vom Weingut.{% endblock %}">
+<link rel="icon" href="{{ root }}static/img/site/w-icon.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{{ root }}static/css/site.css">
+{% block kopf %}{% endblock %}
+</head>
+<body class="seite-{{ seite }}" data-root="{{ root }}">
+<div class="fortschritt" id="fortschritt" aria-hidden="true"></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="{{ root }}" aria-label="Weinstrasse Adolph, Startseite"><img src="{{ root }}static/img/site/logo-weinstrasse.png" alt="Weinstrasse"></a>
+    <nav class="hauptmenue" aria-label="Hauptmenü">
+      <ul>
+        <li><a href="{{ root }}" {% if seite == 'home' %}aria-current="page"{% endif %}>Home</a></li>
+        <li><a href="{{ root }}#aktuelles">Aktuelles</a></li>
+        <li class="hat-mega"><a href="{{ root }}weingueter/" {% if seite == 'weingueter' %}aria-current="page"{% endif %} aria-haspopup="true">Weingüter <i class="pfeil"></i></a>
+          <div class="mega" role="menu" aria-label="Alle Weingüter">
+            <div class="mega-inner">
+              <div class="mega-spalten">
+                {% for land, ws in nach_land.items() %}
+                <div class="mega-land">
+                  <b>{{ LAND_FLAGGE[land] }} {{ land }} <span>{{ ws|length }}</span></b>
+                  <ul>
+                    {% for w in ws %}<li><a href="{{ root }}weingueter/{{ w.land_slug }}/{{ w.slug }}/" data-hero="{{ root }}static/img/{{ w.hero }}" data-name="{{ w.name }}" data-ort="{{ w.ort }}">{{ w.name }}</a></li>{% endfor %}
+                  </ul>
+                </div>
+                {% endfor %}
+              </div>
+              <aside class="mega-vorschau" id="megaVorschau">
+                <img src="{{ root }}static/img/site/montalbera-weingut.webp" alt="">
+                <div class="mega-cap"><b>{{ anzahl_weingueter }} Weingüter</b><span>Fahren Sie über einen Namen für die Vorschau. Klick öffnet die Weingut-Seite.</span></div>
+              </aside>
+            </div>
+          </div>
+        </li>
+        <li><a href="{{ root }}katalog/" {% if seite == 'katalog' %}aria-current="page"{% endif %}>Katalog</a></li>
+        <li><a href="{{ root }}service/" {% if seite == 'service' %}aria-current="page"{% endif %}>Service</a></li>
+        <li><a href="{{ root }}ueber-uns/" {% if seite == 'ueber-uns' %}aria-current="page"{% endif %}>Über uns</a></li>
+        <li><a href="https://www.weinstrasseadolph.de/laden/" target="_blank" rel="noopener">Laden</a></li>
+      </ul>
+    </nav>
+    <div class="nav-rechts">
+      <button class="korb-btn" id="korbBtn" type="button" aria-label="Bestellung öffnen" aria-haspopup="dialog">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-.6 4.2a4 4 0 0 1-1 2.3L13 10v9.5a1.5 1.5 0 0 1-3 0V10l-.4-.5a4 4 0 0 1-1-2.3Z"/><path d="M8 21h8"/></svg>
+        <span class="korb-zahl" id="korbZahl">0</span>
+      </button>
+      <a class="btn cta" href="{{ root }}bestellen/">Bestellen</a>
+      <button class="burger" id="burger" type="button" aria-label="Menü öffnen" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+<nav class="mnav" id="mnav" aria-label="Mobiles Menü">
+  <a href="{{ root }}">Home</a>
+  <a href="{{ root }}#aktuelles">Aktuelles</a>
+  <details><summary>Weingüter ({{ anzahl_weingueter }})</summary>
+    {% for land, ws in nach_land.items() %}<b>{{ LAND_FLAGGE[land] }} {{ land }}</b>{% for w in ws %}<a class="sub" href="{{ root }}weingueter/{{ w.land_slug }}/{{ w.slug }}/">{{ w.name }}</a>{% endfor %}{% endfor %}
+  </details>
+  <a href="{{ root }}katalog/">Katalog &amp; Preise</a>
+  <a href="{{ root }}bestellen/">Bestellen</a>
+  <a href="{{ root }}service/">Service</a>
+  <a href="{{ root }}ueber-uns/">Über uns</a>
+  <a href="https://www.weinstrasseadolph.de/laden/" target="_blank" rel="noopener">Laden Köln-Süd</a>
+</nav>
+
+<main id="inhalt">
+{% block inhalt %}{% endblock %}
+</main>
+
+<footer class="fuss">
+  <div class="wrap">
+    <div class="cols">
+      <div><img class="fuss-logo" src="{{ root }}static/img/site/logo-weinstrasse.png" alt="Weinstrasse"><p>{{ texte.firma }}<br>{{ texte.adresse }}<br>Tel. {{ texte.telefon }} · Fax {{ texte.fax }}<br>{{ texte.email }}</p></div>
+      <div><h4>Sortiment</h4><p><a href="{{ root }}weingueter/">Alle Weingüter</a><br><a href="{{ root }}katalog/">Katalog &amp; Preisliste 2026</a><br><a href="{{ root }}bestellen/">Bestellportal</a><br><a href="{{ root }}#weinberater">Weinberater</a></p></div>
+      <div><h4>Unternehmen</h4><p><a href="{{ root }}ueber-uns/">Geschichte &amp; Philosophie</a><br><a href="{{ root }}service/">Service &amp; Logistik</a><br><a href="https://www.weinstrasseadolph.de/karriere/" target="_blank" rel="noopener">Karriere</a><br><a href="https://www.weinstrasseadolph.de/presse/" target="_blank" rel="noopener">Presse</a></p></div>
+      <div><h4>Bürozeiten</h4><p>Montag bis Freitag<br>09:00 bis 17:00 Uhr<br><a href="https://www.weinstrasseadolph.de/laden/" target="_blank" rel="noopener">Weinladen Köln-Süd</a></p></div>
+    </div>
+    <div class="legal"><span>© 2026 {{ texte.firma }} · Preise ab Keller, netto, zzgl. Steuern und Fracht</span><span><a href="https://www.weinstrasseadolph.de/impressum/" target="_blank" rel="noopener">Impressum</a> · <a href="https://www.weinstrasseadolph.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></span></div>
+  </div>
+</footer>
+
+<aside class="korb" id="korb" aria-label="Ihre Bestellung" aria-hidden="true">
+  <div class="korb-kopf"><b>Ihre Bestellung</b><button class="x" id="korbZu" type="button" aria-label="Schließen">✕</button></div>
+  <div class="korb-liste" id="korbListe"></div>
+  <div class="korb-fuss">
+    <div class="korb-summe"><span>Warenwert ab Keller</span><b id="korbSumme">0,00 €</b></div>
+    <a class="btn" href="{{ root }}bestellen/">Zur Bestellung</a>
+  </div>
+</aside>
+<div class="schleier" id="schleier"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<button class="stoerer" id="stoerer" type="button" aria-label="Katalog öffnen"><span>Katalog<br>&amp; Preise</span><svg class="kork" viewBox="0 0 24 40" aria-hidden="true"><rect x="6" y="8" width="12" height="28" rx="5" fill="#d7b98b"/><ellipse cx="12" cy="9" rx="7" ry="4" fill="#e9d3ae"/></svg></button>
+<a class="totop" id="totop" href="#" aria-label="Nach oben"><img src="{{ root }}static/img/site/w-icon.webp" alt=""></a>
+<div class="lightbox" id="lightbox" hidden><button class="x" id="lbZu" type="button" aria-label="Schließen">✕</button><img id="lbBild" alt=""></div>
+<div class="entwurf">Entwurf · nicht veröffentlicht</div>
+<script src="{{ root }}static/js/daten.js"></script>
+<script src="{{ root }}static/js/site.js"></script>
+{% block skripte %}{% endblock %}
+</body>
+</html>

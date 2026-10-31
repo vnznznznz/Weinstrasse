@@ -1,0 +1,425 @@
+[
+ {
+  "slug": "zuccardi",
+  "hero": "zuccardi-hero.webp",
+  "gallery": [
+   "zuccardi-1.webp",
+   "zuccardi-2.webp",
+   "zuccardi-3.webp"
+  ]
+ },
+ {
+  "slug": "redheads",
+  "hero": "redheads-hero.webp",
+  "gallery": [
+   "redheads-1.webp",
+   "redheads-2.webp",
+   "redheads-3.webp"
+  ]
+ },
+ {
+  "slug": "edoardo-miroglio",
+  "hero": "edoardo-miroglio-hero.webp",
+  "gallery": [
+   "edoardo-miroglio-1.webp",
+   "edoardo-miroglio-2.webp",
+   "edoardo-miroglio-3.webp"
+  ]
+ },
+ {
+  "slug": "windsor-great-park",
+  "hero": "windsor-great-park-hero.webp",
+  "gallery": [
+   "windsor-great-park-1.webp",
+   "windsor-great-park-2.webp",
+   "windsor-great-park-3.webp"
+  ]
+ },
+ {
+  "slug": "ackerman",
+  "hero": "ackerman-hero.webp",
+  "gallery": [
+   "ackerman-1.webp",
+   "ackerman-2.webp",
+   "ackerman-3.webp"
+  ]
+ },
+ {
+  "slug": "caves-des-papes",
+  "hero": "caves-des-papes-hero.webp",
+  "gallery": [
+   "caves-des-papes-1.webp",
+   "caves-des-papes-2.webp",
+   "caves-des-papes-3.webp"
+  ]
+ },
+ {
+  "slug": "cazes",
+  "hero": "cazes-hero.webp",
+  "gallery": [
+   "cazes-1.webp",
+   "cazes-2.webp",
+   "cazes-3.webp"
+  ]
+ },
+ {
+  "slug": "chateau-cassemichere",
+  "hero": "chateau-cassemichere-hero.webp",
+  "gallery": [
+   "chateau-cassemichere-1.webp",
+   "chateau-cassemichere-2.webp",
+   "chateau-cassemichere-3.webp"
+  ]
+ },
+ {
+  "slug": "chateau-de-sancerre",
+  "hero": "chateau-de-sancerre-hero.webp",
+  "gallery": [
+   "chateau-de-sancerre-1.webp",
+   "chateau-de-sancerre-2.webp",
+   "chateau-de-sancerre-3.webp"
+  ]
+ },
+ {
+  "slug": "chateau-la-variere",
+  "hero": "chateau-la-variere-hero.webp",
+  "gallery": [
+   "chateau-la-variere-1.webp",
+   "chateau-la-variere-2.webp",
+   "chateau-la-variere-3.webp"
+  ]
+ },
+ {
+  "slug": "cidrerie-de-la-brique",
+  "hero": "cidrerie-de-la-brique-hero.webp",
+  "gallery": [
+   "cidrerie-de-la-brique-1.webp",
+   "cidrerie-de-la-brique-2.webp",
+   "cidrerie-de-la-brique-3.webp"
+  ]
+ },
+ {
+  "slug": "domaine-de-la-perruche",
+  "hero": "domaine-de-la-perruche-hero.webp",
+  "gallery": [
+   "domaine-de-la-perruche-1.webp",
+   "domaine-de-la-perruche-2.webp",
+   "domaine-de-la-perruche-3.webp"
+  ]
+ },
+ {
+  "slug": "hostomme",
+  "hero": "hostomme-hero.webp",
+  "gallery": [
+   "hostomme-1.webp",
+   "hostomme-2.webp",
+   "hostomme-3.webp"
+  ]
+ },
+ {
+  "slug": "lou-gat",
+  "hero": "lou-gat-hero.webp",
+  "gallery": [
+   "lou-gat-1.webp",
+   "lou-gat-2.webp",
+   "lou-gat-3.webp"
+  ]
+ },
+ {
+  "slug": "maison-jeanjean",
+  "hero": "maison-jeanjean-hero.webp",
+  "gallery": [
+   "maison-jeanjean-1.webp",
+   "maison-jeanjean-2.webp",
+   "maison-jeanjean-3.webp"
+  ]
+ },
+ {
+  "slug": "mortier",
+  "hero": "mortier-hero.webp",
+  "gallery": [
+   "mortier-1.webp",
+   "mortier-2.webp",
+   "mortier-3.webp"
+  ]
+ },
+ {
+  "slug": "pfaff",
+  "hero": "pfaff-hero.webp",
+  "gallery": [
+   "pfaff-1.webp",
+   "pfaff-2.webp",
+   "pfaff-3.webp"
+  ]
+ },
+ {
+  "slug": "pierre-seguinot-fils",
+  "hero": "pierre-seguinot-fils-hero.webp",
+  "gallery": [
+   "pierre-seguinot-fils-1.webp",
+   "pierre-seguinot-fils-2.webp",
+   "pierre-seguinot-fils-3.webp"
+  ]
+ },
+ {
+  "slug": "sainte-victoire",
+  "hero": "sainte-victoire-hero.webp",
+  "gallery": [
+   "sainte-victoire-1.webp",
+   "sainte-victoire-2.webp",
+   "sainte-victoire-3.webp"
+  ]
+ },
+ {
+  "slug": "bonfante-chiarle",
+  "hero": "bonfante-chiarle-hero.webp",
+  "gallery": [
+   "bonfante-chiarle-1.webp",
+   "bonfante-chiarle-2.webp",
+   "bonfante-chiarle-3.webp"
+  ]
+ },
+ {
+  "slug": "ca-di-rajo",
+  "hero": "ca-di-rajo-hero.webp",
+  "gallery": [
+   "ca-di-rajo-1.webp",
+   "ca-di-rajo-2.webp",
+   "ca-di-rajo-3.webp"
+  ]
+ },
+ {
+  "slug": "cantine-colosi",
+  "hero": "cantine-colosi-hero.webp",
+  "gallery": [
+   "cantine-colosi-1.webp",
+   "cantine-colosi-2.webp",
+   "cantine-colosi-3.webp"
+  ]
+ },
+ {
+  "slug": "cantine-san-pancrazio",
+  "hero": "cantine-san-pancrazio-hero.webp",
+  "gallery": [
+   "cantine-san-pancrazio-1.webp",
+   "cantine-san-pancrazio-2.webp",
+   "cantine-san-pancrazio-3.webp"
+  ]
+ },
+ {
+  "slug": "centinari",
+  "hero": "centinari-hero.webp",
+  "gallery": [
+   "centinari-1.webp",
+   "centinari-2.webp",
+   "centinari-3.webp"
+  ]
+ },
+ {
+  "slug": "cortemedicea",
+  "hero": "cortemedicea-hero.webp",
+  "gallery": [
+   "cortemedicea-1.webp",
+   "cortemedicea-2.webp",
+   "cortemedicea-3.webp"
+  ]
+ },
+ {
+  "slug": "grappa",
+  "hero": "grappa-hero.webp",
+  "gallery": [
+   "grappa-1.webp",
+   "grappa-2.webp",
+   "grappa-3.webp"
+  ]
+ },
+ {
+  "slug": "la-bollina-sueditalien",
+  "hero": "la-bollina-sueditalien-hero.webp",
+  "gallery": [
+   "la-bollina-sueditalien-1.webp",
+   "la-bollina-sueditalien-2.webp",
+   "la-bollina-sueditalien-3.webp"
+  ]
+ },
+ {
+  "slug": "la-bollina",
+  "hero": "la-bollina-hero.webp",
+  "gallery": [
+   "la-bollina-1.webp",
+   "la-bollina-2.webp",
+   "la-bollina-3.webp"
+  ]
+ },
+ {
+  "slug": "lazzeretti",
+  "hero": "lazzeretti-hero.webp",
+  "gallery": [
+   "lazzeretti-1.webp",
+   "lazzeretti-2.webp",
+   "lazzeretti-3.webp"
+  ]
+ },
+ {
+  "slug": "luciano-arduini",
+  "hero": "luciano-arduini-hero.webp",
+  "gallery": [
+   "luciano-arduini-1.webp",
+   "luciano-arduini-2.webp",
+   "luciano-arduini-3.webp"
+  ]
+ },
+ {
+  "slug": "montalbera",
+  "hero": "montalbera-hero.webp",
+  "gallery": [
+   "montalbera-1.webp",
+   "montalbera-2.webp",
+   "montalbera-3.webp"
+  ]
+ },
+ {
+  "slug": "rocca-dei-forti",
+  "hero": "rocca-dei-forti-hero.webp",
+  "gallery": [
+   "rocca-dei-forti-1.webp",
+   "rocca-dei-forti-2.webp",
+   "rocca-dei-forti-3.webp"
+  ]
+ },
+ {
+  "slug": "villa-armellina",
+  "hero": "villa-armellina-hero.webp",
+  "gallery": [
+   "villa-armellina-1.webp",
+   "villa-armellina-2.webp",
+   "villa-armellina-3.webp"
+  ]
+ },
+ {
+  "slug": "caves-messias",
+  "hero": "caves-messias-hero.webp",
+  "gallery": [
+   "caves-messias-1.webp",
+   "caves-messias-2.webp",
+   "caves-messias-3.webp"
+  ]
+ },
+ {
+  "slug": "portweine",
+  "hero": "portweine-hero.webp",
+  "gallery": [
+   "portweine-1.webp",
+   "portweine-2.webp",
+   "portweine-3.webp"
+  ]
+ },
+ {
+  "slug": "quinta-do-cachao-douro",
+  "hero": "quinta-do-cachao-douro-hero.webp",
+  "gallery": [
+   "quinta-do-cachao-douro-1.webp",
+   "quinta-do-cachao-douro-2.webp",
+   "quinta-do-cachao-douro-3.webp"
+  ]
+ },
+ {
+  "slug": "quinta-do-penedo-dao",
+  "hero": "quinta-do-penedo-dao-hero.webp",
+  "gallery": [
+   "quinta-do-penedo-dao-1.webp",
+   "quinta-do-penedo-dao-2.webp",
+   "quinta-do-penedo-dao-3.webp"
+  ]
+ },
+ {
+  "slug": "quinta-do-valdoeiro-bairrada",
+  "hero": "quinta-do-valdoeiro-bairrada-hero.webp",
+  "gallery": [
+   "quinta-do-valdoeiro-bairrada-1.webp",
+   "quinta-do-valdoeiro-bairrada-2.webp",
+   "quinta-do-valdoeiro-bairrada-3.webp"
+  ]
+ },
+ {
+  "slug": "schaumweine",
+  "hero": "schaumweine-hero.webp",
+  "gallery": [
+   "schaumweine-1.webp",
+   "schaumweine-2.webp",
+   "schaumweine-3.webp"
+  ]
+ },
+ {
+  "slug": "aljibes",
+  "hero": "aljibes-hero.webp",
+  "gallery": [
+   "aljibes-1.webp",
+   "aljibes-2.webp",
+   "aljibes-3.webp"
+  ]
+ },
+ {
+  "slug": "bodega-sommos",
+  "hero": "bodega-sommos-hero.webp",
+  "gallery": [
+   "bodega-sommos-1.webp",
+   "bodega-sommos-2.webp",
+   "bodega-sommos-3.webp"
+  ]
+ },
+ {
+  "slug": "bodega-vilano",
+  "hero": "bodega-vilano-hero.webp",
+  "gallery": [
+   "bodega-vilano-1.webp",
+   "bodega-vilano-2.webp",
+   "bodega-vilano-3.webp"
+  ]
+ },
+ {
+  "slug": "bodegas-el-progreso",
+  "hero": "bodegas-el-progreso-hero.webp",
+  "gallery": [
+   "bodegas-el-progreso-1.webp",
+   "bodegas-el-progreso-2.webp",
+   "bodegas-el-progreso-3.webp"
+  ]
+ },
+ {
+  "slug": "bodegas-vina-herminia",
+  "hero": "bodegas-vina-herminia-hero.webp",
+  "gallery": [
+   "bodegas-vina-herminia-1.webp",
+   "bodegas-vina-herminia-2.webp",
+   "bodegas-vina-herminia-3.webp"
+  ]
+ },
+ {
+  "slug": "rodriguez-sanzo",
+  "hero": "rodriguez-sanzo-hero.webp",
+  "gallery": [
+   "rodriguez-sanzo-1.webp",
+   "rodriguez-sanzo-2.webp",
+   "rodriguez-sanzo-3.webp"
+  ]
+ },
+ {
+  "slug": "spirituosen",
+  "hero": "spirituosen-hero.webp",
+  "gallery": [
+   "spirituosen-1.webp",
+   "spirituosen-2.webp",
+   "spirituosen-3.webp"
+  ]
+ },
+ {
+  "slug": "vinedos-y-bodegas-pablo",
+  "hero": "vinedos-y-bodegas-pablo-hero.webp",
+  "gallery": [
+   "vinedos-y-bodegas-pablo-1.webp",
+   "vinedos-y-bodegas-pablo-2.webp",
+   "vinedos-y-bodegas-pablo-3.webp"
+  ]
+ }
+]

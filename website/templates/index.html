@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block inhalt %}
+<section class="hero" id="top">
+  <div class="hero-bg" id="heroBg" style="background-image:url('{{ root }}static/img/site/hero-vigne.webp')"></div>
+  <div class="hero-tint"></div>
+  <div class="perlen" aria-hidden="true">{% for i in range(18) %}<i style="--x:{{ (i*53) % 100 }}%;--d:{{ 9 + (i*7) % 9 }}s;--s:{{ 4 + (i*5) % 9 }}px;--t:{{ (i*1.3) % 9 }}s"></i>{% endfor %}</div>
+  <div class="hero-copy" id="heroCopy">
+    <span class="eyebrow gold">Seit 1980 · Köln</span>
+    <h1 class="zeilen"><span>Weinstrasse Adolph,</span> <span>Direktimporte für den Fachhandel.</span></h1>
+    <p class="sub">{{ texte.unterzeile }}</p>
+    <div class="actions">
+      <a class="btn weiss" href="{{ root }}katalog/">Katalog &amp; Preise 2026</a>
+      <a class="btn ghost hell" href="{{ root }}weingueter/">{{ anzahl_weingueter }} Weingüter entdecken</a>
+    </div>
+    <div class="hero-zahlen">
+      <div><b data-count="{{ anzahl_weingueter }}">0</b><span>Weingüter</span></div>
+      <div><b data-count="{{ anzahl_produkte }}">0</b><span>Artikel im Katalog</span></div>
+      <div><b>8</b><span>Länder</span></div>
+      <div><b data-count="120">0</b><span>Flaschen Mindestmenge</span></div>
+    </div>
+  </div>
+  <div class="scrollhint">Scrollen<i></i></div>
+</section>
+
+<section class="band wer" id="wer">
+  <div class="wrap grid2">
+    <div class="rv">
+      <span class="eyebrow">Wer wir sind</span>
+      <h2>Das deutsche Büro Ihrer Weingüter.</h2>
+      <p class="lead">{{ texte.wer }}</p>
+      <ul class="haken">
+        <li><b>Ein Preis für alle.</b> Jeder Kunde zahlt dasselbe, unabhängig vom Umsatz.</li>
+        <li><b>Kein Lager, kein Außendienst.</b> Was wir nicht ausgeben, geben wir weiter.</li>
+        <li><b>Sammelverladung ab Weingut.</b> Direkte Wege, weniger CO₂, stabile Preise.</li>
+      </ul>
+      <div class="actions"><a class="btn" href="{{ root }}ueber-uns/">Geschichte &amp; Philosophie</a><a class="btn ghost" href="{{ root }}service/">Service &amp; Logistik</a></div>
+    </div>
+    <div class="wer-bild rv d1 tilt" data-tilt>
+      <img src="{{ root }}static/img/site/laden.webp" alt="Die Weinstrasse am Sachsenring in Köln" loading="lazy">
+      <div class="wer-karte"><b>Gegründet 1980</b><span>von Gerd Adolph, Mitinitiator der Messe, aus der die ProWein wurde</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="band on-weiss" id="aktuelles">
+  <div class="wrap">
+    <div class="rail-head"><div><span class="eyebrow">Aktuelles</span><h2>Neues aus den Weingütern</h2></div><a class="btn ghost" href="https://www.weinstrasseadolph.de/aktuelles/" target="_blank" rel="noopener">Alle Beiträge</a></div>
+    <div class="rail" aria-label="Aktuelle Beiträge">
+      {% for n in news %}
+      <a class="news rv tilt" data-tilt href="{{ n.url }}" target="_blank" rel="noopener">
+        <div class="pic"><img src="{{ root }}static/img/site/{{ n.bild }}" alt="" loading="lazy"></div>
+        <div class="body">{% if n.neu %}<span class="tag neu">Neu</span>{% endif %}<h3>{{ n.titel }}</h3><p>{{ n.text }}</p><div class="meta">{{ n.meta }}</div></div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band blick" id="blick">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/vigne-hoch.webp')"></div>
+  <div class="wrap">
+    <span class="eyebrow gold">Auf einen Blick</span>
+    <h2 class="hell">So funktioniert Direktimport mit der Weinstrasse.</h2>
+    <div class="schritte">
+      <div class="rv"><span class="n">1</span><h3>Auswählen</h3><p>{{ anzahl_produkte }} Artikel von {{ anzahl_weingueter }} Weingütern, alle persönlich verkostet. Im Katalog filtern, im Weinberater empfehlen lassen.</p></div>
+      <div class="rv d1"><span class="n">2</span><h3>Zusammenstellen</h3><p>Ab 120 Flaschen gemischt, je nach Weingut. Das Bestellportal zeigt live, wann Ihre Palette voll ist.</p></div>
+      <div class="rv d2"><span class="n">3</span><h3>Bestellen</h3><p>Sie bestellen bei uns zum Direktimportpreis, den wir für den gesamten Fachhandel verhandelt haben.</p></div>
+      <div class="rv d3"><span class="n">4</span><h3>Geliefert bekommen</h3><p>DB Schenker oder Hillebrand Gori bringen die Ware per Sammelverladung ab Weingut bis an Ihre Rampe.</p></div>
+    </div>
+    <div class="actions center"><a class="btn weiss" href="{{ root }}bestellen/">Bestellportal öffnen</a></div>
+  </div>
+</section>
+
+<section class="pour" id="weine">
+  <div class="stage">
+    <div class="txt">
+      <span class="eyebrow gold">Hochwertige Weine zu fairen Preisen</span>
+      <h2>Direkt vom Weingut.<br><em>Direkt ins Glas.</em></h2>
+      <p>Von Alltagsweinen ab 2 Euro bis zum Grand Cru, dazu Crémant, Champagner, Portwein, Grappa und Olivenöl. Sie bestellen palettenweise ab Weingut, wir übernehmen den Rest.</p>
+      <div class="mini"><div><b>{{ anzahl_produkte }}</b><span>Artikel</span></div><div><b>120</b><span>Flaschen Mindestmenge</span></div><div><b>1</b><span>Preis für alle Kunden</span></div></div>
+      <p class="cap-txt">Im Glas: Champagne M. Hostomme, Origine Blanc de Blancs Grand Cru. <a href="{{ root }}weingueter/frankreich/hostomme/">Zum Weingut</a></p>
+    </div>
+    <div class="scene" id="scene" aria-hidden="true">
+      <div class="floor"></div>
+      <div class="glass" id="glass">
+        <svg viewBox="0 0 120 320">
+          <defs>
+            <clipPath id="bowl"><path d="M38 6 L82 6 L86 150 C86 190 72 206 60 212 C48 206 34 190 34 150 Z"/></clipPath>
+            <linearGradient id="wine" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff2c9"/><stop offset="1" stop-color="#e8c470"/></linearGradient>
+            <linearGradient id="glassg" x1="0" x2="1"><stop offset="0" stop-color="rgba(255,255,255,.25)"/><stop offset=".5" stop-color="rgba(255,255,255,.04)"/><stop offset="1" stop-color="rgba(255,255,255,.22)"/></linearGradient>
+          </defs>
+          <g clip-path="url(#bowl)">
+            <rect id="fill" x="30" y="212" width="60" height="0" fill="url(#wine)"/>
+            <rect id="foam" x="30" y="212" width="60" height="5" fill="#fff8e6" opacity="0"/>
+            <g id="bubbles">{% for b in [(48,205,1.6),(56,208,1.1),(64,204,1.4),(72,209,1),(52,210,1.2),(68,206,1.5),(60,203,0.9),(44,207,1.1),(76,205,1.3)] %}<circle class="bubble" cx="{{ b[0] }}" cy="{{ b[1] }}" r="{{ b[2] }}"/>{% endfor %}</g>
+          </g>
+          <path d="M38 6 L82 6 L86 150 C86 190 72 206 60 212 C48 206 34 190 34 150 Z" fill="url(#glassg)" stroke="rgba(255,255,255,.75)" stroke-width="1.5"/>
+          <path d="M60 212 L60 290" stroke="rgba(255,255,255,.75)" stroke-width="3"/>
+          <ellipse cx="60" cy="296" rx="30" ry="7" fill="rgba(255,255,255,.18)" stroke="rgba(255,255,255,.75)" stroke-width="1.5"/>
+          <ellipse cx="60" cy="6" rx="22" ry="3.5" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/>
+        </svg>
+        <span class="rim" id="rim"></span>
+      </div>
+      <div class="stream" id="stream"></div>
+      <div class="bottle" id="bottle">
+        <svg class="neck" viewBox="0 0 109 70" preserveAspectRatio="none" aria-hidden="true"><rect x="36" y="26" width="37" height="44" rx="4" fill="#2f2f33"/><rect x="33" y="22" width="43" height="9" rx="3" fill="#44444a"/><ellipse cx="54.5" cy="23" rx="16" ry="3.6" fill="#1a1a1d"/></svg>
+        <div class="body" style="background-image:url('{{ root }}static/img/site/flasche-hostomme.webp')"></div><div class="cap" id="cap" style="background-image:url('{{ root }}static/img/site/flasche-hostomme.webp')"></div><span class="mouth" id="mouth"></span>
+        <div class="burst" id="burst"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="sante" id="sante">Santé. Zum Direktimportpreis.</div>
+    </div>
+  </div>
+</section>
+
+<section class="band on-beige weinberater" id="weinberater">
+  <div class="wrap">
+    <div class="wb-kopf center"><span class="eyebrow">Weinberater</span><h2>Drei Klicks bis zur Empfehlung.</h2><p class="lead">Sagen Sie uns, was in Ihr Regal soll. Wir ziehen drei passende Weine aus dem Katalog 2026.</p></div>
+    <div class="wb" id="wb">
+      <div class="wb-schritt" data-schritt="1"><b>Wofür?</b><div class="wb-opt">
+        <button type="button" data-k="anlass" data-v="aperitif">🥂 Aperitif &amp; Feiern</button><button type="button" data-k="anlass" data-v="alltag">🍝 Alltag &amp; Küche</button><button type="button" data-k="anlass" data-v="premium">🏆 Premium-Regal</button><button type="button" data-k="anlass" data-v="geschenk">🎁 Geschenk</button></div></div>
+      <div class="wb-schritt" data-schritt="2"><b>Welche Farbe?</b><div class="wb-opt">
+        <button type="button" data-k="farbe" data-v="Weisswein">Weiß</button><button type="button" data-k="farbe" data-v="Rosé">Rosé</button><button type="button" data-k="farbe" data-v="Rotwein">Rot</button><button type="button" data-k="farbe" data-v="Schaumwein">Schaumwein</button><button type="button" data-k="farbe" data-v="Alkoholfrei">Alkoholfrei</button><button type="button" data-k="farbe" data-v="egal">Egal</button></div></div>
+      <div class="wb-schritt" data-schritt="3"><b>Welcher Einkaufspreis?</b><div class="wb-opt">
+        <button type="button" data-k="preis" data-v="0-3">bis 3 €</button><button type="button" data-k="preis" data-v="3-6">3 bis 6 €</button><button type="button" data-k="preis" data-v="6-12">6 bis 12 €</button><button type="button" data-k="preis" data-v="12-999">über 12 €</button></div></div>
+      <div class="wb-ergebnis" id="wbErgebnis" hidden></div>
+      <canvas class="konfetti" id="konfetti" aria-hidden="true"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="band weingueter-home" id="weingueter">
+  <div class="wrap">
+    <div class="rail-head"><div><span class="eyebrow">Unsere Weingüter</span><h2>{{ anzahl_weingueter }} Weingüter. Ein Ansprechpartner.</h2></div><a class="btn ghost" href="{{ root }}weingueter/">Alle Weingüter</a></div>
+  </div>
+  <div class="marquee" aria-label="Logos unserer Weingüter">
+    <div class="marquee-spur">
+      {% for w in weingueter + weingueter %}<a href="{{ root }}weingueter/{{ w.land_slug }}/{{ w.slug }}/" title="{{ w.name }}"><img src="{{ root }}static/img/{{ w.logo }}" alt="{{ w.name }}" loading="lazy"></a>{% endfor %}
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="laender">
+      {% for land, ws in nach_land.items() %}
+      <a class="land-karte rv tilt" data-tilt href="{{ root }}weingueter/#{{ ws[0].land_slug }}" style="background-image:url('{{ root }}static/img/{{ ws[0].hero }}')">
+        <span class="flagge">{{ LAND_FLAGGE[land] }}</span><b>{{ land }}</b><span>{{ ws|length }} Weingüter</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band auszeichnet center" id="auszeichnet">
+  <div class="wrap">
+    <span class="eyebrow">Was uns auszeichnet</span>
+    <h2>Drei Gründe, warum Fachhändler bei uns kaufen.</h2>
+    <div class="three">
+      <div class="rv tilt" data-tilt><img class="ico" src="{{ root }}static/img/site/ico-qualitaet.webp" alt=""><h3>Qualität</h3><p>Wir finden Weine, bevor sie bekannt und teuer sind: authentisch, von Land, Region und Rebsorte geprägt und im Fachhandel erprobt.</p></div>
+      <div class="rv d1 tilt" data-tilt><img class="ico" src="{{ root }}static/img/site/ico-preise.webp" alt=""><h3>Preis &amp; Leistung</h3><p>Kein Außendienst, kein Lager, keine Hochglanz-Broschüren. Wir sind der verlängerte Arm unserer Weingüter, schlank und dadurch günstig.</p></div>
+      <div class="rv d2 tilt" data-tilt><img class="ico" src="{{ root }}static/img/site/ico-lkw.webp" alt=""><h3>Direkt</h3><p>Direktimport ab Weingut, ohne Umwege. Sie bestellen wie beim Importeur, zahlen aber den Direktimportpreis.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band service-home" id="service">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/schenker.webp')"></div>
+  <div class="wrap grid2">
+    <div class="rv"><span class="eyebrow gold">Rundum-Service</span><h2 class="hell">Alles aus einer Hand. Bis an Ihre Rampe.</h2><p class="lead hell">Spedition, Zollabwicklung, Weininformationen, Produkttexte und Bildmaterial. Beim Transport setzen wir auf DB Schenker und, neu seit diesem Jahr, auf Hillebrand Gori, den weltweit größten Getränkelogistiker.</p><div class="actions"><a class="btn weiss" href="{{ root }}service/">Service &amp; Logistik</a><a class="btn ghost hell" href="{{ root }}service/#holzkisten">Holzkisten mit Ihrem Logo</a></div></div>
+    <div class="kiste-wrap rv d1" id="kiste"><img src="{{ root }}static/img/site/kiste.webp" alt="Holzkiste aus Fichtenholz" loading="lazy"><div class="stamp">Ihr Logo<br>hier</div></div>
+  </div>
+</section>
+
+<section class="band kontakt" id="kontakt">
+  <div class="wrap grid2">
+    <div class="rv"><span class="eyebrow">Kontakt</span><h2>Sprechen Sie mit uns.</h2><p class="lead">Fragen zu Weinen, Konditionen oder Service? Schreiben Sie uns eine digitale Flaschenpost. Wir melden uns innerhalb eines Werktags.</p>
+      <div class="kontakt-daten"><div><b>Telefon</b>{{ texte.telefon }}</div><div><b>E-Mail</b>{{ texte.email }}</div><div><b>Adresse</b>{{ texte.adresse }}</div><div><b>Bürozeiten</b>Mo bis Fr, 9 bis 17 Uhr</div></div>
+    </div>
+    <form class="form rv d1" id="kontaktForm" novalidate>
+      <div class="row"><input id="k-vor" name="vorname" placeholder="Vorname" autocomplete="given-name"><input id="k-nach" name="nachname" placeholder="Nachname" autocomplete="family-name"></div>
+      <div class="row"><input id="k-mail" name="email" type="email" placeholder="E-Mail" autocomplete="email"><input id="k-tel" name="telefon" type="tel" placeholder="Telefon" autocomplete="tel"></div>
+      <input id="k-firma" name="firma" placeholder="Ihr Fachgeschäft / Firma" autocomplete="organization">
+      <textarea id="k-msg" name="nachricht" placeholder="Ihre Nachricht, z. B. Katalog, Beratungsgespräch, Musterflaschen"></textarea>
+      <label class="chk"><input id="k-ds" type="checkbox"><span>Ich habe die Datenschutzerklärung zur Kenntnis genommen und stimme der Speicherung meiner Angaben zur Bearbeitung zu.</span></label>
+      <button class="btn" type="submit">Senden</button>
+      <div class="ok" id="kontaktOk"></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titel %}Geschichte &amp; Philosophie · Weinstrasse Adolph{% endblock %}
+{% block inhalt %}
+<section class="seiten-kopf">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/laden-tuer.webp')"></div>
+  <div class="wrap"><span class="eyebrow gold">Über uns</span><h1>Das Beste für den Fachhandel. Seit 1980.</h1><p class="lead hell">{{ texte.team }}</p></div>
+</section>
+<section class="band">
+  <div class="wrap grid2">
+    <div class="rv"><span class="eyebrow">Geschichte</span><h2>Zusammen, zukunftsorientiert, pragmatisch.</h2><p class="lead">{{ texte.geschichte }}</p>
+      <div class="persons"><div class="person"><img src="{{ root }}static/img/site/gerd-adolph.webp" alt="Gerd Adolph"><div><b>Gerd Adolph (†)</b>Gründer, 1980</div></div><div class="person"><img src="{{ root }}static/img/site/andreas-duenschede.webp" alt="Andreas Dünschede"><div><b>Andreas Dünschede</b>Geschäftsführer</div></div></div></div>
+    <div class="rv d1 tilt" data-tilt><img class="rund" src="{{ root }}static/img/site/laden-innen.webp" alt="Im Laden der Weinstrasse" loading="lazy"></div>
+  </div>
+</section>
+<section class="band on-beige">
+  <div class="wrap grid3">
+    <div class="fact rv"><b>Qualität statt Namen</b><p>Die Selektion der Lieferanten steht im Vordergrund. Wir suchen Weine, bevor sie bekannt und teuer sind.</p></div>
+    <div class="fact rv d1"><b>Nah am Markt</b><p>Bis heute gibt es den kleinen Laden im Herzen von Köln. So erleben wir täglich, was Fachhandel und Konsumenten fordern.</p></div>
+    <div class="fact rv d2"><b>Wein-Import-Kreis</b><p>{{ texte.wik }}</p></div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titel %}Service &amp; Logistik · Weinstrasse Adolph{% endblock %}
+{% block inhalt %}
+<section class="seiten-kopf">
+  <div class="bg-foto" style="background-image:url('{{ root }}static/img/site/schenker.webp')"></div>
+  <div class="wrap"><span class="eyebrow gold">Service</span><h1>Alles aus einer Hand.</h1><p class="lead hell">Auf Wunsch übernehmen wir die komplette Logistik, von der Spedition bis zur Zollabwicklung, und liefern Weininformationen, Produkttexte und Bildmaterial gleich mit.</p></div>
+</section>
+<section class="band on-weiss">
+  <div class="wrap">
+    <div class="logi">
+      <article class="rv tilt" data-tilt><div class="pic"><img src="{{ root }}static/img/site/schenker.webp" alt="DB Schenker am Weingut" loading="lazy"></div><div class="body"><h3>Sicherer Transport mit DB Schenker</h3><p>Seit vielen Jahren unser Partner, mit über 80 Jahren Erfahrung im Weintransport, eigenen LKW, Disponenten in der jeweiligen Landessprache und einem Stückgutsystem mit 49 Geschäftsstellen in Deutschland.</p></div></article>
+      <article class="rv d1 tilt" data-tilt><div class="pic"><img src="{{ root }}static/img/site/gori.webp" alt="Hillebrand Gori" loading="lazy"></div><div class="body"><h3>Neu: Hillebrand Gori</h3><p>Seit diesem Jahr arbeiten wir zusätzlich mit Hillebrand Gori, dem weltweit größten auf Wein, Bier und Spirituosen spezialisierten Logistikdienstleister. So wählen wir je Region die beste Route.</p></div></article>
+    </div>
+    <div class="grid3" style="margin-top:40px">
+      <div class="fact rv"><b>Fracht ab 0,31 € je Flasche</b><p>Je nach Weingut und Menge, inklusive Hebebühnenzustellung. Die Staffeln stehen bei jedem Weingut und im Bestellportal.</p></div>
+      <div class="fact rv d1"><b>Zoll &amp; Steuer</b><p>Zoll-Erledigung ab 8,50 €, Steueranmeldung ab 15,50 €, telefonische Avisierung auf Wunsch.</p></div>
+      <div class="fact rv d2"><b>Material für Ihren Verkauf</b><p>Produkttexte, Flaschenabbildungen, Auszeichnungen und Weingut-Fotos erhalten Sie von uns.</p></div>
+    </div>
+  </div>
+</section>
+<section class="band on-beige" id="holzkisten">
+  <div class="wrap grid2">
+    <div class="rv"><span class="eyebrow">Hochwertige Präsentlösungen</span><h2>Gestaltete Holzkisten mit Ihrem Logo.</h2><p class="lead">Gefertigt aus selektiertem Fichtenholz, stabil gebaut und schön anzusehen. Die Deckel aus Furnierholz sind die ideale Fläche für eine individuelle Bedruckung. So wird aus einer hochwertigen Verpackung ein Präsent mit Wiedererkennungswert, als 1er-, 3er- oder 6er-Kiste, ab einer Palette.</p><div class="actions"><a class="btn" href="{{ root }}#kontakt">Kiste anfragen</a><a class="btn ghost" href="{{ root }}weingueter/">Weingüter</a></div></div>
+    <div class="kiste-wrap rv d1" id="kiste"><img src="{{ root }}static/img/site/kiste.webp" alt="Holzkiste" loading="lazy"><div class="stamp">Ihr Logo<br>hier</div></div>
+  </div>
+  <div class="wrap"><div class="galerie-zwei"><a href="{{ root }}static/img/site/holzkisten.webp" data-lightbox><img src="{{ root }}static/img/site/holzkisten.webp" alt="Holzkisten" loading="lazy"></a><a href="{{ root }}static/img/site/praesent.webp" data-lightbox><img src="{{ root }}static/img/site/praesent.webp" alt="Präsent" loading="lazy"></a></div></div>
+</section>
+{% endblock %}
