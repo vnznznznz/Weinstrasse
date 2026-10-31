@@ -45,7 +45,7 @@ Technik: Baukasten "X3 Photo Gallery" (photo.gallery), gedacht für Fotografen-P
 13. Kleine Fehler: "Falsaff" statt "Falstaff" (Startseite), "seit 1980" vs. "über 50 Jahre Erfahrung", abgeschnittene Überschrift "Champagne M. Hostomme:".
 14. Mobil: 25.000 px Scrollhöhe, Galerie und Texte ohne Priorisierung.
 
-## 4. Was der Prototyp (`index.html`) anders macht
+## 4. Was die neue Seite (`index.html`) anders macht
 
 Designprinzipien im Stil von Apple: eine Aussage pro Abschnitt, viel Weißraum, große Serifen-Headline, Bewegung nur als Antwort auf Scrollen, Glas-Navigation, abgerundete Karten mit weichem Schatten.
 
@@ -62,7 +62,7 @@ Designprinzipien im Stil von Apple: eine Aussage pro Abschnitt, viel Weißraum, 
 | Barrierefreiheit | `lang="de"`, eine `<h1>`, Alt-Texte/`aria-label`, Fokus-Styles, `prefers-reduced-motion` schaltet alle Animationen ab |
 | Gewicht | 68 KB HTML inklusive CSS, JS und allen Grafiken; keine Bibliothek, zwei Google-Fonts |
 
-Der Prototyp läuft ohne Server: Warenkorb im `localStorage`, Bestellung endet mit Bestellnummer und kopierbarem Bestelltext. Preise, Jahrgänge und das Liefergebiet sind Beispielwerte.
+Die Seite ist in `index.html`, `assets/style.css` und `assets/app.js` aufgeteilt. Produkte und Liefergebiet kommen aus `data/produkte.json` und `data/lieferung.json`, die `auftragsautomat webshop-export` aus `config/webshop.yaml` und dem Lexware-Artikelstamm erzeugt. Die Bestellung geht per `POST /api/bestellung` an `auftragsautomat webshop-server`, der Preise und Termine serverseitig neu prüft, die Bestellnummer vergibt, die Bestellung unter `eingang/webshop/` ablegt und zwei E-Mail-Entwürfe schreibt. Ist der Server nicht erreichbar, bietet die Seite den Bestelltext zum Kopieren und einen E-Mail-Link an. Solange kein Artikel-Export vorliegt, gelten die Beispielpreise aus `webshop.yaml`, und die Seite weist darauf hin.
 
 ## 5. Shop-Konzept Lastenrad (Vorschlag für den Betrieb)
 
@@ -95,7 +95,21 @@ Der Prototyp läuft ohne Server: Warenkorb im `localStorage`, Bestellung endet m
 
 Empfehlung: **B für den Shop** (Shopify Local Delivery deckt PLZ-Zonen, Mindestbestellwert und Zeitfenster ab) und die **Laden-Seite als eigene Domain `weinstrasse.koeln`** mit dem Prototyp-Design; die Fachhandels-Seite bleibt auf weinstrasseadolph.de. Beide verlinken sich gegenseitig. Danach 301-Weiterleitungen von `/laden/*` auf die neue Domain.
 
-## 8. Sofortmaßnahmen auf der bestehenden Seite (ohne Neubau)
+## 8. Stand der Umsetzung
+
+| Teil | Status |
+|---|---|
+| Neue Laden-Seite mit Effekten, Shop, Warenkorb, Checkout | fertig (`website/`) |
+| Konfiguration Sortiment, Zonen, Zeitfenster, Versand | fertig (`config/webshop.yaml`) |
+| Export aus dem Lexware-Artikelstamm | fertig (`webshop-export`); läuft mit Beispielpreisen, bis der Export unter `daten/weinstrasse_agentur/artikel.csv` liegt |
+| Bestell-Backend mit Prüfung, Ablage, Mail-Entwürfen | fertig (`webshop-server`), 33 Tests |
+| Rechtsseiten | Entwürfe mit Platzhaltern, rechtlich prüfen lassen |
+| Produktfotos | offen: Flaschen sind Grafiken, Fotos werden in `card-media` eingesetzt |
+| Online-Zahlung (PayPal, Karte) | offen: derzeit Zahlung bei Übergabe oder per Rechnung |
+| Hosting, Domain, TLS, SMTP | offen: Server hinter Reverse-Proxy stellen, `mail.smtp_host` setzen |
+| Übernahme der Bestellung in Lexware | offen: JSON liegt in `eingang/webshop/`, Anbindung an `pruefen`/`buchen` folgt |
+
+## 9. Sofortmaßnahmen auf der bestehenden Seite (ohne Neubau)
 
 1. Bilder auf WebP umstellen und auf 1600 px begrenzen (spart rund 4 MB).
 2. jQuery- und Mailjet-Doppelungen entfernen.

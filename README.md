@@ -161,6 +161,27 @@ synchronisierte Pfad.
 Lexware-Oberfläche, am echten System zu prüfen), `aktionen.yaml` (Aktionen aus Rabattlisten, legt
 das Tool an).
 
+### Online-Shop des Ladens (`webshop.yaml`, Ordner `website/`)
+Der Laden Köln-Süd hat einen eigenen Online-Shop mit Lastenrad-Lieferung (Analyse und Konzept:
+`website/ANALYSE.md`). `config/webshop.yaml` legt fest: die Lexware-Firma, aus deren Artikelstamm
+Preise kommen (VK Preisgruppe 1 netto, Shop zeigt brutto), das kuratierte Sortiment (nur gelistete
+Artikelnummern erscheinen; `preis_brutto` ist der Beispielpreis, solange der Artikel nicht im Stamm
+steht), Liefergebiet als PLZ-Zonen mit Gebühr, Mindestflaschenzahl, Zeitfenster, Bestellschluss,
+Versandkosten, Öffnungszeiten und optional SMTP.
+
+* `auftragsautomat webshop-export` schreibt `website/data/produkte.json` und `lieferung.json`; nur
+  diese beiden Dateien liest das Frontend. Nach jeder Preisänderung oder neuem Artikel-Export erneut
+  ausführen (`--ohne-stamm`: nur Beispielpreise).
+* `auftragsautomat webshop-server [--host 0.0.0.0] [--port 8080]` liefert `website/` aus und nimmt
+  `POST /api/bestellung` an. Preise, Liefergebühr, Zeitfenster und Mindestmenge werden serverseitig neu
+  geprüft. Jede Bestellung landet als `eingang/webshop/WS-JJMMTT-NNN.json` und als zwei E-Mail-Entwürfe
+  (Kunde, Laden) unter `logs/webshop/mails/`; gesendet wird nur mit gesetztem `mail.smtp_host`
+  (Passwort über die Umgebungsvariable aus `passwort_env`). Für den Betrieb hinter einen Reverse-Proxy
+  mit TLS stellen.
+* `website/` ist eine statische Seite ohne Bibliotheken (`index.html`, `assets/`, `data/`); die
+  Rechtsseiten `impressum.html`, `datenschutz.html`, `agb.html`, `widerruf.html` sind Entwürfe mit
+  Platzhaltern in eckigen Klammern und vor dem Livegang zu ergänzen und prüfen zu lassen.
+
 ## Bedienung
 
 1. Auftrag in den OneDrive-Ordner "Eingang" legen oder in der Freigabe-Oberfläche hochladen.
@@ -188,6 +209,8 @@ ein Dry Run.
 | `watch [--einmalig] [--paket-ordner P]` | Eingang beobachten: extrahieren, prüfen, Paket speichern; bucht nie |
 | `stammdaten-pruefen [--firma ID]` | Stammdaten laden und Datenqualität berichten |
 | `odbc-erkunden --firma ID [--ziel DATEI] [--praefix X]` | Lexware-ODBC-Schema als Bericht (nur lesend) |
+| `webshop-export [--ohne-stamm]` | Shop-Daten (`website/data/produkte.json`, `lieferung.json`) aus `config/webshop.yaml` und dem Artikelstamm schreiben |
+| `webshop-server [--host H] [--port P] [--website ORDNER]` | Online-Shop ausliefern und Bestellungen unter `/api/bestellung` annehmen (Ablage `eingang/webshop/`, Mail-Entwürfe `logs/webshop/mails/`) |
 | `lexware-erkunden [--ziel PFAD] [--tiefe N] [--alle-fenster] [--backend uia\|win32\|beide] [--abgleich] [--aus-datei BAUM.JSON]` | Control-Baum des laufenden Lexware nach `logs/lexware_erkundung/<JJJJ-MM-TT_HHMMSS>/` (nur lesend, startet Lexware nie); mit `--abgleich` Vergleich mit `config/lexware_controls.yaml` (`abgleich.md`) |
 | `beispiel-pdfs [ORDNER]` | synthetische Beispiel-PDFs erzeugen (Standard `tests/fixtures/pdfs`) |
 | `m365-anmelden [--device-code] [--nur-status]` | Microsoft-365-Anmeldung bzw. Status |
@@ -371,6 +394,7 @@ diesen Kunden und Lieferanten merken", Standard an; CLI `firma-merken`). Beim n�
 config/                 Konfiguration (settings, firmen, firmenkatalog, aliase/, vorlagen/, signaturen …)
 daten/<firma>/          Stammdaten-Exporte aus Lexware (nicht im Repository)
 eingang/                Eingang (Standard; im Betrieb der synchronisierte OneDrive-Ordner "Eingang")
+eingang/webshop/        Bestellungen aus dem Online-Shop (JSON, legt der webshop-server an)
 archiv/<firma>/<jahr>/  archivierte Quelldateien nach scharfer Buchung
 logs/                   pakete/, protokoll.csv, berichte/, opentrans/, pdf/, entwuerfe/, dossiers/,
                         ablage/, ueberwachung/, fixtermine_vorschau.csv, nachfragen.json, screenshots/,
@@ -380,7 +404,8 @@ docs/                   ARCHITEKTUR.md, AUSBAUSTUFE_2.md, WAS_ICH_BRAUCHE.md, EI
 scripts/                beispiel_pdfs_erzeugen.py, windows/einrichten.ps1 (Einrichtung am Windows-PC)
 src/auftragsautomat/    Quellcode (extraktion, stammdaten, matching, rabatte, lexware, freigabe, m365,
                         termine, kontakte, kommunikation, tracking, ueberwachung, dossier, ablage,
-                        benennung.py, eingang.py, protokoll.py, watcher.py, cli.py)
+                        webshop, benennung.py, eingang.py, protokoll.py, watcher.py, cli.py)
+website/                Online-Shop des Ladens: index.html, assets/, data/ (Export), Rechtsseiten, ANALYSE.md
 tests/                  pytest-Tests und synthetische Fixtures
 ```
 

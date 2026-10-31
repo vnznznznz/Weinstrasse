@@ -12,6 +12,8 @@ Befehle:
 * ``watch [--einmalig]``                    – Eingangsordner beobachten (extrahieren + prüfen, NIE buchen)
 * ``stammdaten-pruefen [--firma]``          – Stammdaten laden und Datenqualität berichten
 * ``odbc-erkunden --firma [--ziel]``        – Lexware-ODBC-Schema erkunden (nur lesend)
+* ``webshop-export``                        – Shop-Daten (Produkte, Liefergebiet) nach website/data/ schreiben
+* ``webshop-server [--host] [--port]``      – Online-Shop ausliefern und Bestellungen annehmen
 * ``lexware-erkunden [--ziel] [--tiefe] [--alle-fenster] [--backend] [--abgleich] [--aus-datei]`` – Control-Baum
   des laufenden Lexware nur lesend auslesen und mit config/lexware_controls.yaml abgleichen
 * ``beispiel-pdfs [ORDNER]``                – Beispiel-PDFs erzeugen (scripts/beispiel_pdfs_erzeugen.py)
@@ -507,6 +509,57 @@ def watch(
     except OSError as exc:
         raise _fehler(f"Watcher konnte nicht starten: {exc}") from exc
     typer.echo(f"{anzahl} Datei(en) verarbeitet.")
+
+
+@app.command("webshop-export")
+def webshop_export(
+    ohne_stamm: Annotated[
+        bool, typer.Option("--ohne-stamm", help="Artikelstamm nicht laden; nur Beispielpreise aus config/webshop.yaml.")
+    ] = False,
+) -> None:
+    """Online-Shop: produkte.json und lieferung.json nach website/data/ schreiben (Preise = VK Preisgruppe 1 brutto)."""
+    from auftragsautomat.stammdaten.laden import lade_stammdaten
+    from auftragsautomat.webshop.export import exportiere
+    from auftragsautomat.webshop.konfig import lade_webshop_konfig
+
+    settings = _lade_settings()
+    konfig = lade_webshop_konfig()
+    artikel: dict = {}
+    if not ohne_stamm:
+        if konfig.firma not in settings.firmen:
+            raise _fehler(f"Webshop-Firma '{konfig.firma}' nicht in config/firmen.yaml.")
+        try:
+            artikel = lade_stammdaten(settings.firma(konfig.firma), cache=False).artikel_nach_nummer
+        except Exception as exc:  # noqa: BLE001 - jede Ladeursache als Hinweis, Export läuft mit Beispielpreisen weiter
+            logger.warning("Artikelstamm nicht ladbar (%s: %s); verwende Beispielpreise", type(exc).__name__, exc)
+            typer.secho(f"Hinweis: Artikelstamm nicht ladbar ({exc}); Beispielpreise aus webshop.yaml.", err=True, fg=typer.colors.YELLOW)
+    ergebnis = exportiere(konfig, artikel)
+    typer.echo(
+        f"{len(ergebnis.produkte)} Produkte nach {konfig.ausgabe_ordner}: {ergebnis.aus_stamm} mit Stammpreis, "
+        f"{ergebnis.beispielpreise} mit Beispielpreis, {len(ergebnis.uebersprungen)} übersprungen."
+    )
+    if ergebnis.uebersprungen:
+        typer.echo("Übersprungen: " + ", ".join(ergebnis.uebersprungen))
+
+
+@app.command("webshop-server")
+def webshop_server(
+    host: Annotated[str, typer.Option("--host", help="Adresse, auf der der Server lauscht.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Port.")] = 8080,
+    website: Annotated[Path | None, typer.Option("--website", help="Ordner mit index.html (Standard: website/).")] = None,
+) -> None:
+    """Online-Shop ausliefern (website/) und Bestellungen unter /api/bestellung annehmen."""
+    from auftragsautomat.webshop.konfig import lade_webshop_konfig
+    from auftragsautomat.webshop.server import starte
+
+    konfig = lade_webshop_konfig()
+    ordner = website or projekt_stamm() / "website"
+    if not (ordner / "index.html").exists():
+        raise _fehler(f"Keine index.html unter {ordner}.")
+    if not (konfig.ausgabe_ordner / "produkte.json").exists():
+        raise _fehler("website/data/produkte.json fehlt; zuerst `auftragsautomat webshop-export` ausführen.")
+    typer.echo(f"Webshop: http://{host}:{port}  (Bestellungen -> {konfig.bestellungen_ordner})")
+    starte(konfig, ordner, host, port)
 
 
 @app.command("stammdaten-pruefen")

@@ -1,0 +1,155 @@
+# Konfiguration des Online-Shops (Laden Köln-Süd) mit Lastenrad-Lieferung.
+#
+# Quelle der Artikel: der Lexware-Artikelstamm der unten genannten Firma (VK Preisgruppe 1, netto).
+# `auftragsautomat webshop-export` schreibt daraus website/data/produkte.json und
+# website/data/lieferung.json; das Frontend (website/) liest nur diese beiden Dateien.
+# `auftragsautomat webshop-server` liefert website/ aus und nimmt Bestellungen unter /api/bestellung an.
+# Jede Bestellung landet als JSON unter eingang/webshop/ (für den Auftrags-Automaten) und als
+# E-Mail-Entwurf (.eml) unter logs/webshop/mails/. Versand nur, wenn `mail.smtp_host` gesetzt ist.
+
+firma: weinstrasse_agentur         # Lexware-Mandant, aus dem Artikel und Preise kommen
+mwst_prozent: 19                   # VK Preisgruppe 1 ist netto -> Shop zeigt brutto
+ausgabe_ordner: "website/data"
+bestellungen_ordner: "eingang/webshop"
+mail_ordner: "logs/webshop/mails"
+
+laden:
+  name: "Weinstrasse Köln, Ladengeschäft"
+  strasse: "Sachsenring 38"
+  plz: "50677"
+  ort: "Köln"
+  email: "laden@weinstrasseadolph.de"
+  oeffnungszeiten:                 # Wochentag 1 = Montag ... 7 = Sonntag; fehlende Tage = geschlossen
+    1: ["09:00", "17:00"]
+    2: ["09:00", "17:00"]
+    3: ["09:00", "17:00"]
+    4: ["09:00", "18:30"]
+    5: ["09:00", "17:00"]
+
+lieferung:
+  mindestflaschen_lastenrad: 12    # ab dieser Flaschenzahl (beliebig gemischt) fährt das Lastenrad
+  bestellschluss_uhr: 12           # Bestellungen bis 12 Uhr: Lieferung am nächsten Werktag, sonst übernächster
+  tage_voraus: 4                   # so viele Werktage werden als Zeitfenster angeboten
+  versandkosten: 6.90              # Paketversand (brutto)
+  versandkostenfrei_ab: 120.00
+  zonen:
+    - id: kern
+      name: "Kerngebiet (Südstadt, Neustadt, Altstadt)"
+      gebuehr: 0.00
+      plz: ["50677", "50676", "50678", "50674", "50667", "50668", "50672"]
+    - id: rand
+      name: "Angrenzende Veedel"
+      gebuehr: 4.90
+      plz: ["50670", "50679", "50968", "50969", "50937", "50939", "50931", "50933", "50935", "50996"]
+  zeitfenster:
+    - { id: vm, von: "10:00", bis: "13:00", tage: [1, 2, 3, 4, 5] }
+    - { id: nm, von: "14:00", bis: "17:00", tage: [1, 2, 3, 4, 5] }
+    - { id: ab, von: "17:00", bis: "19:00", tage: [4] }        # Feierabend-Lieferung donnerstags
+
+mail:
+  smtp_host: null                  # z. B. "smtp.example.org"; null = nur Entwürfe schreiben, nichts senden
+  smtp_port: 587
+  benutzer: null
+  passwort_env: "WEBSHOP_SMTP_PASSWORT"
+  absender: null                   # Absenderadresse der Bestellbestätigung; null = laden.email
+  empfaenger_laden: null           # wohin die interne Bestellmeldung geht; null = laden.email
+
+# Kuratiertes Sortiment des Shops: nur diese Artikel erscheinen. Preis und Jahrgang kommen aus dem
+# Artikelstamm (artikelnummer). Steht der Artikel nicht im Stamm (z. B. ohne Export), gilt
+# `preis_brutto` als Beispielpreis und das Produkt wird als solcher gekennzeichnet.
+# typ: rot | weiss | rose | schaum | spirit | alkoholfrei
+sortiment:
+  - artikelnummer: "WS-CHAMP-01"
+    name: "Blanc de Blancs Grand Cru Millésime"
+    untertitel: "Champagne M. Hostomme · Chouilly"
+    typ: schaum
+    land: Frankreich
+    badge: "Grand Cru"
+    text: "100 % Chardonnay aus Grand-Cru-Lagen, lange Hefelagerung, feine Perlage."
+    preis_brutto: 49.90
+  - artikelnummer: "WS-ZENAS-01"
+    name: "Zenas Primitivo"
+    untertitel: "La Bollina · Süditalien"
+    typ: rot
+    land: Italien
+    badge: "Bestseller"
+    text: "Saftig, dunkle Beeren, weiche Tannine. Hoch ausgezeichnet, ein absoluter Bestseller."
+    preis_brutto: 9.90
+  - artikelnummer: "WS-ZUCC-Q"
+    name: "Zuccardi Q Malbec"
+    untertitel: "Familia Zuccardi · Mendoza"
+    typ: rot
+    land: Argentinien
+    badge: "Übersee"
+    text: "Malbec aus dem Uco Valley: Veilchen, Pflaume, feinkörniges Tannin, 12 Monate Barrique."
+    preis_brutto: 16.90
+  - artikelnummer: "WS-COCO-01"
+    name: "Coco Rotie"
+    untertitel: "RedHeads · Barossa"
+    typ: rot
+    land: Australien
+    badge: "Kult"
+    text: "Shiraz mit einem Schuss Viognier nach Vorbild der Côte-Rôtie. Würzig, voll, lang."
+    preis_brutto: 19.90
+  - artikelnummer: "WS-BARAJA-01"
+    name: "La Baraja Godello"
+    untertitel: "Valdeorras · Galicien"
+    typ: weiss
+    land: Spanien
+    badge: "Falstaff-prämiert"
+    text: "Frischer Godello mit Steinobst, Mineralität und cremigem Schmelz."
+    preis_brutto: 11.90
+  - artikelnummer: "WS-CREM-01"
+    name: "Crémant de Loire Brut"
+    untertitel: "Loire · Frankreich"
+    typ: schaum
+    land: Frankreich
+    text: "Traditionelle Flaschengärung, knackig und elegant. Der Alltags-Champagner."
+    preis_brutto: 14.90
+  - artikelnummer: "WS-XETAR-00"
+    name: "Viña Xétar 0,0 %"
+    untertitel: "Alkoholfrei · Spanien"
+    typ: alkoholfrei
+    land: Spanien
+    badge: "Gold"
+    text: "Goldprämiert und ohne Alkohol. Fruchtig, trocken, mit echter Weinaromatik."
+    preis_brutto: 7.90
+  - artikelnummer: "WS-VERDE-01"
+    name: "Vinho Verde Loureiro"
+    untertitel: "Minho · Portugal"
+    typ: weiss
+    land: Portugal
+    text: "Leicht, spritzig, Zitrus und Blüten. Perfekt für den Balkon."
+    preis_brutto: 8.90
+  - artikelnummer: "WS-GRAPPA-01"
+    name: "Grappa di Barolo"
+    untertitel: "Piemont · Italien"
+    typ: spirit
+    land: Italien
+    volumen_cl: 50
+    text: "Aus Nebbiolo-Trester, 24 Monate im Holz. Weich, nussig, warm."
+    preis_brutto: 34.90
+  - artikelnummer: "WS-RIOJA-RES"
+    name: "Rioja Reserva"
+    untertitel: "Rioja Alta · Spanien"
+    typ: rot
+    land: Spanien
+    badge: "Reserva"
+    text: "Tempranillo, 36 Monate Reifung. Vanille, Leder, reife Kirsche."
+    preis_brutto: 18.90
+  - artikelnummer: "WS-RIES-01"
+    name: "Riesling trocken"
+    untertitel: "Mosel · Deutschland"
+    typ: weiss
+    land: Deutschland
+    text: "Schiefer, Pfirsich, straffe Säure. Der Klassiker aus der Nachbarschaft."
+    preis_brutto: 10.90
+  - artikelnummer: "WS-GIN-01"
+    name: "Gin aus dem Veedel"
+    untertitel: "Köln · Deutschland"
+    typ: spirit
+    land: Deutschland
+    volumen_cl: 50
+    badge: "Lokal"
+    text: "Wacholder, Zitrus und ein Hauch Kölsch-Hopfen. Aus einer kleinen Destille."
+    preis_brutto: 29.90

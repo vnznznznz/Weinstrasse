@@ -8,268 +8,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-/* ---------- Design-Tokens ---------- */
-:root{
-  --wein:#5b141b; --wein-hell:#88232e; --wein-dunkel:#3a0b10;
-  --creme:#f6f1ea; --creme-dunkel:#eadfd2; --sand:#d8c7b2;
-  --ink:#1d1b1a; --ink-2:#4a4543; --ink-3:#8a8380;
-  --weiss:#fff; --gruen:#2f6b3a;
-  --serif:"Playfair Display",Georgia,serif; --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --r:22px; --r-s:14px;
-  --nav-h:64px;
-  --ease:cubic-bezier(.22,.61,.36,1);
-  --shadow:0 20px 60px -20px rgba(29,27,26,.25);
+<link rel="stylesheet" href="assets/style.css">
+<link rel="canonical" href="https://www.weinstrasse.koeln/">
+<meta property="og:title" content="Weinstrasse – Weinladen Köln-Süd">
+<meta property="og:description" content="Über 500 Weine, Champagner und Spirituosen. Online bestellen, per Lastenrad im Veedel geliefert.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_DE">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WineStore",
+  "name": "Weinstrasse – Weinladen Köln-Süd",
+  "url": "https://www.weinstrasse.koeln/",
+  "email": "laden@weinstrasseadolph.de",
+  "address": {"@type": "PostalAddress", "streetAddress": "Sachsenring 38", "postalCode": "50677", "addressLocality": "Köln", "addressCountry": "DE"},
+  "openingHoursSpecification": [
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Friday"], "opens": "09:00", "closes": "17:00"},
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": "Thursday", "opens": "09:00", "closes": "18:30"}
+  ],
+  "parentOrganization": {"@type": "Organization", "name": "Weinstrasse Adolph GmbH", "url": "https://www.weinstrasseadolph.de/"},
+  "sameAs": ["https://www.instagram.com/die_weinstrasse/", "https://www.facebook.com/weinstrasse.suedstadt.koeln"]
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{font-family:var(--sans);color:var(--ink);background:var(--creme);line-height:1.55;overflow-x:hidden}
-img,svg{display:block;max-width:100%}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-h1,h2,h3{font-family:var(--serif);font-weight:700;letter-spacing:-.01em;line-height:1.08}
-.container{width:min(1180px,92vw);margin-inline:auto}
-.eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--wein-hell)}
-.lead{font-size:clamp(1.1rem,1.4vw,1.35rem);color:var(--ink-2);max-width:62ch}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-
-/* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.9rem 1.5rem;border-radius:999px;font-weight:600;font-size:.98rem;transition:transform .35s var(--ease),box-shadow .35s var(--ease),background .25s}
-.btn:active{transform:scale(.97)}
-.btn-primary{background:var(--wein);color:#fff;box-shadow:0 10px 30px -10px rgba(91,20,27,.6)}
-.btn-primary:hover{background:var(--wein-hell);transform:translateY(-2px)}
-.btn-ghost{background:rgba(255,255,255,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(29,27,26,.12)}
-.btn-ghost:hover{background:#fff;transform:translateY(-2px)}
-.btn-dark{background:var(--ink);color:#fff}
-.btn-dark:hover{background:#000;transform:translateY(-2px)}
-.btn-sm{padding:.6rem 1.05rem;font-size:.88rem}
-.btn[disabled]{opacity:.45;pointer-events:none}
-
-/* ---------- Navigation (Glas) ---------- */
-.nav{position:fixed;inset:0 0 auto 0;height:var(--nav-h);z-index:50;display:flex;align-items:center;transition:background .4s,box-shadow .4s,backdrop-filter .4s}
-.nav.scrolled{background:rgba(246,241,234,.72);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);box-shadow:0 1px 0 rgba(29,27,26,.08)}
-.nav .container{display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.logo{font-family:var(--serif);font-weight:700;font-size:1.35rem;letter-spacing:.01em;display:flex;align-items:center;gap:.6rem}
-.logo small{font-family:var(--sans);font-weight:600;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
-.nav-links{display:flex;gap:1.6rem;font-size:.9rem;font-weight:500;color:var(--ink-2)}
-.nav-links a{position:relative;padding:.3rem 0}
-.nav-links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--wein);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
-.nav-links a:hover::after{transform:scaleX(1)}
-.cart-btn{position:relative;display:inline-flex;align-items:center;gap:.5rem;padding:.55rem .95rem;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:.88rem;transition:transform .3s var(--ease)}
-.cart-btn:hover{transform:translateY(-1px)}
-.cart-btn .count{min-width:1.35rem;height:1.35rem;padding:0 .35rem;display:grid;place-items:center;border-radius:999px;background:var(--wein-hell);font-size:.72rem;transition:transform .3s var(--ease)}
-.cart-btn .count.bump{animation:bump .45s var(--ease)}
-@keyframes bump{40%{transform:scale(1.45)}}
-.burger{display:none;width:40px;height:40px;place-items:center;border-radius:12px}
-.burger span{display:block;width:20px;height:2px;background:var(--ink);box-shadow:0 -6px 0 var(--ink),0 6px 0 var(--ink)}
-@media (max-width:860px){.nav-links{display:none}.burger{display:grid}}
-.mobile-menu{position:fixed;inset:var(--nav-h) 0 0 0;z-index:49;background:rgba(246,241,234,.96);backdrop-filter:blur(20px);display:none;flex-direction:column;padding:2rem 6vw;gap:1.2rem;font-family:var(--serif);font-size:1.8rem}
-.mobile-menu.open{display:flex}
-
-/* ---------- Hero ---------- */
-.hero{position:relative;height:100svh;min-height:640px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(120% 90% at 50% 110%,#3a0b10 0%,#5b141b 35%,#1a0a0c 100%)}
-.hero-bg{position:absolute;inset:-10%;will-change:transform;transform:translateZ(0)}
-.hero-bg .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.75;mix-blend-mode:screen}
-.hero-bg .g1{width:48vw;height:48vw;left:-10vw;top:10vh;background:#9a2b3a}
-.hero-bg .g2{width:40vw;height:40vw;right:-8vw;bottom:-6vh;background:#c46b4a}
-.hero-bg .g3{width:30vw;height:30vw;left:40vw;top:-10vh;background:#6d4bff;opacity:.25}
-.hero .grain{position:absolute;inset:0;opacity:.14;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");pointer-events:none}
-.hero-content{position:relative;text-align:center;color:#fff;padding:0 6vw;will-change:transform,opacity}
-.hero h1{font-size:clamp(2.8rem,7.2vw,6.4rem);font-weight:500;letter-spacing:-.025em;max-width:14ch;margin-inline:auto}
-.hero h1 em{font-style:italic;background:linear-gradient(90deg,#f7d9c4,#ffffff 50%,#e7b8a2);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{margin:1.4rem auto 2.2rem;max-width:46ch;font-size:clamp(1.05rem,1.5vw,1.3rem);color:rgba(255,255,255,.78)}
-.hero .cta{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
-.hero .btn-primary{background:#fff;color:var(--wein);box-shadow:0 20px 40px -14px rgba(0,0,0,.5)}
-.hero .btn-primary:hover{background:#fff}
-.hero .btn-ghost{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)}
-.hero .btn-ghost:hover{background:rgba(255,255,255,.2)}
-.bottles{position:absolute;inset:0;pointer-events:none}
-.bottle{position:absolute;width:clamp(50px,6vw,90px);opacity:.9;filter:drop-shadow(0 30px 40px rgba(0,0,0,.45));will-change:transform;animation:float 9s ease-in-out infinite}
-.bottle.b1{left:8%;top:18%;animation-delay:-2s}.bottle.b2{right:9%;top:22%;animation-delay:-5s;width:clamp(40px,5vw,72px)}.bottle.b3{left:16%;bottom:12%;animation-delay:-7s;width:clamp(36px,4.5vw,64px)}.bottle.b4{right:18%;bottom:10%;animation-delay:-1s}
-@keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-22px) rotate(4deg)}}
-.scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:.5rem}
-.scroll-hint i{width:1px;height:38px;background:linear-gradient(rgba(255,255,255,.7),transparent);animation:drop 1.8s ease-in-out infinite}
-@keyframes drop{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
-@media (max-width:700px){.bottle.b3,.bottle.b4{display:none}.bottle.b1{left:-3%;top:8%;width:44px;opacity:.55}.bottle.b2{right:-2%;top:64%;width:38px;opacity:.55}.toast{bottom:auto;top:calc(var(--nav-h) + .8rem)}.toast.show{transform:translate(-50%,0)}.toast{transform:translate(-50%,-10px)}}
-
-/* ---------- Kennzahlen ---------- */
-.stats{background:var(--creme);padding:4.5rem 0 2rem}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
-.stat{padding:1.6rem 1.4rem;border-radius:var(--r);background:#fff;box-shadow:var(--shadow)}
-.stat b{display:block;font-family:var(--serif);font-size:clamp(2rem,3.6vw,3rem);line-height:1;color:var(--wein)}
-.stat span{color:var(--ink-3);font-size:.9rem}
-@media (max-width:860px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
-
-/* ---------- Reveal ---------- */
-.reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
-.reveal.in{opacity:1;transform:none}
-.stagger>*{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
-.stagger.in>*{opacity:1;transform:none}
-.stagger.in>*:nth-child(2){transition-delay:.1s}.stagger.in>*:nth-child(3){transition-delay:.2s}.stagger.in>*:nth-child(4){transition-delay:.3s}.stagger.in>*:nth-child(5){transition-delay:.4s}.stagger.in>*:nth-child(6){transition-delay:.5s}.stagger.in>*:nth-child(7){transition-delay:.6s}.stagger.in>*:nth-child(8){transition-delay:.7s}
-
-/* ---------- Abschnitte ---------- */
-.section{padding:7rem 0}
-.section-head{max-width:760px;margin-bottom:3rem}
-.section-head h2{font-size:clamp(2rem,4.4vw,3.6rem);margin:.6rem 0 1rem}
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
-.feature{position:relative;padding:2.2rem;border-radius:var(--r);background:#fff;box-shadow:var(--shadow);overflow:hidden;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
-.feature:hover{transform:translateY(-6px);box-shadow:0 30px 70px -24px rgba(91,20,27,.35)}
-.feature .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--wein),var(--wein-hell));color:#fff;margin-bottom:1.3rem}
-.feature h3{font-size:1.35rem;margin-bottom:.5rem}
-.feature p{color:var(--ink-2);font-size:.97rem}
-@media (max-width:860px){.features{grid-template-columns:1fr}}
-
-/* ---------- Scrollytelling Lastenrad ---------- */
-.story{background:var(--ink);color:#fff;position:relative}
-.story-inner{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
-.story-sticky{position:sticky;top:var(--nav-h);height:calc(100svh - var(--nav-h));display:grid;place-items:center}
-.story-stage{position:relative;width:100%;aspect-ratio:1/1;max-height:70vh;border-radius:var(--r);background:radial-gradient(80% 80% at 50% 40%,#3a0b10,#141212 70%);overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.8)}
-.story-stage svg{position:absolute;inset:0;width:100%;height:100%}
-.story-stage .road{stroke:rgba(255,255,255,.18);stroke-width:2;fill:none;stroke-dasharray:8 10}
-.story-stage .trace{stroke:#f3c8a6;stroke-width:3;fill:none;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;pathLength:1}
-.story-stage .pin{opacity:.35;transition:opacity .4s,transform .4s var(--ease)}
-.story-stage .pin.on{opacity:1;transform:translateY(-4px)}
-.bike{transition:transform .08s linear}
-.wheel{transform-origin:center;transform-box:fill-box}
-.story-steps{padding:30vh 0}
-.step{min-height:60vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:opacity .5s;padding:2rem 0}
-.step.active{opacity:1}
-.step .num{font-family:var(--serif);font-size:4rem;line-height:1;color:var(--wein-hell);opacity:.9}
-.step h3{font-size:clamp(1.8rem,3.2vw,2.6rem);margin:.6rem 0 1rem}
-.step p{color:rgba(255,255,255,.72);font-size:1.08rem;max-width:44ch}
-.step .chip{display:inline-block;margin-top:1rem;padding:.4rem .8rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);font-size:.82rem}
-@media (max-width:900px){.story-inner{grid-template-columns:1fr;gap:1rem}.story-sticky{height:auto;position:sticky;top:var(--nav-h);padding:1rem 0;background:var(--ink);z-index:2}.story-stage{max-height:46vh;aspect-ratio:16/10}.story-steps{padding:2rem 0}.step{min-height:50vh}}
-
-/* ---------- Shop ---------- */
-.shop{background:var(--creme)}
-.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2rem}
-.chip-btn{padding:.55rem 1rem;border-radius:999px;background:#fff;border:1px solid rgba(29,27,26,.1);font-size:.88rem;font-weight:500;transition:all .3s var(--ease)}
-.chip-btn:hover{border-color:var(--wein)}
-.chip-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.2rem}
-.card{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .5s var(--ease),box-shadow .5s var(--ease);will-change:transform}
-.card:hover{transform:translateY(-8px);box-shadow:0 36px 70px -26px rgba(29,27,26,.4)}
-.card-media{position:relative;aspect-ratio:4/5;display:grid;place-items:center;overflow:hidden;background:var(--creme)}
-.card-media .bg{position:absolute;inset:0;transition:transform .9s var(--ease)}
-.card:hover .card-media .bg{transform:scale(1.08)}
-.card-media svg{position:relative;width:34%;filter:drop-shadow(0 24px 24px rgba(0,0,0,.28));transition:transform .7s var(--ease)}
-.card:hover .card-media svg{transform:translateY(-8px) rotate(-3deg)}
-.badge{position:absolute;top:.9rem;left:.9rem;padding:.3rem .65rem;border-radius:999px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);font-size:.72rem;font-weight:600;letter-spacing:.05em}
-.card-body{padding:1.2rem 1.3rem 1.3rem;display:flex;flex-direction:column;gap:.35rem;flex:1}
-.card-body .meta{font-size:.78rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em}
-.card-body h3{font-size:1.15rem}
-.card-body .desc{color:var(--ink-2);font-size:.9rem;flex:1}
-.price-row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:.8rem;gap:.5rem}
-.price{font-weight:700;font-size:1.2rem}
-.price small{display:block;font-weight:400;font-size:.72rem;color:var(--ink-3)}
-.shop-note{margin-top:2rem;font-size:.85rem;color:var(--ink-3)}
-
-/* ---------- Events / Öffnungszeiten ---------- */
-.split{display:grid;grid-template-columns:1.1fr .9fr;gap:1.2rem}
-@media (max-width:900px){.split{grid-template-columns:1fr}}
-.panel{border-radius:var(--r);padding:2.4rem;background:#fff;box-shadow:var(--shadow)}
-.panel.dark{background:linear-gradient(160deg,var(--wein),var(--wein-dunkel));color:#fff}
-.panel.dark .eyebrow{color:#f3c8a6}
-.panel h3{font-size:1.7rem;margin:.4rem 0 1rem}
-.event{display:grid;grid-template-columns:auto 1fr;gap:1.2rem;padding:1.2rem 0;border-top:1px solid rgba(29,27,26,.08)}
-.event:first-of-type{border-top:0}
-.date{width:64px;text-align:center;border-radius:14px;padding:.5rem 0;background:var(--creme)}
-.date b{display:block;font-family:var(--serif);font-size:1.6rem;line-height:1}
-.date span{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-.event h4{font-size:1.05rem;margin-bottom:.2rem}
-.event p{font-size:.9rem;color:var(--ink-2)}
-.hours{display:grid;grid-template-columns:1fr auto;gap:.45rem 1.5rem;font-size:.98rem}
-.hours .closed{opacity:.55}
-.open-now{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem .8rem;border-radius:999px;background:rgba(255,255,255,.14);font-size:.82rem;margin-bottom:1.2rem}
-.open-now i{width:8px;height:8px;border-radius:50%;background:#7bd389;box-shadow:0 0 0 4px rgba(123,211,137,.25)}
-.open-now.closed i{background:#f08b8b;box-shadow:0 0 0 4px rgba(240,139,139,.25)}
-
-/* ---------- Footer ---------- */
-footer{background:var(--ink);color:rgba(255,255,255,.7);padding:4rem 0 2rem;font-size:.9rem}
-.foot{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2rem;margin-bottom:3rem}
-footer h4{color:#fff;font-family:var(--sans);font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem}
-footer a:hover{color:#fff}
-footer ul{list-style:none;display:grid;gap:.4rem}
-.foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:1.5rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.8rem}
-@media (max-width:860px){.foot{grid-template-columns:1fr 1fr}}
-
-/* ---------- Warenkorb (Drawer) ---------- */
-.overlay{position:fixed;inset:0;background:rgba(29,27,26,.45);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .4s;z-index:60}
-.overlay.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:#fff;z-index:70;transform:translateX(105%);transition:transform .5s var(--ease);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.15)}
-.drawer.show{transform:none}
-.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:1.3rem 1.5rem;border-bottom:1px solid rgba(29,27,26,.08)}
-.drawer-head h3{font-size:1.4rem}
-.x{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--creme);font-size:1.1rem}
-.drawer-body{flex:1;overflow:auto;padding:1rem 1.5rem}
-.line{display:grid;grid-template-columns:54px 1fr auto;gap:.9rem;align-items:center;padding:.9rem 0;border-bottom:1px solid rgba(29,27,26,.06)}
-.line .thumb{width:54px;height:66px;border-radius:12px;display:grid;place-items:center;background:var(--creme)}
-.line .thumb svg{width:40%}
-.line h4{font-size:.95rem}
-.line .sub{font-size:.8rem;color:var(--ink-3)}
-.qty{display:inline-flex;align-items:center;border:1px solid rgba(29,27,26,.12);border-radius:999px;overflow:hidden}
-.qty button{width:30px;height:30px;display:grid;place-items:center;font-size:1rem}
-.qty span{min-width:26px;text-align:center;font-size:.9rem;font-weight:600}
-.line .lp{font-weight:600;text-align:right;font-size:.95rem}
-.drawer-foot{padding:1.2rem 1.5rem 1.5rem;border-top:1px solid rgba(29,27,26,.08);background:var(--creme)}
-.progress{height:8px;border-radius:999px;background:rgba(29,27,26,.08);overflow:hidden;margin:.5rem 0 .9rem}
-.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--wein),var(--wein-hell));width:0;transition:width .6s var(--ease)}
-.sumrow{display:flex;justify-content:space-between;font-size:.95rem;margin:.25rem 0}
-.sumrow.total{font-weight:700;font-size:1.15rem;margin-top:.6rem}
-.empty{text-align:center;padding:4rem 1rem;color:var(--ink-3)}
-
-/* ---------- Checkout (Modal) ---------- */
-.modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .4s}
-.modal.show{opacity:1;pointer-events:auto}
-.modal-card{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 50px 120px -30px rgba(0,0,0,.5);transform:translateY(30px) scale(.98);transition:transform .5s var(--ease)}
-.modal.show .modal-card{transform:none}
-.modal-head{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);padding:1.2rem 1.8rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(29,27,26,.08);z-index:1}
-.modal-body{padding:1.6rem 1.8rem 2rem}
-.steps-bar{display:flex;gap:.4rem;margin-bottom:1.6rem}
-.steps-bar i{flex:1;height:4px;border-radius:999px;background:rgba(29,27,26,.1)}
-.steps-bar i.done{background:var(--wein)}
-.opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}
-.opt{border:2px solid rgba(29,27,26,.1);border-radius:18px;padding:1.1rem;cursor:pointer;transition:all .3s var(--ease);display:flex;flex-direction:column;gap:.3rem}
-.opt:hover{border-color:var(--sand)}
-.opt.sel{border-color:var(--wein);background:#fdf8f5}
-.opt b{font-size:1rem}
-.opt span{font-size:.82rem;color:var(--ink-2)}
-.opt .ico{font-size:1.5rem}
-@media (max-width:640px){.opt-grid{grid-template-columns:1fr}}
-.field{display:grid;gap:.35rem;margin-top:1rem}
-.field label{font-size:.82rem;font-weight:600;color:var(--ink-2)}
-.field input,.field select,.field textarea{padding:.85rem 1rem;border-radius:14px;border:1.5px solid rgba(29,27,26,.12);font:inherit;background:#fff;transition:border .25s,box-shadow .25s}
-.field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--wein);box-shadow:0 0 0 4px rgba(91,20,27,.12)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-@media (max-width:640px){.row2{grid-template-columns:1fr}}
-.plz-result{margin-top:.8rem;padding:.9rem 1rem;border-radius:14px;font-size:.9rem;display:none}
-.plz-result.ok{display:block;background:#eaf5ec;color:var(--gruen)}
-.plz-result.warn{display:block;background:#fff4e5;color:#8a5a00}
-.plz-result.no{display:block;background:#fdecec;color:#9b1c1c}
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem;margin-top:.6rem}
-.slot{padding:.8rem;border-radius:14px;border:1.5px solid rgba(29,27,26,.12);text-align:center;font-size:.88rem;cursor:pointer;transition:all .25s}
-.slot b{display:block;font-size:.95rem}
-.slot.sel{border-color:var(--wein);background:#fdf8f5}
-.slot.off{opacity:.4;pointer-events:none;text-decoration:line-through}
-.check{display:flex;gap:.7rem;align-items:flex-start;font-size:.88rem;margin-top:1rem;color:var(--ink-2)}
-.check input{margin-top:.25rem;accent-color:var(--wein);width:18px;height:18px}
-.modal-foot{display:flex;justify-content:space-between;gap:1rem;margin-top:1.8rem}
-.summary{background:var(--creme);border-radius:18px;padding:1.2rem 1.4rem;margin-top:1rem;font-size:.92rem}
-.summary .sumrow{margin:.3rem 0}
-.success{text-align:center;padding:2rem 0}
-.success .ring{width:84px;height:84px;margin:0 auto 1.2rem;border-radius:50%;background:#eaf5ec;display:grid;place-items:center;color:var(--gruen);animation:pop .6s var(--ease)}
-@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
-.success h3{font-size:1.9rem}
-.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--creme);padding:.3rem .6rem;border-radius:8px}
-.toast{position:fixed;left:50%;bottom:1.5rem;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:.8rem 1.2rem;border-radius:999px;font-size:.9rem;opacity:0;transition:all .4s var(--ease);z-index:90;pointer-events:none;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)}
-.toast.show{opacity:1;transform:translate(-50%,0)}
-.proto{position:fixed;left:1rem;bottom:1rem;z-index:40;font-size:.72rem;padding:.4rem .7rem;border-radius:999px;background:rgba(29,27,26,.8);color:#fff;backdrop-filter:blur(8px)}
-
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
-  .reveal,.stagger>*{opacity:1;transform:none}
-}
-</style>
+</script>
 </head>
 <body>
 
@@ -403,7 +163,7 @@ footer ul{list-style:none;display:grid;gap:.4rem}
         <div class="num">01</div>
         <h3>Sie wählen aus über 500 Weinen.</h3>
         <p>Im Online-Shop stöbern, Lieblingswein in den Korb legen. Ab 12 Flaschen, gern gemischt, rollt das Lastenrad los. Wir nennen es Wein-Taxi.</p>
-        <span class="chip">Mindestmenge: 12 Flaschen, beliebig gemischt</span>
+        <span class="chip">Mindestmenge: <span id="minFlaschen">12</span> Flaschen, beliebig gemischt</span>
       </div>
       <div class="step" data-step="1">
         <div class="num">02</div>
@@ -444,7 +204,7 @@ footer ul{list-style:none;display:grid;gap:.4rem}
       <button class="chip-btn" data-f="alkoholfrei">Alkoholfrei</button>
     </div>
     <div class="grid stagger" id="grid"></div>
-    <p class="shop-note">Prototyp: Preise und Jahrgänge sind Beispielwerte und werden aus dem Lexware-Artikelstamm übernommen. Abgabe nur an Personen ab 18 Jahren.</p>
+    <p class="shop-note" id="shopNote">Abgabe nur an Personen ab 18 Jahren. Preise aus dem Artikelstamm, Stand <span id="preisStand">…</span>.</p>
   </div>
 </section>
 
@@ -495,8 +255,8 @@ footer ul{list-style:none;display:grid;gap:.4rem}
         <p style="max-width:38ch">Familienunternehmen seit 1980. Weinhandlung in der Kölner Südstadt, Direktimporteur für den Fachhandel.</p>
       </div>
       <div><h4>Laden</h4><ul><li><a href="#laden">Über uns</a></li><li><a href="#shop">Shop</a></li><li><a href="#events">Events</a></li><li><a href="#zeiten">Öffnungszeiten</a></li></ul></div>
-      <div><h4>Service</h4><ul><li><a href="#lastenrad">Lastenrad-Lieferung</a></li><li><a href="#">Präsent-Service</a></li><li><a href="#">Verkostungen</a></li><li><a href="#">Newsletter</a></li></ul></div>
-      <div><h4>Rechtliches</h4><ul><li><a href="#">Impressum</a></li><li><a href="#">Datenschutz</a></li><li><a href="#">AGB</a></li><li><a href="#">Widerrufsbelehrung</a></li></ul></div>
+      <div><h4>Service</h4><ul><li><a href="#lastenrad">Lastenrad-Lieferung</a></li><li><a href="#events">Verkostungen</a></li><li><a href="#zeiten">Präsent-Service</a></li></ul></div>
+      <div><h4>Rechtliches</h4><ul><li><a href="impressum.html">Impressum</a></li><li><a href="datenschutz.html">Datenschutz</a></li><li><a href="agb.html">AGB</a></li><li><a href="widerruf.html">Widerrufsbelehrung</a></li></ul></div>
     </div>
     <div class="foot-bottom"><span>© Weinstrasse Adolph GmbH</span><span>Instagram · Facebook · YouTube</span></div>
   </div>
@@ -524,7 +284,6 @@ footer ul{list-style:none;display:grid;gap:.4rem}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="proto">Prototyp · Design &amp; Shop-Konzept</div>
 
 <!-- ============ SVG-Symbole (Flaschen) ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -543,266 +302,6 @@ footer ul{list-style:none;display:grid;gap:.4rem}
   </defs>
 </svg>
 
-<script>
-/* =====================================================================
-   Daten (Prototyp). Im Betrieb kommen Artikel aus dem Lexware-Stamm.
-   ===================================================================== */
-const PRODUKTE = [
-  {id:"p1", name:"Blanc de Blancs Grand Cru Millésime", sub:"Champagne M. Hostomme · Chouilly", typ:"schaum", land:"Frankreich", preis:49.90, liter:0.75, farbe:"sparkling", bg:"linear-gradient(160deg,#f6f1ea,#e6e0c8)", badge:"Grand Cru", text:"100 % Chardonnay aus Grand-Cru-Lagen, lange Hefelagerung, feine Perlage."},
-  {id:"p2", name:"Zenas Primitivo", sub:"La Bollina · Süditalien", typ:"rot", land:"Italien", preis:9.90, liter:0.75, farbe:"red", bg:"linear-gradient(160deg,#f3e3df,#e4c3bd)", badge:"Bestseller", text:"Saftig, dunkle Beeren, weiche Tannine. Hoch ausgezeichnet, ein absoluter Bestseller."},
-  {id:"p3", name:"Zuccardi Q Malbec", sub:"Familia Zuccardi · Mendoza", typ:"rot", land:"Argentinien", preis:16.90, liter:0.75, farbe:"red", bg:"linear-gradient(160deg,#efe4ea,#d9c2d2)", badge:"Übersee", text:"Malbec aus dem Uco Valley: Veilchen, Pflaume, feinkörniges Tannin, 12 Monate Barrique."},
-  {id:"p4", name:"Coco Rotie", sub:"RedHeads · Barossa", typ:"rot", land:"Australien", preis:19.90, liter:0.75, farbe:"red", bg:"linear-gradient(160deg,#f6eadf,#e8cdb6)", badge:"Kult", text:"Shiraz mit einem Schuss Viognier nach Vorbild der Côte-Rôtie. Würzig, voll, lang."},
-  {id:"p5", name:"La Baraja Godello", sub:"Valdeorras · Galicien", typ:"weiss", land:"Spanien", preis:11.90, liter:0.75, farbe:"white", bg:"linear-gradient(160deg,#eef3e4,#d6e3c2)", badge:"Falstaff-prämiert", text:"Frischer Godello mit Steinobst, Mineralität und cremigem Schmelz."},
-  {id:"p6", name:"Crémant de Loire Brut", sub:"Loire · Frankreich", typ:"schaum", land:"Frankreich", preis:14.90, liter:0.75, farbe:"sparkling", bg:"linear-gradient(160deg,#f2f1e7,#d8dcc7)", badge:"", text:"Traditionelle Flaschengärung, knackig und elegant. Der Alltags-Champagner."},
-  {id:"p7", name:"Viña Xétar 0,0 %", sub:"Alkoholfrei · Spanien", typ:"alkoholfrei", land:"Spanien", preis:7.90, liter:0.75, farbe:"zero", bg:"linear-gradient(160deg,#e9eef5,#cfd9e6)", badge:"Gold", text:"Goldprämiert und ohne Alkohol. Fruchtig, trocken, mit echter Weinaromatik."},
-  {id:"p8", name:"Vinho Verde Loureiro", sub:"Minho · Portugal", typ:"weiss", land:"Portugal", preis:8.90, liter:0.75, farbe:"white", bg:"linear-gradient(160deg,#eaf3ec,#c9e0d0)", badge:"", text:"Leicht, spritzig, Zitrus und Blüten. Perfekt für den Balkon."},
-  {id:"p9", name:"Grappa di Barolo", sub:"Piemont · Italien", typ:"spirit", land:"Italien", preis:34.90, liter:0.5, farbe:"spirit", bg:"linear-gradient(160deg,#f6ead9,#e6cfae)", badge:"", text:"Aus Nebbiolo-Trester, 24 Monate im Holz. Weich, nussig, warm."},
-  {id:"p10", name:"Rioja Reserva", sub:"Rioja Alta · Spanien", typ:"rot", land:"Spanien", preis:18.90, liter:0.75, farbe:"red", bg:"linear-gradient(160deg,#f3e4e2,#dcbfbb)", badge:"Reserva", text:"Tempranillo, 36 Monate Reifung. Vanille, Leder, reife Kirsche."},
-  {id:"p11", name:"Riesling trocken", sub:"Mosel · Deutschland", typ:"weiss", land:"Deutschland", preis:10.90, liter:0.75, farbe:"white", bg:"linear-gradient(160deg,#f1f4e4,#dbe3bf)", badge:"", text:"Schiefer, Pfirsich, straffe Säure. Der Klassiker aus der Nachbarschaft."},
-  {id:"p12", name:"Gin aus dem Veedel", sub:"Köln · Deutschland", typ:"spirit", land:"Deutschland", preis:29.90, liter:0.5, farbe:"spirit", bg:"linear-gradient(160deg,#ece8e2,#d2cabd)", badge:"Lokal", text:"Wacholder, Zitrus und ein Hauch Kölsch-Hopfen. Aus einer kleinen Destille."},
-];
-
-/* Liefergebiet Lastenrad (Beispielkonfiguration, in settings pflegbar) */
-const LIEFERGEBIET = {
-  kern:   {plz:["50677","50676","50678","50674","50667","50668","50672"], gebuehr:0,    name:"Kerngebiet (Südstadt, Neustadt, Altstadt)"},
-  rand:   {plz:["50670","50679","50968","50969","50937","50939","50931","50933","50935","50996"], gebuehr:4.90, name:"Angrenzende Veedel"},
-};
-const MINDESTFLASCHEN = 12;
-const VERSANDKOSTEN = 6.90;
-
-/* ===================== Hilfsfunktionen ===================== */
-const eur = n => n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
-const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
-let toastT; function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200)}
-
-/* ===================== Navigation ===================== */
-const nav=$("#nav");
-addEventListener("scroll",()=>nav.classList.toggle("scrolled",scrollY>40),{passive:true});
-$("#burger").onclick=()=>$("#mobileMenu").classList.toggle("open");
-$$("#mobileMenu a").forEach(a=>a.onclick=()=>$("#mobileMenu").classList.remove("open"));
-
-/* ===================== Hero-Scroll-Effekt (Apple-Style) ===================== */
-const heroBg=$("#heroBg"), heroContent=$("#heroContent"), hero=$(".hero");
-const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
-function heroFx(){
-  if(reduced) return;
-  const h=hero.offsetHeight, y=Math.min(scrollY,h), p=y/h;
-  heroBg.style.transform=`translate3d(0,${y*0.35}px,0) scale(${1+p*0.15})`;
-  heroContent.style.transform=`translate3d(0,${y*0.18}px,0) scale(${1-p*0.08})`;
-  heroContent.style.opacity=1-p*1.4;
-}
-addEventListener("scroll",()=>requestAnimationFrame(heroFx),{passive:true}); heroFx();
-
-/* ===================== Reveal beim Scrollen ===================== */
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.15,rootMargin:"0px 0px -8% 0px"});
-$$(".reveal,.stagger").forEach(el=>io.observe(el));
-
-/* Zähler */
-const cio=new IntersectionObserver(es=>es.forEach(e=>{
-  if(!e.isIntersecting) return; cio.unobserve(e.target);
-  const el=e.target, end=+el.dataset.count, suf=el.dataset.suffix||"", plain=el.dataset.plain, t0=performance.now(), d=1400;
-  (function tick(t){const p=Math.min(1,(t-t0)/d), v=Math.round(end*(1-Math.pow(1-p,3)));el.textContent=(plain?v:v.toLocaleString("de-DE"))+suf;if(p<1)requestAnimationFrame(tick)})(t0);
-}),{threshold:.6});
-$$("[data-count]").forEach(el=>cio.observe(el));
-
-/* ===================== Scrollytelling Lastenrad ===================== */
-const road=$("#road"), trace=$("#trace"), bike=$("#bike"), steps=$$(".step"), stepsWrap=$("#steps");
-const roadLen=road.getTotalLength();
-let bikeDist=0;
-function storyFx(){
-  const r=stepsWrap.getBoundingClientRect(), vh=innerHeight;
-  const total=r.height-vh*0.4; const p=Math.min(1,Math.max(0,(vh*0.6-r.top)/total));
-  const pt=road.getPointAtLength(p*roadLen), ahead=road.getPointAtLength(Math.min(roadLen,p*roadLen+4));
-  const ang=Math.atan2(ahead.y-pt.y,ahead.x-pt.x)*180/Math.PI;
-  bike.setAttribute("transform",`translate(${pt.x},${pt.y-28}) rotate(${ang*0.6})`);
-  trace.style.strokeDashoffset=1-p;
-  const spin=p*roadLen*6; $("#w1").setAttribute("transform",`translate(12,40) rotate(${spin})`); $("#w2").setAttribute("transform",`translate(96,40) rotate(${spin})`);
-  const stops=[0,.33,.66,1]; stops.forEach((s,i)=>$("#pin"+i).classList.toggle("on",p>=s-0.02));
-  let active=0; steps.forEach((s,i)=>{const sr=s.getBoundingClientRect(); if(sr.top<vh*0.55) active=i}); steps.forEach((s,i)=>s.classList.toggle("active",i===active));
-}
-addEventListener("scroll",()=>requestAnimationFrame(storyFx),{passive:true}); addEventListener("resize",storyFx); storyFx();
-
-/* ===================== Shop ===================== */
-const grid=$("#grid"); let filter="alle";
-function bottleSvg(f){return `<svg viewBox="0 0 60 200" aria-hidden="true"><use href="#bottle-${f}"/></svg>`}
-function renderGrid(){
-  grid.classList.remove("in");
-  grid.innerHTML=PRODUKTE.filter(p=>filter==="alle"||p.typ===filter).map(p=>`
-    <article class="card" data-id="${p.id}">
-      <div class="card-media"><div class="bg" style="background:${p.bg}"></div>${p.badge?`<span class="badge">${p.badge}</span>`:""}${bottleSvg(p.farbe)}</div>
-      <div class="card-body">
-        <span class="meta">${p.land} · ${p.liter.toLocaleString("de-DE")} l</span>
-        <h3>${p.name}</h3>
-        <p class="desc">${p.sub}. ${p.text}</p>
-        <div class="price-row">
-          <div class="price">${eur(p.preis)}<small>${eur(p.preis/p.liter)} / l · inkl. MwSt.</small></div>
-          <button class="btn btn-dark btn-sm add" data-id="${p.id}">In den Korb</button>
-        </div>
-      </div>
-    </article>`).join("");
-  requestAnimationFrame(()=>requestAnimationFrame(()=>grid.classList.add("in")));
-}
-$("#filters").addEventListener("click",e=>{const b=e.target.closest(".chip-btn");if(!b)return;$$("#filters .chip-btn").forEach(x=>x.classList.remove("active"));b.classList.add("active");filter=b.dataset.f;renderGrid()});
-grid.addEventListener("click",e=>{const b=e.target.closest(".add");if(!b)return;add(b.dataset.id);b.textContent="✓ Im Korb";setTimeout(()=>b.textContent="In den Korb",1200)});
-renderGrid();
-
-/* ===================== Warenkorb ===================== */
-let cart={}; try{cart=JSON.parse(localStorage.getItem("ws_cart")||"{}")}catch{cart={}}
-const save=()=>{try{localStorage.setItem("ws_cart",JSON.stringify(cart))}catch{}};
-const flaschen=()=>Object.values(cart).reduce((a,n)=>a+n,0);
-const subtotal=()=>Object.entries(cart).reduce((a,[id,n])=>a+PRODUKTE.find(p=>p.id===id).preis*n,0);
-function add(id,n=1){cart[id]=(cart[id]||0)+n;if(cart[id]<=0)delete cart[id];save();renderCart();if(n>0){toast("In den Warenkorb gelegt");const c=$("#cartCount");c.classList.remove("bump");void c.offsetWidth;c.classList.add("bump")}}
-function renderCart(){
-  const n=flaschen(); $("#cartCount").textContent=n;
-  const lines=$("#cartLines");
-  if(!n){lines.innerHTML=`<div class="empty"><p style="font-size:2.4rem">🍷</p><p>Noch nichts im Korb.</p></div>`}
-  else lines.innerHTML=Object.entries(cart).map(([id,q])=>{const p=PRODUKTE.find(x=>x.id===id);return `
-    <div class="line"><div class="thumb">${bottleSvg(p.farbe)}</div>
-      <div><h4>${p.name}</h4><div class="sub">${p.sub} · ${eur(p.preis)}</div>
-        <div class="qty" style="margin-top:.4rem"><button data-d="-1" data-id="${id}" aria-label="weniger">−</button><span>${q}</span><button data-d="1" data-id="${id}" aria-label="mehr">+</button></div></div>
-      <div class="lp">${eur(p.preis*q)}</div></div>`}).join("");
-  $("#cartSub").textContent=eur(subtotal());
-  const rest=Math.max(0,MINDESTFLASCHEN-n);
-  $("#cartProgress").style.width=Math.min(100,n/MINDESTFLASCHEN*100)+"%";
-  $("#cartProgressText").innerHTML=rest?`Noch <b>${rest} Flasche${rest>1?"n":""}</b> bis zur Lastenrad-Lieferung (ab ${MINDESTFLASCHEN}).`:`🚲 <b>Lastenrad-Lieferung möglich</b> – ${n} Flaschen im Korb.`;
-  $("#toCheckout").disabled=!n;
-}
-$("#cartLines").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(b)add(b.dataset.id,+b.dataset.d)});
-const drawer=$("#drawer"), overlay=$("#overlay");
-function openDrawer(){drawer.classList.add("show");overlay.classList.add("show");drawer.setAttribute("aria-hidden","false")}
-function closeAll(){drawer.classList.remove("show");overlay.classList.remove("show");$("#modal").classList.remove("show");drawer.setAttribute("aria-hidden","true")}
-$("#cartBtn").onclick=openDrawer; $("#closeDrawer").onclick=closeAll; overlay.onclick=closeAll; $("#closeModal").onclick=closeAll;
-addEventListener("keydown",e=>{if(e.key==="Escape")closeAll()});
-renderCart();
-
-/* ===================== Checkout ===================== */
-const order={art:null, plz:"", zone:null, slot:null, name:"", adresse:"", email:"", tel:"", notiz:"", alter:false, agb:false};
-let step=0;
-const body=$("#modalBody");
-$("#toCheckout").onclick=()=>{drawer.classList.remove("show");step=0;renderCheckout();$("#modal").classList.add("show")};
-
-function zoneFor(plz){for(const [k,z] of Object.entries(LIEFERGEBIET)) if(z.plz.includes(plz)) return {key:k,...z}; return null}
-function lieferkosten(){
-  if(order.art==="lastenrad") return order.zone?order.zone.gebuehr:0;
-  if(order.art==="versand") return subtotal()>=120?0:VERSANDKOSTEN;
-  return 0;
-}
-function naechsteSlots(){
-  // Werktage ab morgen, 4 Tage; Feierabend-Slot nur donnerstags
-  const out=[]; const d=new Date(); d.setHours(0,0,0,0);
-  const cutoff=new Date().getHours()>=12; let add=cutoff?2:1; d.setDate(d.getDate()+add);
-  while(out.length<4){ if(d.getDay()>=1&&d.getDay()<=5){out.push(new Date(d))} d.setDate(d.getDate()+1) }
-  return out;
-}
-const fmtTag=d=>d.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
-
-function renderCheckout(){
-  const bar=`<div class="steps-bar">${[0,1,2,3].map(i=>`<i class="${i<=step?"done":""}"></i>`).join("")}</div>`;
-  const n=flaschen();
-  if(step===0){
-    body.innerHTML=bar+`
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Wie möchten Sie Ihren Wein bekommen?</h3>
-      <p style="color:var(--ink-2);font-size:.92rem;margin-bottom:1.2rem">${n} Flasche${n!==1?"n":""} im Korb · ${eur(subtotal())}</p>
-      <div class="opt-grid">
-        <div class="opt ${order.art==="lastenrad"?"sel":""} ${n<MINDESTFLASCHEN?"":""}" data-art="lastenrad"><span class="ico">🚲</span><b>Lastenrad-Lieferung</b><span>Emissionsfrei im Kölner Süden. Ab ${MINDESTFLASCHEN} Flaschen, Kerngebiet kostenlos.</span>${n<MINDESTFLASCHEN?`<span style="color:#9b1c1c;font-weight:600">Noch ${MINDESTFLASCHEN-n} Flaschen bis zur Mindestmenge</span>`:""}</div>
-        <div class="opt ${order.art==="abholung"?"sel":""}" data-art="abholung"><span class="ico">🏬</span><b>Abholung im Laden</b><span>Sachsenring 38. Wir stellen alles zusammen, Sie holen ab wann es passt. Kostenlos.</span></div>
-        <div class="opt ${order.art==="versand"?"sel":""}" data-art="versand"><span class="ico">📦</span><b>Paketversand</b><span>Deutschlandweit, ${eur(VERSANDKOSTEN)} pauschal, ab 120 € kostenlos. Versand ab 1 Flasche.</span></div>
-      </div>
-      <div class="modal-foot"><span></span><button class="btn btn-primary" id="next" ${order.art?"":"disabled"}>Weiter</button></div>`;
-    $$(".opt").forEach(o=>o.onclick=()=>{if(o.dataset.art==="lastenrad"&&n<MINDESTFLASCHEN){toast(`Lastenrad erst ab ${MINDESTFLASCHEN} Flaschen`);return}order.art=o.dataset.art;renderCheckout()});
-    $("#next").onclick=()=>{step=1;renderCheckout()};
-  }
-  else if(step===1){
-    const slots=naechsteSlots();
-    body.innerHTML=bar+(order.art==="lastenrad"?`
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Liefergebiet &amp; Zeitfenster</h3>
-      <p style="color:var(--ink-2);font-size:.92rem">Das Wein-Taxi fährt im Kölner Süden. Prüfen Sie Ihre Postleitzahl.</p>
-      <div class="field"><label for="plz">Postleitzahl</label><input id="plz" inputmode="numeric" maxlength="5" placeholder="50677" value="${order.plz}"></div>
-      <div class="plz-result" id="plzRes"></div>
-      <div id="slotWrap" style="display:${order.zone?"block":"none"};margin-top:1.2rem">
-        <label style="font-size:.82rem;font-weight:600;color:var(--ink-2)">Wunsch-Zeitfenster</label>
-        <div class="slots" id="slots">${slots.map(d=>{
-          const fen=[["10 – 13 Uhr","vm"],["14 – 17 Uhr","nm"]]; if(d.getDay()===4) fen.push(["17 – 19 Uhr","ab"]);
-          return fen.map(([t,k])=>{const key=d.toISOString().slice(0,10)+"|"+k;return `<div class="slot ${order.slot===key?"sel":""}" data-slot="${key}" data-label="${fmtTag(d)}, ${t}"><b>${fmtTag(d)}</b>${t}</div>`}).join("")}).join("")}</div>
-        <p style="font-size:.8rem;color:var(--ink-3);margin-top:.6rem">Bestellungen bis 12 Uhr liefern wir am nächsten Werktag. Übergabe nur an Personen ab 18 Jahren.</p>
-      </div>`
-    : order.art==="abholung"?`
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Abholung im Laden</h3>
-      <p style="color:var(--ink-2);font-size:.92rem">Sachsenring 38, 50677 Köln. Wir packen Ihre Bestellung und melden uns, sobald sie bereitsteht.</p>
-      <label style="font-size:.82rem;font-weight:600;color:var(--ink-2);display:block;margin-top:1.2rem">Wunschtag</label>
-      <div class="slots" id="slots">${slots.map(d=>{const key=d.toISOString().slice(0,10)+"|ab";return `<div class="slot ${order.slot===key?"sel":""}" data-slot="${key}" data-label="${fmtTag(d)}"><b>${fmtTag(d)}</b>${d.getDay()===4?"09 – 18:30 Uhr":"09 – 17 Uhr"}</div>`}).join("")}</div>`
-    : `
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Paketversand</h3>
-      <p style="color:var(--ink-2);font-size:.92rem">Versand als sicher verpacktes Weinpaket, in der Regel 2 bis 3 Werktage. ${subtotal()>=120?"Ihr Versand ist kostenlos.":`Noch ${eur(120-subtotal())} bis zum kostenlosen Versand.`}</p>
-      <div class="summary"><div class="sumrow"><span>Versandkosten</span><span>${eur(lieferkosten())}</span></div></div>`)
-    +`<div class="modal-foot"><button class="btn btn-ghost" id="back">Zurück</button><button class="btn btn-primary" id="next" ${canNext1()?"":"disabled"}>Weiter</button></div>`;
-    $("#back").onclick=()=>{step=0;renderCheckout()}; $("#next").onclick=()=>{step=2;renderCheckout()};
-    const plz=$("#plz"); if(plz){ const check=()=>{order.plz=plz.value.trim(); const res=$("#plzRes"); res.className="plz-result";
-        if(order.plz.length<5){order.zone=null;$("#slotWrap").style.display="none";$("#next").disabled=true;return}
-        const z=zoneFor(order.plz); order.zone=z;
-        if(z){res.classList.add(z.gebuehr?"warn":"ok");res.innerHTML=z.gebuehr?`✓ ${z.name}: Lieferung für ${eur(z.gebuehr)}.`:`✓ ${z.name}: Lieferung kostenlos.`;$("#slotWrap").style.display="block"}
-        else{res.classList.add("no");res.innerHTML=`Leider außerhalb unseres Lastenrad-Gebiets. Wir versenden gern per Paket oder Sie holen im Laden ab.`;$("#slotWrap").style.display="none"}
-        $("#next").disabled=!canNext1()};
-      plz.addEventListener("input",check); if(order.plz.length===5) check(); plz.focus() }
-    const sl=$("#slots"); if(sl) sl.onclick=e=>{const s=e.target.closest(".slot");if(!s)return;order.slot=s.dataset.slot;order.slotLabel=s.dataset.label;$$(".slot").forEach(x=>x.classList.toggle("sel",x===s));$("#next").disabled=!canNext1()};
-  }
-  else if(step===2){
-    body.innerHTML=bar+`
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Ihre Daten</h3>
-      <div class="row2"><div class="field"><label>Vor- und Nachname</label><input id="f-name" value="${order.name}" autocomplete="name"></div><div class="field"><label>E-Mail</label><input id="f-email" type="email" value="${order.email}" autocomplete="email"></div></div>
-      <div class="row2"><div class="field"><label>Telefon (für die Lieferung)</label><input id="f-tel" type="tel" value="${order.tel}" autocomplete="tel"></div>
-      ${order.art!=="abholung"?`<div class="field"><label>Straße, Hausnummer${order.art==="versand"?", PLZ, Ort":""}</label><input id="f-adr" value="${order.adresse}" autocomplete="street-address"></div>`:"<div></div>"}</div>
-      <div class="field"><label>Anmerkung (Klingel, Etage, Wunschzeit)</label><textarea id="f-notiz" rows="2">${order.notiz}</textarea></div>
-      <label class="check"><input type="checkbox" id="f-alter" ${order.alter?"checked":""}><span>Ich bin mindestens 18 Jahre alt. Alkoholische Getränke werden nur an Volljährige übergeben, der Ausweis wird bei Lieferung geprüft.</span></label>
-      <label class="check"><input type="checkbox" id="f-agb" ${order.agb?"checked":""}><span>Ich habe die <a href="#" style="text-decoration:underline">AGB</a> und die <a href="#" style="text-decoration:underline">Widerrufsbelehrung</a> gelesen und akzeptiere sie.</span></label>
-      <div class="modal-foot"><button class="btn btn-ghost" id="back">Zurück</button><button class="btn btn-primary" id="next">Zur Übersicht</button></div>`;
-    $("#back").onclick=()=>{step=1;renderCheckout()};
-    $("#next").onclick=()=>{
-      order.name=$("#f-name").value.trim();order.email=$("#f-email").value.trim();order.tel=$("#f-tel").value.trim();order.notiz=$("#f-notiz").value.trim();order.alter=$("#f-alter").checked;order.agb=$("#f-agb").checked;
-      if($("#f-adr")) order.adresse=$("#f-adr").value.trim();
-      if(!order.name||!order.email.includes("@")){toast("Bitte Name und E-Mail angeben");return}
-      if(order.art!=="abholung"&&!order.adresse){toast("Bitte Adresse angeben");return}
-      if(!order.alter){toast("Bitte Volljährigkeit bestätigen");return}
-      if(!order.agb){toast("Bitte AGB akzeptieren");return}
-      step=3;renderCheckout()};
-  }
-  else if(step===3){
-    const lk=lieferkosten(), tot=subtotal()+lk;
-    const artTxt={lastenrad:`Lastenrad-Lieferung · ${order.slotLabel||""}`,abholung:`Abholung im Laden · ${order.slotLabel||""}`,versand:"Paketversand"}[order.art];
-    body.innerHTML=bar+`
-      <h3 style="font-size:1.5rem;margin-bottom:.4rem">Bestellung prüfen</h3>
-      <div class="summary">
-        ${Object.entries(cart).map(([id,q])=>{const p=PRODUKTE.find(x=>x.id===id);return `<div class="sumrow"><span>${q} × ${p.name}</span><span>${eur(p.preis*q)}</span></div>`}).join("")}
-        <div class="sumrow" style="border-top:1px solid rgba(29,27,26,.1);padding-top:.5rem;margin-top:.5rem"><span>${artTxt}</span><span>${lk?eur(lk):"kostenlos"}</span></div>
-        <div class="sumrow total"><span>Gesamt inkl. MwSt.</span><span>${eur(tot)}</span></div>
-      </div>
-      <div class="summary" style="background:#fff;border:1px solid rgba(29,27,26,.08)">
-        <b>${order.name}</b><br>${order.art!=="abholung"?order.adresse+(order.art==="lastenrad"?", "+order.plz+" Köln":"")+"<br>":""}${order.email} · ${order.tel||"keine Telefonnummer"}${order.notiz?"<br><i>"+order.notiz+"</i>":""}
-      </div>
-      <p style="font-size:.82rem;color:var(--ink-3);margin-top:1rem">Zahlung: ${order.art==="versand"?"Vorkasse, PayPal oder Kreditkarte (im Live-Shop über Zahlungsanbieter)":"bei Übergabe (Karte oder bar) oder vorab per PayPal"}. Mit Klick auf „Zahlungspflichtig bestellen“ geben Sie eine verbindliche Bestellung ab.</p>
-      <div class="modal-foot"><button class="btn btn-ghost" id="back">Zurück</button><button class="btn btn-primary" id="buy">Zahlungspflichtig bestellen</button></div>`;
-    $("#back").onclick=()=>{step=2;renderCheckout()};
-    $("#buy").onclick=()=>{
-      const nr="WS-"+new Date().toISOString().slice(2,10).replace(/-/g,"")+"-"+Math.floor(Math.random()*900+100);
-      const text=`Bestellung ${nr}\n${artTxt}\n`+Object.entries(cart).map(([id,q])=>{const p=PRODUKTE.find(x=>x.id===id);return `${q} x ${p.name} (${eur(p.preis)})`}).join("\n")+`\nGesamt: ${eur(tot)}\n\n${order.name}\n${order.adresse||"Abholung"}\n${order.email} ${order.tel}\n${order.notiz}`;
-      body.innerHTML=`<div class="success"><div class="ring"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
-        <h3>Danke, ${order.name}!</h3>
-        <p style="color:var(--ink-2);margin:.6rem 0 1rem">Ihre Bestellung <span class="code">${nr}</span> ist eingegangen.<br>${order.art==="lastenrad"?"Das Wein-Taxi kommt "+order.slotLabel+".":order.art==="abholung"?"Wir melden uns, sobald alles bereitsteht.":"Sie erhalten eine Versandbestätigung per E-Mail."}</p>
-        <p style="font-size:.82rem;color:var(--ink-3);max-width:46ch;margin:0 auto 1.4rem">Prototyp: Im Live-Betrieb wird die Bestellung an den Laden gemailt und als Auftrag in Lexware angelegt. Hier können Sie den Bestelltext kopieren.</p>
-        <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap"><button class="btn btn-dark" id="copy">Bestelltext kopieren</button><button class="btn btn-ghost" id="done">Zurück zum Shop</button></div></div>`;
-      $("#copy").onclick=()=>{navigator.clipboard?.writeText(text).then(()=>toast("Kopiert")).catch(()=>toast("Kopieren nicht möglich"))};
-      $("#done").onclick=closeAll;
-      cart={};save();renderCart();
-    };
-  }
-}
-function canNext1(){ if(order.art==="lastenrad") return !!order.zone&&!!order.slot; if(order.art==="abholung") return !!order.slot; return true }
-
-/* ===================== Öffnungszeiten live ===================== */
-(function(){const d=new Date(), day=d.getDay(), m=d.getHours()*60+d.getMinutes(); const el=$("#openNow");
-  const open= day>=1&&day<=5 && m>=9*60 && m<(day===4?18*60+30:17*60);
-  el.classList.toggle("closed",!open); el.querySelector("span").textContent=open?"Jetzt geöffnet":"Zurzeit geschlossen"+(day===0||day===6?" · Montag ab 9 Uhr":"")})();
-</script>
+<script src="assets/app.js" defer></script>
 </body>
 </html>

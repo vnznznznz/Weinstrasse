@@ -18,7 +18,7 @@ AUSGENOMMEN = {".git", ".venv", "__pycache__", "logs", "archiv", "eingang"}
 
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})")
 # Funktionspostfächer (keine Personen) und triviale Platzhalter, die in der Doku zitiert werden dürfen
-_FUNKTIONSPOSTFAECHER = {"info", "def-order", "def-info", "a", "c", "e"}
+_FUNKTIONSPOSTFAECHER = {"info", "laden", "def-order", "def-info", "a", "c", "e"}
 _HILLEBRAND_REF = re.compile(r"\bDEMB(\d+)")
 _HILLEBRAND_JOB = re.compile(r"\b(?:job)?DEM(\d{6,})")
 
