@@ -17,7 +17,7 @@
           {% if w.ort %}<span>📍 {{ w.ort }}</span>{% endif %}
           {% if w.inhaber %}<span>👤 {{ w.inhaber }}</span>{% endif %}
           <span>📦 ab {{ w.mindestmenge }} Flaschen</span>
-          <span>🍷 {{ w.anzahl_produkte }} Artikel{% if w.preis_ab %} ab {{ w.preis_ab_text }}{% endif %}</span>
+          <span>🍷 {{ w.anzahl_produkte }} Artikel</span>
           {% if w.auszeichnungen %}<span>🏅 {{ w.auszeichnungen }} Auszeichnungen</span>{% endif %}
           {% if w.abwicklung == 'WIK' %}<span title="Abwicklung über die Wein-Import-Kreis GmbH">WIK</span>{% endif %}
         </div>
@@ -60,7 +60,7 @@
             {% if p.beschreibung %}<details class="pdet"><summary>Beschreibung &amp; Auszeichnungen</summary><p>{{ p.beschreibung }}</p>{% if p.auszeichnungen %}<ul class="awards">{% for a in p.auszeichnungen %}<li>🏅 {{ a }}</li>{% endfor %}</ul>{% endif %}</details>
             {% elif p.auszeichnungen %}<ul class="awards inline">{% for a in p.auszeichnungen[:3] %}<li>🏅 {{ a }}</li>{% endfor %}</ul>{% endif %}
           </div>
-          <div class="ppreis"><b>{{ p.preis_text }}</b>{% if p.zusatzsteuer %}<span class="stern" title="{{ p.zusatzsteuer }}">*</span>{% endif %}{% if p.uvp %}<span class="uvp">UVP {{ p.uvp_text }}</span>{% endif %}{% if p.aktion %}<span class="aktion">{{ p.aktion }}{% if p.aktionspreis %} → {{ p.aktionspreis|preis }}{% endif %}</span>{% endif %}</div>
+          <div class="ppreis" data-preis-id="{{ p.id }}"><b class="preis-wert gesperrt">Preis nach Anmeldung</b>{% if p.zusatzsteuer %}<span class="stern" title="{{ p.zusatzsteuer }}">*</span>{% endif %}{% if p.uvp %}<span class="uvp">UVP {{ p.uvp_text }}</span>{% endif %}<span class="aktion"></span></div>
           <div class="pmenge"><button type="button" class="qty-minus" aria-label="weniger">−</button><input type="number" min="0" step="{{ p.ve }}" value="0" data-ve="{{ p.ve }}" aria-label="Flaschen"><button type="button" class="qty-plus" aria-label="mehr">+</button></div>
           <button type="button" class="btn klein add" data-id="{{ p.id }}">In die Bestellung</button>
         </div>
@@ -68,7 +68,7 @@
       </div>
     </div>
     {% endfor %}
-    <p class="fuss-hinweis">Alle Preise netto ab Keller, spätestens gültig ab 1.3.2026, Änderungen vorbehalten. * zzgl. Schaumwein- bzw. Branntweinsteuer, siehe Artikel. Mengen in Flaschen, Schritt = Karton ({{ w.produkte[0].ve }}).</p>
+    <p class="fuss-hinweis">Einkaufspreise sehen Sie nach der <a href="#" data-login>Anmeldung als Fachhändler</a>. Alle Preise netto ab Keller, spätestens gültig ab 1.3.2026, Änderungen vorbehalten. * zzgl. Schaumwein- bzw. Branntweinsteuer, siehe Artikel. Mengen in Flaschen, Schritt = Karton ({{ w.produkte[0].ve }}).</p>
     {% else %}
     <div class="leer">Dieses Weingut ist im Katalog 2026 nicht gelistet. Fragen Sie uns nach Verfügbarkeit und Preisen. <a href="{{ root }}#kontakt">Zum Kontakt</a></div>
     {% endif %}

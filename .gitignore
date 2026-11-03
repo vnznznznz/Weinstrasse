@@ -22,3 +22,6 @@ tests/fixtures/excel/__pycache__/
 
 # Website: Build-Ausgabe
 website/dist/
+
+# Website: Preisschlüssel der Kundenzugänge (geheim)
+website/daten/schluessel.key

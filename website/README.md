@@ -45,6 +45,31 @@ im Repository.
 Alle Preise: netto ab Keller, Stand Katalog 2026 (gültig ab 1.3.2026). Vor der Veröffentlichung
 sollte ein Verkäufer die Artikel und Texte einmal durchsehen (Empfehlung aus dem Übergabe-Protokoll).
 
+## Kundenlogin und Preisschutz
+
+Einkaufspreise und Bestellportal sind nur nach Anmeldung sichtbar. Weil die Seite statisch ist,
+werden die Preise beim Bauen mit AES-256-GCM verschlüsselt (`static/js/preise.js`); im öffentlichen
+Datenbestand (`daten.js`) stehen keine Einkaufspreise. Jeder Kunde bekommt eine Kundennummer und ein
+Passwort; daraus wird im Browser (PBKDF2, 250.000 Runden) der Schlüssel abgeleitet, der den
+Preisschlüssel des Kunden entpackt. Die Website enthält weder Passwörter noch Klartextpreise.
+
+```bash
+python3 website/scripts/zugang.py anlegen --kundennummer 10001 --firma "Weinhandlung Muster" --passwort "..."
+python3 website/scripts/zugang.py anlegen --kundennummer 10002 --firma "Vinothek Beispiel"      # Passwort wird erzeugt
+python3 website/scripts/zugang.py liste
+python3 website/scripts/zugang.py entfernen --kundennummer 10001
+python3 website/build.py
+```
+
+* `daten/schluessel.key` ist der Preisschlüssel (geheim, nicht im Repository, sichern!).
+* `daten/zugaenge.json` enthält nur eingepackte Schlüssel je Kunde und darf ins Repository.
+* Demo-Zugänge im Entwurf: 10001 / Probe-2026 und 10002 / Degustation-26. Vor dem Livegang
+  entfernen und echte Kundennummern aus Lexware anlegen.
+* Passwort vergessen: Zugang mit `anlegen` einfach neu setzen und bauen.
+* Grenzen: Ein angemeldeter Kunde könnte die Preisliste weitergeben (wie beim gedruckten Katalog).
+  Wer die Zugänge zentral sperren oder Logins protokollieren will, braucht später einen kleinen
+  Server (gleicher Endpunkt wie für den Bestellversand).
+
 ## Bestellportal
 
 Der Bestellkorb liegt im Browser des Besuchers (localStorage). Das Portal prüft Mindestmengen je

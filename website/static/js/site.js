@@ -53,7 +53,7 @@
   /* Mengenfelder und "In die Bestellung" überall per Delegation */
   document.addEventListener('click', function (e) {
     var b = e.target.closest('.qty-plus, .qty-minus'); if (b) { var inp = $('input', b.parentElement); var ve = +inp.getAttribute('data-ve') || 6; var v = (+inp.value || 0) + (b.classList.contains('qty-plus') ? ve : -ve); inp.value = Math.max(0, v); var row = b.closest('[data-id]'); if (row && row.classList.contains('brow')) WS.setze(row.getAttribute('data-id'), +inp.value, true); return; }
-    var a = e.target.closest('.add'); if (a) { var row2 = a.closest('.prow, .pk, .brow') || a; var id = a.getAttribute('data-id') || row2.getAttribute('data-id'); var inp2 = row2 ? $('.pmenge input', row2) : null; var q = inp2 ? (+inp2.value || 0) : 0; var ve2 = inp2 ? (+inp2.getAttribute('data-ve') || 6) : 6; if (q <= 0) q = ve2; if (row2 && row2.classList.contains('pk') || row2 && row2.classList.contains('prow')) { WS.setze(id, q); var p = PROD[id]; toast(q + ' Fl. ' + (p ? p.name : '') + ' in der Bestellung'); WS.oeffneKorb(true); } else WS.lege(id, q); return; }
+    var a = e.target.closest('.add'); if (a) { if (!(window.WS_AUTH && WS_AUTH.kunde)) { if (window.WS_AUTH) WS_AUTH.oeffne(); return; } var row2 = a.closest('.prow, .pk, .brow') || a; var id = a.getAttribute('data-id') || row2.getAttribute('data-id'); var inp2 = row2 ? $('.pmenge input', row2) : null; var q = inp2 ? (+inp2.value || 0) : 0; var ve2 = inp2 ? (+inp2.getAttribute('data-ve') || 6) : 6; if (q <= 0) q = ve2; if (row2 && row2.classList.contains('pk') || row2 && row2.classList.contains('prow')) { WS.setze(id, q); var p = PROD[id]; toast(q + ' Fl. ' + (p ? p.name : '') + ' in der Bestellung'); WS.oeffneKorb(true); } else WS.lege(id, q); return; }
   });
   document.addEventListener('change', function (e) { var inp = e.target; if (inp.matches('.brow .pmenge input')) { var row = inp.closest('[data-id]'); WS.setze(row.getAttribute('data-id'), +inp.value || 0, true); } });
   var kb = $('#korbBtn'); if (kb) kb.addEventListener('click', function () { WS.oeffneKorb(); });
@@ -61,6 +61,7 @@
   var sch = $('#schleier'); if (sch) sch.addEventListener('click', WS.schliesseKorb);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { WS.schliesseKorb(); var lb = $('#lightbox'); if (lb) lb.hidden = true; } });
   WS.aktualisiere();
+  document.addEventListener('auth:geaendert', function () { WS.aktualisiere(); if (window.WS_AUTH) WS_AUTH.renderPreise(); });
 
   /* ---------- Navigation ---------- */
   var nav = $('#nav'), burger = $('#burger'), mnav = $('#mnav'), totop = $('#totop'), fort = $('#fortschritt');
@@ -151,18 +152,20 @@
       $$('button', b.parentElement).forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       var i = schritte.indexOf(b.closest('.wb-schritt')); schritte[i].classList.add('fertig');
       if (schritte[i + 1]) { schritte[i + 1].classList.add('aktiv'); schritte[i + 1].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' }); }
-      if (wahl.anlass && wahl.farbe && wahl.preis) empfehle();
+      var an = !!(window.WS_AUTH && WS_AUTH.kunde);
+      if (wahl.anlass && wahl.farbe && (wahl.preis || !an)) empfehle();
     });
     function empfehle() {
-      var pr = wahl.preis.split('-').map(Number); var alle = DATEN.produkte.filter(function (p) { return p.listenpreis; });
+      var an = !!(window.WS_AUTH && WS_AUTH.kunde); var pr = (wahl.preis || '0-999').split('-').map(Number); var alle = an ? DATEN.produkte.filter(function (p) { return p.listenpreis; }) : DATEN.produkte.slice();
       function score(p) {
         var s = 0;
         if (wahl.farbe !== 'egal') { if (p.kategorie === wahl.farbe) s += 5; else return -1; }
-        if (p.listenpreis >= pr[0] && p.listenpreis <= pr[1]) s += 4; else s -= 3;
+        if (!an) { if (wahl.anlass === 'alltag' && p.uvp && p.uvp <= 9) s += 3; if (wahl.anlass === 'premium' && p.uvp && p.uvp >= 18) s += 2; }
+        else if (p.listenpreis >= pr[0] && p.listenpreis <= pr[1]) s += 4; else s -= 3;
         var aw = (p.auszeichnungen || []).length, h = (p.hinweis || '').toLowerCase();
         if (wahl.anlass === 'aperitif') s += (p.kategorie === 'Schaumwein' ? 4 : p.kategorie === 'Weisswein' || p.kategorie === 'Rosé' ? 2 : 0);
-        if (wahl.anlass === 'alltag') s += (p.listenpreis <= 6 ? 3 : 0) + (p.aktion ? 1 : 0);
-        if (wahl.anlass === 'premium') s += Math.min(aw, 3) + (p.listenpreis >= 8 ? 2 : 0);
+        if (wahl.anlass === 'alltag') s += (an && p.listenpreis <= 6 ? 3 : 0) + (p.aktion ? 1 : 0);
+        if (wahl.anlass === 'premium') s += Math.min(aw, 3) + (an && p.listenpreis >= 8 ? 2 : 0);
         if (wahl.anlass === 'geschenk') s += (/holzkiste|geschenk|limitiert|magnum|einzelkiste/.test(h) ? 4 : 0) + (p.uvp && p.uvp >= 20 ? 2 : 0) + Math.min(aw, 2);
         if (wahl.farbe === 'egal' && wahl.anlass === 'aperitif' && p.kategorie === 'Rotwein') s -= 2;
         return s + Math.random() * 1.5;
@@ -170,7 +173,7 @@
       var liste = alle.map(function (p) { return [score(p), p]; }).filter(function (x) { return x[0] >= 0; }).sort(function (a, b) { return b[0] - a[0]; }).slice(0, 3).map(function (x) { return x[1]; });
       var box = $('#wbErgebnis'); box.hidden = false;
       if (!liste.length) { box.innerHTML = '<h3>Da finden wir nichts Passendes.</h3><p>Versuchen Sie eine andere Preisklasse.</p>'; return; }
-      box.innerHTML = '<h3>Unsere drei Vorschläge für Sie</h3><div class="wb-tipps">' + liste.map(function (p) { var w = WG[p.weingut_slug] || {}; return '<article class="pk" data-id="' + p.id + '"><div class="pk-kopf"><img src="' + root + 'static/img/' + (w.logo || '') + '" alt=""><a href="' + root + (p.weingut_url || 'weingueter/') + '">' + esc(p.weingut_name || '') + '</a><span class="kat-dot kat-' + esc(p.kategorie) + '"></span></div><h3>' + esc(p.name) + '</h3><div class="pmeta">' + [p.jahrgang, p.groesse_cl + ' cl', p.rebsorte].filter(Boolean).map(esc).join(' · ') + '</div>' + (p.beschreibung ? '<p class="pk-desc">' + esc(p.beschreibung) + '</p>' : '') + ((p.auszeichnungen || []).length ? '<ul class="awards">' + p.auszeichnungen.slice(0, 2).map(function (a) { return '<li>🏅 ' + esc(a) + '</li>'; }).join('') + '</ul>' : '') + '<div class="pk-fuss"><div class="ppreis"><b>' + fmt(p.listenpreis) + '</b>' + (p.uvp ? '<span class="uvp">UVP ' + fmt(p.uvp) + '</span>' : '') + '</div><div class="pmenge"><button type="button" class="qty-minus">−</button><input type="number" min="0" step="' + (p.ve || 6) + '" value="' + (p.ve || 6) + '" data-ve="' + (p.ve || 6) + '" aria-label="Flaschen"><button type="button" class="qty-plus">+</button></div><button type="button" class="btn klein add" data-id="' + p.id + '">In die Bestellung</button></div></article>'; }).join('') + '</div><button type="button" class="btn ghost klein wb-reset" id="wbReset">Noch einmal</button>';
+      box.innerHTML = '<h3>Unsere drei Vorschläge für Sie</h3><div class="wb-tipps">' + liste.map(function (p) { var w = WG[p.weingut_slug] || {}; return '<article class="pk" data-id="' + p.id + '"><div class="pk-kopf"><img src="' + root + 'static/img/' + (w.logo || '') + '" alt=""><a href="' + root + (p.weingut_url || 'weingueter/') + '">' + esc(p.weingut_name || '') + '</a><span class="kat-dot kat-' + esc(p.kategorie) + '"></span></div><h3>' + esc(p.name) + '</h3><div class="pmeta">' + [p.jahrgang, p.groesse_cl + ' cl', p.rebsorte].filter(Boolean).map(esc).join(' · ') + '</div>' + (p.beschreibung ? '<p class="pk-desc">' + esc(p.beschreibung) + '</p>' : '') + ((p.auszeichnungen || []).length ? '<ul class="awards">' + p.auszeichnungen.slice(0, 2).map(function (a) { return '<li>🏅 ' + esc(a) + '</li>'; }).join('') + '</ul>' : '') + '<div class="pk-fuss"><div class="ppreis"><b' + (p.listenpreis == null ? ' class="gesperrt"' : '') + '>' + (p.listenpreis == null ? 'Preis nach Anmeldung' : fmt(p.listenpreis)) + '</b>' + (p.uvp ? '<span class="uvp">UVP ' + fmt(p.uvp) + '</span>' : '') + '</div><div class="pmenge"><button type="button" class="qty-minus">−</button><input type="number" min="0" step="' + (p.ve || 6) + '" value="' + (p.ve || 6) + '" data-ve="' + (p.ve || 6) + '" aria-label="Flaschen"><button type="button" class="qty-plus">+</button></div><button type="button" class="btn klein add" data-id="' + p.id + '">In die Bestellung</button></div></article>'; }).join('') + '</div><button type="button" class="btn ghost klein wb-reset" id="wbReset">Noch einmal</button>';
       $('#wbReset').addEventListener('click', function () { wahl = {}; box.hidden = true; schritte.forEach(function (s, i) { s.classList.toggle('aktiv', i === 0); s.classList.remove('fertig'); $$('button', s).forEach(function (x) { x.setAttribute('aria-pressed', 'false'); }); }); });
       konfetti(); WS.aktualisiere();
     }

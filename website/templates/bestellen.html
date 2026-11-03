@@ -10,7 +10,19 @@
   </div>
 </section>
 <section class="band on-weiss portal">
-  <div class="wrap portal-layout">
+  <div class="wrap gate" id="portalGate">
+    <div class="gate-karte">
+      <div><span class="eyebrow">Fachhändler-Zugang</span><h2>Bitte melden Sie sich an.</h2><p class="lead">Das Bestellportal und unsere Einkaufspreise sind Fachhändlern mit Kundenkonto vorbehalten. Noch kein Zugang? Rufen Sie uns an ({{ texte.telefon }}) oder schreiben Sie an {{ texte.email }}, wir richten Ihr Konto innerhalb eines Werktags ein.</p></div>
+      <form class="form login-form" data-login-form novalidate>
+        <input name="kundennummer" placeholder="Kundennummer" autocomplete="username" required>
+        <input name="passwort" type="password" placeholder="Passwort" autocomplete="current-password" required>
+        <label class="chk"><input type="checkbox" name="merken"><span>Auf diesem Gerät angemeldet bleiben</span></label>
+        <button class="btn" type="submit">Anmelden</button>
+        <div class="ok fehler"></div>
+      </form>
+    </div>
+  </div>
+  <div class="wrap portal-layout nur-angemeldet">
     <div class="portal-haupt">
       <div id="bestellLeer" class="leer gross" hidden>
         <b>Noch nichts in der Bestellung.</b>

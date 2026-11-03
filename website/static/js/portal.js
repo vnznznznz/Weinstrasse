@@ -7,6 +7,7 @@
   var LAENDER = ['Italien', 'Frankreich', 'Spanien', 'Portugal', 'Bulgarien', 'England', 'Argentinien', 'Australien'];
   var KATS = ['Schaumwein', 'Weisswein', 'Rosé', 'Rotwein', 'Süsswein', 'Portwein', 'Spirituose', 'Alkoholfrei', 'Olivenöl', 'Cidre', 'Sonstiges'];
   var KAT_LABEL = { Weisswein: 'Weißwein', Süsswein: 'Süßwein' };
+  function an() { return !!(window.WS_AUTH && WS_AUTH.kunde); }
 
   function karte(p, mitBeschreibung) {
     var w = WG[p.weingut_slug] || {}; var q = WS.menge(p.id); var ve = p.ve || 6;
@@ -15,9 +16,9 @@
       '<h3>' + esc(p.name) + '</h3><div class="pmeta">' + [p.jahrgang, p.groesse_cl ? p.groesse_cl + ' cl' : null, p.region, p.rebsorte].filter(Boolean).map(esc).join(' · ') + (p.bio ? ' · <i class="bio">BIO</i>' : '') + (p.hinweis ? ' · ' + esc(p.hinweis) : '') + '</div>' +
       (mitBeschreibung && p.beschreibung ? '<p class="pk-desc">' + esc(p.beschreibung) + '</p>' : '') +
       ((p.auszeichnungen || []).length ? '<ul class="awards">' + p.auszeichnungen.slice(0, 3).map(function (a) { return '<li>🏅 ' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
-      '<div class="pk-fuss"><div class="ppreis"><b>' + fmt(p.listenpreis || 0) + (p.zusatzsteuer ? '<span class="stern" title="' + esc(p.zusatzsteuer) + '">*</span>' : '') + '</b>' + (p.uvp ? '<span class="uvp">UVP ' + fmt(p.uvp) + '</span>' : '') + (p.aktion ? '<span class="aktion">' + esc(p.aktion) + (p.aktionspreis ? ' → ' + fmt(p.aktionspreis) : '') + '</span>' : '') + '</div>' +
+      '<div class="pk-fuss"><div class="ppreis"><b' + (p.listenpreis == null ? ' class="gesperrt"' : '') + '>' + (p.listenpreis == null ? (an() ? 'Preis auf Anfrage' : 'Preis nach Anmeldung') : fmt(p.listenpreis)) + (p.zusatzsteuer ? '<span class="stern" title="' + esc(p.zusatzsteuer) + '">*</span>' : '') + '</b>' + (p.uvp ? '<span class="uvp">UVP ' + fmt(p.uvp) + '</span>' : '') + (p.aktion ? '<span class="aktion">' + esc(p.aktion) + (p.aktionspreis ? ' → ' + fmt(p.aktionspreis) : '') + '</span>' : '') + '</div>' +
       '<div class="pmenge"><button type="button" class="qty-minus" aria-label="weniger">−</button><input type="number" min="0" step="' + ve + '" value="' + (q || 0) + '" data-ve="' + ve + '" aria-label="Flaschen"><button type="button" class="qty-plus" aria-label="mehr">+</button></div>' +
-      '<button type="button" class="btn klein add" data-id="' + p.id + '">' + (q ? 'Menge übernehmen' : 'In die Bestellung') + '</button></div></article>';
+      '<button type="button" class="btn klein add' + (an() ? '' : ' gesperrt') + '" data-id="' + p.id + '">' + (!an() ? 'Anmelden zum Bestellen' : q ? 'Menge übernehmen' : 'In die Bestellung') + '</button></div></article>';
   }
 
   /* ---------------- Katalog ---------------- */
@@ -42,7 +43,7 @@
       var r = D.produkte.filter(function (p) {
         if (f.land !== 'alle' && p.land !== f.land) return false;
         if (f.kat !== 'alle' && p.kategorie !== f.kat) return false;
-        if (f.preis < maxPreis && (p.listenpreis || 0) > f.preis) return false;
+        if (an() && f.preis < maxPreis && (p.listenpreis || 0) > f.preis) return false;
         if (f.awards && !(p.auszeichnungen || []).length) return false;
         if (f.bio && !p.bio) return false;
         if (f.aktion && !p.aktion) return false;
@@ -61,6 +62,7 @@
       $('#kMehr').hidden = r.length <= teil.length;
     }
     render();
+    document.addEventListener('auth:geaendert', function () { render(); });
     document.addEventListener('korb:geaendert', function () { $$('.pk', liste).forEach(function (el) { var q = WS.menge(el.dataset.id); el.classList.toggle('im-korb', q > 0); var b = $('.add', el); if (b) b.textContent = q ? 'Menge übernehmen' : 'In die Bestellung'; }); });
   }
 
@@ -98,6 +100,8 @@
       $('#sWaren').textContent = fmt(waren); $('#sFracht').textContent = frachtSumme ? '≈ ' + fmt(frachtSumme) + (frachtUnbekannt ? ' +' : '') : (ids.length ? 'auf Anfrage' : '–'); $('#sGesamt').textContent = fmt(waren + frachtSumme);
       WS.aktualisiere();
     }
+    function tor() { var g = $('#portalGate'); if (g) g.hidden = an(); }
+    tor(); document.addEventListener('auth:geaendert', function () { tor(); render(); });
     gruppen.addEventListener('click', function (e) { var b = e.target.closest('[data-remove]'); if (b) { WS.setze(b.dataset.remove, 0, true); render(); } });
     document.addEventListener('korb:geaendert', function () { if (!gruppen._busy) render(); });
     gruppen.addEventListener('input', function (e) { if (e.target.matches('.pmenge input')) { gruppen._busy = true; var row = e.target.closest('.brow'); WS.setze(row.dataset.id, +e.target.value || 0, true); gruppen._busy = false; var p = PROD[row.dataset.id]; $('.bsumme', row).textContent = fmt((p.listenpreis || 0) * (+e.target.value || 0)); } });

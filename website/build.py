@@ -18,6 +18,11 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:  # pragma: no cover
+    AESGCM = None
+
 HIER = Path(__file__).resolve().parent
 DATEN = HIER / "daten"
 DIST = HIER / "dist"
@@ -128,10 +133,10 @@ def main() -> None:
     DIST.mkdir(parents=True)
     shutil.copytree(HIER / "static", DIST / "static")
 
-    # Daten für Katalog, Portal und Weinberater als JS (funktioniert auch per file://)
+    # Öffentliche Daten für Katalog, Portal und Weinberater als JS (ohne Einkaufspreise)
     daten_js = {
         "produkte": [{k: p.get(k) for k in ("id", "weingut_slug", "weingut_name", "weingut_url", "land", "region", "kategorie",
-                                             "name", "jahrgang", "groesse_cl", "listenpreis", "uvp", "aktion", "aktionspreis",
+                                             "name", "jahrgang", "groesse_cl", "uvp",
                                              "zusatzsteuer", "rebsorte", "beschreibung", "auszeichnungen", "bio", "hinweis", "ve")}
                      for p in produkte],
         "weingueter": [{k: w.get(k) for k in ("slug", "name", "land", "land_slug", "logo", "hero", "mindestmenge", "mindestmenge_text",
@@ -139,6 +144,26 @@ def main() -> None:
     }
     (DIST / "static" / "js" / "daten.js").write_text(
         "window.WS_DATEN=" + json.dumps(daten_js, ensure_ascii=False) + ";", encoding="utf-8")
+
+    # Einkaufspreise verschlüsselt (AES-256-GCM); Schlüssel nur über Kundenzugang (siehe scripts/zugang.py)
+    preise = {p["id"]: [p.get("listenpreis"), p.get("aktion"), p.get("aktionspreis")] for p in produkte}
+    schluessel_pfad = DATEN / "schluessel.key"
+    zugaenge = lade("zugaenge.json", [])
+    if AESGCM is None or not schluessel_pfad.exists():
+        print("WARNUNG: kein Preisschlüssel (daten/schluessel.key) oder 'cryptography' fehlt. "
+              "Zugang anlegen mit: python3 website/scripts/zugang.py anlegen ...  Preise bleiben unsichtbar.")
+        preise_js = "window.WS_PREISE=null;"
+    else:
+        import base64
+        import secrets
+        master = bytes.fromhex(schluessel_pfad.read_text().strip())
+        iv = secrets.token_bytes(12)
+        chiffre = AESGCM(master).encrypt(iv, json.dumps(preise, ensure_ascii=False).encode("utf-8"), None)
+        preise_js = "window.WS_PREISE=" + json.dumps({"iv": base64.b64encode(iv).decode(), "daten": base64.b64encode(chiffre).decode()}) + ";"
+    (DIST / "static" / "js" / "preise.js").write_text(preise_js, encoding="utf-8")
+    oeffentlich = [{k: z[k] for k in ("kundennummer", "firma", "salt", "iv", "schluessel", "iterationen")} for z in zugaenge]
+    (DIST / "static" / "js" / "zugaenge.js").write_text(
+        "window.WS_ZUGAENGE=" + json.dumps(oeffentlich, ensure_ascii=False) + ";", encoding="utf-8")
 
     def schreibe(pfad: str, vorlage: str, **ctx):
         tiefe = pfad.count("/") + 1 if pfad else 0
@@ -165,7 +190,8 @@ def main() -> None:
 
     anzahl = sum(1 for _ in DIST.rglob("*.html"))
     groesse = sum(f.stat().st_size for f in DIST.rglob("*") if f.is_file()) / 1e6
-    print(f"dist/ geschrieben: {anzahl} HTML-Seiten, {len(produkte)} Produkte, {len(weingueter)} Weingüter, {groesse:.1f} MB")
+    print(f"dist/ geschrieben: {anzahl} HTML-Seiten, {len(produkte)} Produkte, {len(weingueter)} Weingüter, "
+          f"{len(zugaenge)} Kundenzugänge, {groesse:.1f} MB")
 
 
 if __name__ == "__main__":

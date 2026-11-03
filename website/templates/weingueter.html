@@ -27,7 +27,7 @@
           <div class="wg-karte-body">
             <b>{{ w.name }}</b>
             <span class="ort">{{ w.ort or w.region_titel or w.land }}</span>
-            <span class="zeile">{{ w.anzahl_produkte }} Artikel{% if w.preis_ab %} · ab {{ w.preis_ab_text }}{% endif %} · ab {{ w.mindestmenge }} Fl.</span>
+            <span class="zeile">{{ w.anzahl_produkte }} Artikel · ab {{ w.mindestmenge }} Fl.</span>
             {% if w.neuentdeckung %}<span class="tag neu">Neuentdeckung</span>{% endif %}
           </div>
         </a>

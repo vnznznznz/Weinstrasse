@@ -1,0 +1,20 @@
+[
+ {
+  "kundennummer": "10001",
+  "firma": "Weinhandlung Muster",
+  "ansprechpartner": "Max Muster",
+  "salt": "3JNth9VjC34q50RlyWFoMw==",
+  "iv": "rHklW2zdWp2DJZkB",
+  "schluessel": "QNuPOoGWmjYzCSO/gzMGY1ANs0WyHHtb2flVfkm9Ne3v5xhDfs5fLgAHt/Q7sGiy",
+  "iterationen": 250000
+ },
+ {
+  "kundennummer": "10002",
+  "firma": "Vinothek am Markt",
+  "ansprechpartner": "",
+  "salt": "EpQvbAsnCUvCPdhJQHr07g==",
+  "iv": "F1kKNBLoTXb1JDHd",
+  "schluessel": "Ytylmk9q37PWcRPaGDKnFvzxCm7gHZ4jkPQkKBmsGiRUP2hJhuJ22vymlMk70OEy",
+  "iterationen": 250000
+ }
+]
